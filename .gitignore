@@ -1,0 +1,14 @@
+#dev
+.python-version
+
+# venv
+venv/
+
+# env
+.env
+
+# logs
+logs/
+
+# cursor
+.cursor
