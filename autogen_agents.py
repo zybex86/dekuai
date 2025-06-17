@@ -23,6 +23,10 @@ from agent_tools import (
     generate_personalized_recommendations,
     compare_games_for_user,
     get_recommendation_insights,
+    # Phase 3 tools - Review Generation
+    generate_comprehensive_game_review,
+    generate_quick_game_opinion,
+    compare_games_with_reviews,
 )
 
 # Validate API key before creating agents
@@ -222,6 +226,38 @@ def analyze_game_for_users(
 ) -> Dict[str, Any]:
     """Wrapper function for get_recommendation_insights tool (Point 3 of Phase 2)"""
     return get_recommendation_insights(game_name, user_preferences)
+
+
+# Phase 3 Point 1: Comprehensive Review Generation Tools
+@user_proxy.register_for_execution()
+@review_generator.register_for_llm(
+    description="Generate comprehensive game review combining all analyses from Phase 1, 2, and 3 with detailed ratings and recommendations - Input: game_name (str), include_recommendations (bool) - Output: Dict with complete review including rating, verdict, strengths, weaknesses"
+)
+def create_comprehensive_review(
+    game_name: str, include_recommendations: bool = True
+) -> Dict[str, Any]:
+    """Wrapper function for generate_comprehensive_game_review tool (Phase 3 Point 1)"""
+    return generate_comprehensive_game_review(game_name, include_recommendations)
+
+
+@user_proxy.register_for_execution()
+@review_generator.register_for_llm(
+    description="Generate quick game opinion with essential analysis for fast assessment - Input: game_name (str) - Output: Dict with summarized opinion including rating, recommendation, and key points"
+)
+def create_quick_opinion(game_name: str) -> Dict[str, Any]:
+    """Wrapper function for generate_quick_game_opinion tool (Phase 3 Point 1)"""
+    return generate_quick_game_opinion(game_name)
+
+
+@user_proxy.register_for_execution()
+@review_generator.register_for_llm(
+    description="Compare multiple games with full review analysis and detailed ranking - Input: game_names (List[str]), comparison_focus (str) - Output: Dict with detailed comparison including winner, ranking, and explanations"
+)
+def compare_games_with_full_reviews(
+    game_names: List[str], comparison_focus: str = "overall"
+) -> Dict[str, Any]:
+    """Wrapper function for compare_games_with_reviews tool (Phase 3 Point 1)"""
+    return compare_games_with_reviews(game_names, comparison_focus)
 
 
 def create_analysis_team() -> list:

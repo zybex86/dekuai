@@ -28,6 +28,13 @@ from utils.recommendation_engine import (
     UserPreference,
     GameRecommendation,
 )
+from utils.review_generator import (
+    ReviewGenerator,
+    GameReview,
+    ReviewConfidence,
+    RecommendationType,
+    format_review_for_display,
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -525,7 +532,366 @@ def _generate_advanced_insights(comprehensive_result: Dict[str, Any]) -> List[st
     elif score <= 4.0:
         insights.append("🚨 Low overall value score - consider waiting or skipping")
 
-    return insights[:4]  # Limit to 4 most important insights
+    return insights
+
+
+def generate_comprehensive_game_review(
+    game_name: str, include_recommendations: bool = True
+) -> Dict[str, Any]:
+    """
+    Generuje kompleksową opinię o grze łącząc wszystkie analizy.
+
+    DESCRIPTION: Generate comprehensive game review combining all analyses from Phase 1, 2, and 3
+    ARGS:
+        game_name (str): Nazwa gry do przeglądu
+        include_recommendations (bool): Czy dołączyć analizę rekomendacji dla różnych użytkowników
+    RETURNS:
+        Dict: Kompletna opinia o grze z wszystkimi sekcjami
+    RAISES:
+        ValueError: Gdy nie można znaleźć danych o grze
+    """
+    try:
+        logger.info(f"🎬 Starting comprehensive review generation for: {game_name}")
+
+        # Step 1: Collect game data
+        logger.info("📡 Step 1: Collecting game data...")
+        game_data = search_and_scrape_game(game_name)
+
+        if not game_data.get("success", False):
+            error_msg = f"Could not retrieve game data for '{game_name}'"
+            logger.error(f"❌ {error_msg}")
+            return {"success": False, "error": error_msg, "game_name": game_name}
+
+        game_title = game_data.get("title", game_name)
+        logger.info(f"✅ Game data collected for: {game_title}")
+
+        # Step 2: Basic value analysis
+        logger.info("💰 Step 2: Performing basic value analysis...")
+        basic_analysis = calculate_value_score(game_data)
+
+        if not basic_analysis.get("success", False):
+            logger.warning("⚠️ Basic analysis failed, using fallback")
+            basic_analysis = {"success": False, "value_metrics": {}}
+
+        # Step 3: Advanced value analysis
+        logger.info("🚀 Step 3: Performing advanced value analysis...")
+        advanced_analysis = calculate_advanced_value_analysis(game_data)
+
+        if not advanced_analysis.get("success", False):
+            logger.warning("⚠️ Advanced analysis failed, using fallback")
+            advanced_analysis = {"success": False, "comprehensive_analysis": {}}
+
+        # Step 4: Recommendation analysis (optional)
+        recommendation_analysis = None
+        if include_recommendations:
+            logger.info("🎯 Step 4: Performing recommendation analysis...")
+            try:
+                # Use indie_lover as default profile for single-game analysis
+                rec_result = get_recommendation_insights(game_name)
+                if rec_result.get("success", False):
+                    recommendation_analysis = rec_result
+                    logger.info("✅ Recommendation analysis completed")
+                else:
+                    logger.warning("⚠️ Recommendation analysis failed")
+            except Exception as e:
+                logger.warning(f"⚠️ Recommendation analysis error: {e}")
+
+        # Step 5: Generate comprehensive review
+        logger.info("📝 Step 5: Generating comprehensive review...")
+        review = _review_generator.generate_comprehensive_review(
+            game_data=game_data,
+            basic_analysis=basic_analysis,
+            advanced_analysis=advanced_analysis,
+            recommendation_analysis=recommendation_analysis,
+        )
+
+        # Step 6: Format for output
+        logger.info("📄 Step 6: Formatting review for output...")
+        formatted_review = format_review_for_display(review)
+
+        # Create comprehensive result
+        result = {
+            "success": True,
+            "game_title": review.game_title,
+            "review_data": {
+                "overall_rating": review.overall_rating,
+                "recommendation": review.recommendation.value,
+                "confidence": review.confidence.value,
+                "strengths": review.strengths,
+                "weaknesses": review.weaknesses,
+                "target_audience": review.target_audience,
+                "value_assessment": review.value_assessment,
+                "price_recommendation": review.price_recommendation,
+                "timing_advice": review.timing_advice,
+                "final_verdict": review.final_verdict,
+                "reviewer_notes": review.reviewer_notes,
+                "data_sources": review.data_sources,
+            },
+            "quality_scores": {
+                "gameplay": review.gameplay_score,
+                "graphics": review.graphics_score,
+                "story": review.story_score,
+                "replay_value": review.replay_value,
+            },
+            "market_context": {
+                "genre_performance": review.genre_performance,
+                "market_position": review.market_position,
+                "competition_analysis": review.competition_analysis,
+            },
+            "underlying_analyses": {
+                "basic_analysis_success": basic_analysis.get("success", False),
+                "advanced_analysis_success": advanced_analysis.get("success", False),
+                "recommendation_analysis_success": recommendation_analysis is not None,
+            },
+            "formatted_review": formatted_review,
+            "review_metadata": {
+                "review_date": review.review_date.isoformat(),
+                "confidence_level": review.confidence.value,
+                "data_completeness": _assess_data_completeness(game_data),
+            },
+        }
+
+        logger.info(f"✅ Comprehensive review generated successfully!")
+        logger.info(
+            f"📊 Rating: {review.overall_rating:.1f}/10, Recommendation: {review.recommendation.value}"
+        )
+
+        return result
+
+    except Exception as e:
+        error_msg = f"Error generating comprehensive review: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {"success": False, "error": error_msg, "game_name": game_name}
+
+
+def generate_quick_game_opinion(game_name: str) -> Dict[str, Any]:
+    """
+    Generuje szybką opinię o grze (bez pełnej analizy rekomendacji).
+
+    DESCRIPTION: Generate quick game opinion with essential analysis only
+    ARGS:
+        game_name (str): Nazwa gry do szybkiej opinii
+    RETURNS:
+        Dict: Podstawowa opinia z kluczowymi informacjami
+    """
+    try:
+        logger.info(f"⚡ Generating quick opinion for: {game_name}")
+
+        # Use comprehensive review but without recommendations to speed up
+        result = generate_comprehensive_game_review(
+            game_name, include_recommendations=False
+        )
+
+        if not result.get("success", False):
+            return result
+
+        # Extract quick summary
+        review_data = result.get("review_data", {})
+        quick_opinion = {
+            "success": True,
+            "game_title": result.get("game_title"),
+            "quick_summary": {
+                "rating": f"{review_data.get('overall_rating', 0):.1f}/10",
+                "recommendation": review_data.get("recommendation", "unknown")
+                .replace("_", " ")
+                .title(),
+                "confidence": review_data.get("confidence", "unknown")
+                .replace("_", " ")
+                .title(),
+                "key_strength": (
+                    review_data.get("strengths", ["Unknown"])[0]
+                    if review_data.get("strengths")
+                    else "Unknown"
+                ),
+                "main_concern": (
+                    review_data.get("weaknesses", ["None identified"])[0]
+                    if review_data.get("weaknesses")
+                    else "None identified"
+                ),
+                "target_audience": ", ".join(
+                    review_data.get("target_audience", ["General gamers"])[:2]
+                ),
+            },
+            "one_liner": review_data.get("final_verdict", "Opinion not available")[:100]
+            + "...",
+            "buy_advice": review_data.get(
+                "timing_advice", "No timing advice available"
+            ),
+        }
+
+        logger.info(
+            f"✅ Quick opinion generated: {quick_opinion['quick_summary']['rating']}, {quick_opinion['quick_summary']['recommendation']}"
+        )
+
+        return quick_opinion
+
+    except Exception as e:
+        error_msg = f"Error generating quick opinion: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {"success": False, "error": error_msg, "game_name": game_name}
+
+
+def compare_games_with_reviews(
+    game_names: List[str], comparison_focus: str = "overall"
+) -> Dict[str, Any]:
+    """
+    Porównuje gry z pełnymi opiniami.
+
+    DESCRIPTION: Compare multiple games with full review analysis
+    ARGS:
+        game_names (List[str]): Lista nazw gier do porównania
+        comparison_focus (str): Fokus porównania ('overall', 'value', 'quality')
+    RETURNS:
+        Dict: Porównanie gier z pełnymi opiniami
+    """
+    try:
+        logger.info(f"🆚 Comparing {len(game_names)} games with full reviews...")
+
+        if len(game_names) < 2:
+            error_msg = "Need at least 2 games to compare"
+            logger.error(f"❌ {error_msg}")
+            return {"success": False, "error": error_msg}
+
+        # Generate reviews for all games
+        game_reviews = []
+        failed_games = []
+
+        for game_name in game_names:
+            try:
+                logger.info(f"📝 Generating review for: {game_name}")
+                review_result = generate_quick_game_opinion(game_name)
+
+                if review_result.get("success", False):
+                    game_reviews.append(review_result)
+                    logger.info(f"✅ Review completed for: {game_name}")
+                else:
+                    failed_games.append(game_name)
+                    logger.warning(f"⚠️ Review failed for: {game_name}")
+
+            except Exception as e:
+                failed_games.append(game_name)
+                logger.error(f"❌ Error reviewing {game_name}: {e}")
+
+        if not game_reviews:
+            error_msg = "No games could be reviewed successfully"
+            logger.error(f"❌ {error_msg}")
+            return {"success": False, "error": error_msg, "failed_games": failed_games}
+
+        # Sort games based on comparison focus
+        if comparison_focus == "value":
+            # Sort by value-related factors
+            game_reviews.sort(key=lambda x: x["quick_summary"]["rating"], reverse=True)
+        elif comparison_focus == "quality":
+            # Sort by quality score
+            game_reviews.sort(
+                key=lambda x: float(x["quick_summary"]["rating"].split("/")[0]),
+                reverse=True,
+            )
+        else:  # overall
+            # Sort by overall rating
+            game_reviews.sort(
+                key=lambda x: float(x["quick_summary"]["rating"].split("/")[0]),
+                reverse=True,
+            )
+
+        # Create comparison result
+        comparison_result = {
+            "success": True,
+            "comparison_focus": comparison_focus,
+            "games_compared": len(game_reviews),
+            "failed_games": failed_games,
+            "winner": game_reviews[0] if game_reviews else None,
+            "ranking": [],
+            "comparison_summary": "",
+        }
+
+        # Create detailed ranking
+        for i, review in enumerate(game_reviews, 1):
+            summary = review["quick_summary"]
+            ranking_entry = {
+                "rank": i,
+                "game_title": review["game_title"],
+                "rating": summary["rating"],
+                "recommendation": summary["recommendation"],
+                "key_strength": summary["key_strength"],
+                "main_concern": summary["main_concern"],
+                "why_this_rank": _explain_review_ranking(i, len(game_reviews), summary),
+            }
+            comparison_result["ranking"].append(ranking_entry)
+
+        # Generate comparison summary
+        if game_reviews:
+            winner = game_reviews[0]
+            winner_name = winner["game_title"]
+            winner_rating = winner["quick_summary"]["rating"]
+
+            comparison_result["comparison_summary"] = (
+                f"'{winner_name}' emerges as the top choice with {winner_rating} rating. "
+            )
+
+            if len(game_reviews) > 1:
+                runner_up = game_reviews[1]
+                runner_up_name = runner_up["game_title"]
+                comparison_result[
+                    "comparison_summary"
+                ] += f"'{runner_up_name}' follows as a strong alternative."
+
+        logger.info(f"✅ Game comparison completed successfully!")
+        return comparison_result
+
+    except Exception as e:
+        error_msg = f"Error comparing games with reviews: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {"success": False, "error": error_msg}
+
+
+def _assess_data_completeness(game_data: Dict[str, Any]) -> str:
+    """Ocenia kompletność danych o grze."""
+    completeness_score = 0
+    max_score = 8
+
+    # Check key data fields
+    if game_data.get("title"):
+        completeness_score += 1
+    if game_data.get("current_eshop_price"):
+        completeness_score += 1
+    if game_data.get("MSRP"):
+        completeness_score += 1
+    if game_data.get("lowest_historical_price"):
+        completeness_score += 1
+    if game_data.get("metacritic_score"):
+        completeness_score += 1
+    if game_data.get("opencritic_score"):
+        completeness_score += 1
+    if game_data.get("genres"):
+        completeness_score += 1
+    if game_data.get("developer"):
+        completeness_score += 1
+
+    percentage = (completeness_score / max_score) * 100
+
+    if percentage >= 90:
+        return "Excellent"
+    elif percentage >= 75:
+        return "Good"
+    elif percentage >= 50:
+        return "Fair"
+    else:
+        return "Limited"
+
+
+def _explain_review_ranking(rank: int, total: int, summary: Dict[str, Any]) -> str:
+    """Wyjaśnia pozycję w rankingu."""
+    if rank == 1:
+        return f"Top choice with {summary['rating']} rating and {summary['recommendation']} recommendation"
+    elif rank == total:
+        return (
+            f"Last place but still worth considering for {summary['target_audience']}"
+        )
+    elif rank <= total // 3:
+        return f"Strong contender with {summary['rating']} rating"
+    else:
+        return f"Solid option with some trade-offs"
 
 
 def _calculate_analysis_confidence(
@@ -587,8 +953,9 @@ def _calculate_analysis_confidence(
         return "LOW"
 
 
-# Initialize global recommendation engine
+# Initialize global engines
 _recommendation_engine = RecommendationEngine()
+_review_generator = ReviewGenerator()
 
 
 def generate_personalized_recommendations(
