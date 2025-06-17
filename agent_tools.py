@@ -2128,7 +2128,7 @@ def adapt_review_for_context(
 
 
 def create_multi_platform_opinions(
-    game_name: str, platforms: List[str] = None
+    game_name: str, platforms: Optional[List[str]] = None
 ) -> Dict[str, Any]:
     """
     Tworzy opinie o grze dla wielu platform jednocześnie.

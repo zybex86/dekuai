@@ -156,7 +156,10 @@ You can execute functions and coordinate the conversation flow.""",
 # Register tools for agents
 @user_proxy.register_for_execution()
 @data_collector.register_for_llm(
-    description="Search for a game on DekuDeals and retrieve all available data - Input: game_name (str) - Output: Dict with complete game data"
+    description=(
+        "Search for a game on DekuDeals and retrieve all available data - "
+        "Input: game_name (str) - Output: Dict with complete game data"
+    )
 )
 def get_game_data(game_name: str) -> Dict[str, Any]:
     """Wrapper function for search_and_scrape_game tool"""
@@ -165,7 +168,10 @@ def get_game_data(game_name: str) -> Dict[str, Any]:
 
 @user_proxy.register_for_execution()
 @data_collector.register_for_llm(
-    description="Validate completeness of game data - Input: game_data (dict) - Output: validation report"
+    description=(
+        "Validate completeness of game data - "
+        "Input: game_data (dict) - Output: validation report"
+    )
 )
 def check_data_quality(game_data: Dict[str, Any]) -> Dict[str, Any]:
     """Wrapper function for validate_game_data tool"""
@@ -174,7 +180,10 @@ def check_data_quality(game_data: Dict[str, Any]) -> Dict[str, Any]:
 
 @user_proxy.register_for_execution()
 @price_analyzer.register_for_llm(
-    description="Extract key metrics from game data for analysis - Input: game_data (dict) - Output: metrics summary"
+    description=(
+        "Extract key metrics from game data for analysis - "
+        "Input: game_data (dict) - Output: metrics summary"
+    )
 )
 def get_analysis_metrics(game_data: Dict[str, Any]) -> Dict[str, Any]:
     """Wrapper function for extract_key_metrics tool"""
@@ -183,7 +192,10 @@ def get_analysis_metrics(game_data: Dict[str, Any]) -> Dict[str, Any]:
 
 @user_proxy.register_for_execution()
 @price_analyzer.register_for_llm(
-    description="Calculate value for money based on price and ratings - Input: game_data (Dict) - Output: Dict with comprehensive value analysis"
+    description=(
+        "Calculate value for money based on price and ratings - "
+        "Input: game_data (Dict) - Output: Dict with comprehensive value analysis"
+    )
 )
 def analyze_game_value(game_data: Dict[str, Any]) -> Dict[str, Any]:
     """Wrapper function for calculate_value_score tool"""
@@ -192,7 +204,11 @@ def analyze_game_value(game_data: Dict[str, Any]) -> Dict[str, Any]:
 
 @user_proxy.register_for_execution()
 @price_analyzer.register_for_llm(
-    description="Perform advanced comprehensive value analysis with genre factors, market position, and age considerations - Input: game_data (Dict) - Output: Dict with advanced analysis"
+    description=(
+        "Perform advanced comprehensive value analysis with genre factors, "
+        "market position, and age considerations - "
+        "Input: game_data (Dict) - Output: Dict with advanced analysis"
+    )
 )
 def analyze_advanced_value(game_data: Dict[str, Any]) -> Dict[str, Any]:
     """Wrapper function for calculate_advanced_value_analysis tool (Point 2 of Phase 2)"""
@@ -201,7 +217,11 @@ def analyze_advanced_value(game_data: Dict[str, Any]) -> Dict[str, Any]:
 
 @user_proxy.register_for_execution()
 @review_generator.register_for_llm(
-    description="Generate personalized game recommendations based on user preferences - Input: games_list (List[str]), user_preference (str), max_recommendations (int) - Output: Dict with personalized recommendations"
+    description=(
+        "Generate personalized game recommendations based on user preferences - "
+        "Input: games_list (List[str]), user_preference (str), max_recommendations (int) - "
+        "Output: Dict with personalized recommendations"
+    )
 )
 def get_personalized_recommendations(
     games_list: List[str],
@@ -216,7 +236,11 @@ def get_personalized_recommendations(
 
 @user_proxy.register_for_execution()
 @review_generator.register_for_llm(
-    description="Compare games for specific user preferences and provide ranked recommendations - Input: game_names (List[str]), user_preference (str) - Output: Dict with comparison and ranking"
+    description=(
+        "Compare games for specific user preferences and provide ranked recommendations - "
+        "Input: game_names (List[str]), user_preference (str) - "
+        "Output: Dict with comparison and ranking"
+    )
 )
 def compare_games_by_preference(
     game_names: List[str], user_preference: str = "bargain_hunter"
@@ -227,7 +251,11 @@ def compare_games_by_preference(
 
 @user_proxy.register_for_execution()
 @review_generator.register_for_llm(
-    description="Analyze how a game fits different user preference types - Input: game_name (str), user_preferences (List[str]) - Output: Dict with multi-user analysis"
+    description=(
+        "Analyze how a game fits different user preference types - "
+        "Input: game_name (str), user_preferences (List[str]) - "
+        "Output: Dict with multi-user analysis"
+    )
 )
 def analyze_game_for_users(
     game_name: str, user_preferences: Optional[List[str]] = None
@@ -239,7 +267,12 @@ def analyze_game_for_users(
 # Phase 3 Point 1: Comprehensive Review Generation Tools
 @user_proxy.register_for_execution()
 @review_generator.register_for_llm(
-    description="Generate comprehensive game review combining all analyses from Phase 1, 2, and 3 with detailed ratings and recommendations - Input: game_name (str), include_recommendations (bool) - Output: Dict with complete review including rating, verdict, strengths, weaknesses"
+    description=(
+        "Generate comprehensive game review combining all analyses from Phase 1, 2, and 3 "
+        "with detailed ratings and recommendations - Input: game_name (str), "
+        "include_recommendations (bool) - Output: Dict with complete review including "
+        "rating, verdict, strengths, weaknesses"
+    )
 )
 def create_comprehensive_review(
     game_name: str, include_recommendations: bool = True
@@ -250,7 +283,11 @@ def create_comprehensive_review(
 
 @user_proxy.register_for_execution()
 @review_generator.register_for_llm(
-    description="Generate quick game opinion with essential analysis for fast assessment - Input: game_name (str) - Output: Dict with summarized opinion including rating, recommendation, and key points"
+    description=(
+        "Generate quick game opinion with essential analysis for fast assessment - "
+        "Input: game_name (str) - Output: Dict with summarized opinion including "
+        "rating, recommendation, and key points"
+    )
 )
 def create_quick_opinion(game_name: str) -> Dict[str, Any]:
     """Wrapper function for generate_quick_game_opinion tool (Phase 3 Point 1)"""
@@ -259,7 +296,11 @@ def create_quick_opinion(game_name: str) -> Dict[str, Any]:
 
 @user_proxy.register_for_execution()
 @review_generator.register_for_llm(
-    description="Compare multiple games with full review analysis and detailed ranking - Input: game_names (List[str]), comparison_focus (str) - Output: Dict with detailed comparison including winner, ranking, and explanations"
+    description=(
+        "Compare multiple games with full review analysis and detailed ranking - "
+        "Input: game_names (List[str]), comparison_focus (str) - "
+        "Output: Dict with detailed comparison including winner, ranking, and explanations"
+    )
 )
 def compare_games_with_full_reviews(
     game_names: List[str], comparison_focus: str = "overall"
@@ -271,7 +312,11 @@ def compare_games_with_full_reviews(
 # Category Scraping Tools for Diverse Testing
 @user_proxy.register_for_execution()
 @data_collector.register_for_llm(
-    description="Scrape games from specific DekuDeals category pages for diverse testing data - Input: category (str), max_games (int), include_details (bool) - Output: Dict with games list and metadata"
+    description=(
+        "Scrape games from specific DekuDeals category pages for diverse testing data - "
+        "Input: category (str), max_games (int), include_details (bool) - "
+        "Output: Dict with games list and metadata"
+    )
 )
 def get_games_from_category(
     category: str, max_games: int = 20, include_details: bool = False
@@ -282,7 +327,11 @@ def get_games_from_category(
 
 @user_proxy.register_for_execution()
 @data_collector.register_for_llm(
-    description="Get games from multiple popular DekuDeals categories for comprehensive testing - Input: max_games_per_category (int), categories (List[str]) - Output: Dict with categorized games"
+    description=(
+        "Get games from multiple popular DekuDeals categories for comprehensive testing - "
+        "Input: max_games_per_category (int), categories (List[str]) - "
+        "Output: Dict with categorized games"
+    )
 )
 def collect_games_from_categories(
     max_games_per_category: int = 10, categories: Optional[List[str]] = None
@@ -293,7 +342,11 @@ def collect_games_from_categories(
 
 @user_proxy.register_for_execution()
 @data_collector.register_for_llm(
-    description="Get random sample of games from DekuDeals for unbiased testing - Input: sample_size (int), category_preference (str) - Output: Dict with random game selection"
+    description=(
+        "Get random sample of games from DekuDeals for unbiased testing - "
+        "Input: sample_size (int), category_preference (str) - "
+        "Output: Dict with random game selection"
+    )
 )
 def get_random_games_sample(
     sample_size: int = 5, category_preference: str = "mixed"
@@ -305,7 +358,11 @@ def get_random_games_sample(
 # Phase 3 Point 2: Opinion Adaptation Tools
 @user_proxy.register_for_execution()
 @review_generator.register_for_llm(
-    description="Adapt game review to specific communication context and audience - Input: game_name (str), style (str), format_type (str), audience (str), platform (str), max_length (int) - Output: Dict with adapted review content"
+    description=(
+        "Adapt game review to specific communication context and audience - "
+        "Input: game_name (str), style (str), format_type (str), audience (str), "
+        "platform (str), max_length (int) - Output: Dict with adapted review content"
+    )
 )
 def adapt_game_review_style(
     game_name: str,
@@ -323,7 +380,11 @@ def adapt_game_review_style(
 
 @user_proxy.register_for_execution()
 @review_generator.register_for_llm(
-    description="Create game opinions for multiple platforms simultaneously with platform-specific adaptations - Input: game_name (str), platforms (List[str]) - Output: Dict with platform-specific review adaptations"
+    description=(
+        "Create game opinions for multiple platforms simultaneously with "
+        "platform-specific adaptations - Input: game_name (str), platforms (List[str]) - "
+        "Output: Dict with platform-specific review adaptations"
+    )
 )
 def create_platform_specific_reviews(
     game_name: str, platforms: Optional[List[str]] = None
@@ -334,7 +395,11 @@ def create_platform_specific_reviews(
 
 @user_proxy.register_for_execution()
 @review_generator.register_for_llm(
-    description="Get available adaptation options for review customization - Input: none - Output: Dict with all available styles, formats, audiences, and platforms"
+    description=(
+        "Get available adaptation options for review customization - "
+        "Input: none - Output: Dict with all available styles, formats, "
+        "audiences, and platforms"
+    )
 )
 def get_adaptation_options() -> Dict[str, Any]:
     """Wrapper function for get_available_adaptation_options tool (Phase 3 Point 2)"""
