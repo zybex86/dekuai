@@ -66,6 +66,14 @@ from .quality_control import (
     validate_analysis_pipeline,
 )
 
+# PHASE 4: Enhanced Quality Control - NEW ADVANCED FUNCTIONS
+from agent_tools import (
+    enhanced_qa_validation,
+    automatic_completeness_check,
+    track_quality_metrics,
+    process_feedback_loop,
+)
+
 __all__ = [
     # Phase 1 - Data Collection (STEP 1 COMPLETED)
     "search_and_scrape_game",
@@ -101,4 +109,9 @@ __all__ = [
     "get_quality_control_capabilities",
     "get_quality_standards",
     "validate_analysis_pipeline",
+    # Phase 4 - Enhanced Quality Control (FAZA 4 COMPLETED)
+    "enhanced_qa_validation",
+    "automatic_completeness_check",
+    "track_quality_metrics",
+    "process_feedback_loop",
 ]

@@ -52,6 +52,24 @@ from datetime import datetime
 import requests
 from bs4 import BeautifulSoup, Tag
 
+# AutoGen decorators for Phase 4 tools
+try:
+    from autogen import register_for_execution, register_for_llm
+except ImportError:
+    # Fallback if autogen not available
+    def register_for_execution():
+        def decorator(func):
+            return func
+
+        return decorator
+
+    def register_for_llm(**kwargs):
+        def decorator(func):
+            return func
+
+        return decorator
+
+
 # Lazy import to avoid circular dependency
 # from conversation_manager import GameAnalysisManager
 
@@ -2478,3 +2496,426 @@ def _generate_validation_summary(quality_report: Dict[str, Any]) -> str:
 # manager = GameAnalysisManager()
 # result = manager.analyze_game("Celeste")
 # Output: 5-agent coordinated analysis with quality assurance
+
+# ======================== PHASE 4: ENHANCED QUALITY CONTROL TOOLS ========================
+
+# Import enhanced Phase 4 components
+from utils.qa_enhanced_agent import create_qa_agent, QAValidationLevel
+from utils.automatic_completeness_checker import create_completeness_checker
+from utils.quality_metrics_tracker import create_quality_metrics_tracker
+
+# Initialize Phase 4 components
+enhanced_qa_agent = create_qa_agent("comprehensive")
+completeness_checker = create_completeness_checker()
+quality_metrics_tracker = create_quality_metrics_tracker()
+
+
+@register_for_llm(
+    description="Enhanced QA validation with sophisticated validation rules - Input: complete_analysis_data (Dict) - Output: Dict with enhanced QA report"
+)
+@register_for_execution()
+def enhanced_qa_validation(complete_analysis_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Przeprowadza zaawansowaną walidację jakości z wykorzystaniem Enhanced QA Agent.
+
+    DESCRIPTION: Advanced quality validation using sophisticated validation rules and intelligent assessment
+    ARGS:
+        complete_analysis_data (Dict): Kompletne dane analizy gry
+    RETURNS:
+        Dict: Zaawansowany raport jakości z detailed insights
+    RAISES:
+        ValueError: Gdy brakuje wymaganych danych do walidacji
+    """
+    try:
+        logger.info("🔍 Starting enhanced QA validation...")
+
+        # Validate input
+        if not isinstance(complete_analysis_data, dict):
+            error_msg = "Enhanced QA validation requires dictionary input"
+            logger.error(f"❌ {error_msg}")
+            return {
+                "success": False,
+                "error": error_msg,
+                "validation_type": "enhanced_qa_validation",
+                "timestamp": datetime.now().isoformat(),
+            }
+
+        # Perform enhanced validation
+        qa_report = enhanced_qa_agent.validate_analysis(complete_analysis_data)
+
+        # Convert to dictionary format
+        result = {
+            "success": True,
+            "validation_type": "enhanced_qa_validation",
+            "game_title": complete_analysis_data.get("title", "Unknown"),
+            "enhanced_qa_report": {
+                "overall_score": qa_report.overall_score,
+                "quality_level": qa_report.quality_level,
+                "total_validation_time": qa_report.total_validation_time,
+                "validation_summary": qa_report.validation_summary,
+                "critical_issues_count": len(qa_report.critical_issues),
+                "warnings_count": len(qa_report.warnings),
+                "recommendations": qa_report.recommendations,
+                "metrics_breakdown": {
+                    "completeness_score": qa_report.completeness_score,
+                    "coherence_score": qa_report.coherence_score,
+                    "quality_score": qa_report.quality_score,
+                    "consistency_score": qa_report.consistency_score,
+                },
+            },
+            "validation_details": [
+                {
+                    "rule_id": result.rule_id,
+                    "rule_name": result.rule_name,
+                    "passed": result.passed,
+                    "score": result.score,
+                    "message": result.message,
+                    "recommendations": result.recommendations,
+                    "validation_time": result.validation_time,
+                }
+                for result in qa_report.validation_results
+            ],
+            "timestamp": qa_report.timestamp.isoformat(),
+        }
+
+        logger.info(
+            f"✅ Enhanced QA validation completed: {qa_report.quality_level} ({qa_report.overall_score:.2f}/1.0)"
+        )
+        return result
+
+    except Exception as e:
+        error_msg = f"Enhanced QA validation error: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {
+            "success": False,
+            "error": error_msg,
+            "validation_type": "enhanced_qa_validation",
+            "timestamp": datetime.now().isoformat(),
+        }
+
+
+@register_for_llm(
+    description="Automatic data completeness checking with intelligent validation - Input: game_data (Dict) - Output: Dict with completeness report"
+)
+@register_for_execution()
+def automatic_completeness_check(game_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Przeprowadza automatyczne sprawdzanie kompletności danych z inteligentną walidacją.
+
+    DESCRIPTION: Automated data completeness checking with field validation and improvement suggestions
+    ARGS:
+        game_data (Dict): Dane gry do sprawdzenia kompletności
+    RETURNS:
+        Dict: Raport kompletności z suggestions i quality insights
+    RAISES:
+        ValueError: Gdy dane wejściowe są nieprawidłowe
+    """
+    try:
+        logger.info("📊 Starting automatic completeness checking...")
+
+        # Validate input
+        if not isinstance(game_data, dict):
+            error_msg = "Completeness checking requires dictionary input"
+            logger.error(f"❌ {error_msg}")
+            return {
+                "success": False,
+                "error": error_msg,
+                "checking_type": "automatic_completeness",
+                "timestamp": datetime.now().isoformat(),
+            }
+
+        # Perform completeness check
+        completeness_report = completeness_checker.check_completeness(game_data)
+
+        # Try auto-fix common issues
+        fixed_data, fixes_applied = completeness_checker.auto_fix_data_issues(game_data)
+
+        # Convert to dictionary format
+        result = {
+            "success": True,
+            "checking_type": "automatic_completeness",
+            "game_title": game_data.get("title", "Unknown"),
+            "completeness_report": {
+                "overall_score": completeness_report.overall_score,
+                "completeness_level": completeness_report.completeness_level,
+                "total_fields": completeness_report.total_fields,
+                "present_fields": completeness_report.present_fields,
+                "valid_fields": completeness_report.valid_fields,
+                "missing_required": completeness_report.missing_required,
+                "missing_important": completeness_report.missing_important,
+                "completion_suggestions": completeness_report.completion_suggestions,
+                "data_quality_issues": completeness_report.data_quality_issues,
+            },
+            "auto_fixes": {
+                "fixes_applied": fixes_applied,
+                "fixed_data_preview": {
+                    k: str(v)[:100] + "..." if len(str(v)) > 100 else str(v)
+                    for k, v in fixed_data.items()
+                    if k
+                    in [
+                        "current_eshop_price",
+                        "MSRP",
+                        "metacritic_score",
+                        "opencritic_score",
+                    ]
+                },
+            },
+            "improvement_opportunities": completeness_checker.suggest_data_improvements(
+                completeness_report
+            ),
+            "timestamp": completeness_report.timestamp.isoformat(),
+        }
+
+        logger.info(
+            f"✅ Completeness check completed: {completeness_report.completeness_level} ({completeness_report.overall_score:.2f}/1.0)"
+        )
+        return result
+
+    except Exception as e:
+        error_msg = f"Completeness checking error: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {
+            "success": False,
+            "error": error_msg,
+            "checking_type": "automatic_completeness",
+            "timestamp": datetime.now().isoformat(),
+        }
+
+
+@register_for_llm(
+    description="Quality metrics tracking and analysis with performance insights - Input: analysis_results (Dict) - Output: Dict with quality metrics report"
+)
+@register_for_execution()
+def track_quality_metrics(analysis_results: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Śledzi metryki jakości analizy i generuje insights oraz trendy.
+
+    DESCRIPTION: Track quality metrics and generate performance insights with trend analysis
+    ARGS:
+        analysis_results (Dict): Kompletne wyniki analizy do śledzenia metryki
+    RETURNS:
+        Dict: Raport metryki jakości z trends i recommendations
+    RAISES:
+        ValueError: Gdy brakuje wymaganych danych do śledzenia
+    """
+    try:
+        logger.info("📈 Starting quality metrics tracking...")
+
+        # Validate input
+        if not isinstance(analysis_results, dict):
+            error_msg = "Quality metrics tracking requires dictionary input"
+            logger.error(f"❌ {error_msg}")
+            return {
+                "success": False,
+                "error": error_msg,
+                "tracking_type": "quality_metrics",
+                "timestamp": datetime.now().isoformat(),
+            }
+
+        # Track analysis quality
+        quality_report = quality_metrics_tracker.track_analysis_quality(
+            analysis_results
+        )
+
+        # Generate quality dashboard
+        dashboard = quality_metrics_tracker.get_quality_dashboard(days_back=7)
+
+        # Convert to dictionary format
+        result = {
+            "success": True,
+            "tracking_type": "quality_metrics",
+            "game_title": analysis_results.get("game_name", "Unknown"),
+            "quality_report": {
+                "report_id": quality_report.report_id,
+                "overall_quality_score": quality_report.overall_quality_score,
+                "analysis_timestamp": quality_report.analysis_timestamp.isoformat(),
+                "metrics_count": len(quality_report.metrics),
+                "trends_count": len(quality_report.trend_analysis),
+                "recommendations": quality_report.recommendations,
+                "benchmark_comparison": quality_report.benchmark_comparison,
+            },
+            "metrics_details": [
+                {
+                    "metric_id": metric.metric_id,
+                    "metric_type": metric.metric_type.value,
+                    "category": metric.category.value,
+                    "value": metric.value,
+                    "target_value": metric.target_value,
+                    "unit": metric.unit,
+                    "timestamp": metric.timestamp.isoformat(),
+                    "metadata": metric.metadata,
+                }
+                for metric in quality_report.metrics
+            ],
+            "trend_analysis": [
+                {
+                    "metric_type": trend.metric_type.value,
+                    "trend_direction": trend.trend_direction,
+                    "change_rate": trend.change_rate,
+                    "confidence": trend.confidence,
+                    "values_count": len(trend.values),
+                }
+                for trend in quality_report.trend_analysis
+            ],
+            "quality_dashboard": dashboard,
+            "timestamp": datetime.now().isoformat(),
+        }
+
+        logger.info(
+            f"📊 Quality metrics tracking completed: {quality_report.overall_quality_score:.2f}/1.0"
+        )
+        return result
+
+    except Exception as e:
+        error_msg = f"Quality metrics tracking error: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {
+            "success": False,
+            "error": error_msg,
+            "tracking_type": "quality_metrics",
+            "timestamp": datetime.now().isoformat(),
+        }
+
+
+@register_for_llm(
+    description="Feedback loop processing for iterative improvements - Input: qa_report (Dict), completeness_report (Dict) - Output: Dict with feedback analysis"
+)
+@register_for_execution()
+def process_feedback_loop(
+    qa_report: Dict[str, Any], completeness_report: Dict[str, Any]
+) -> Dict[str, Any]:
+    """
+    Przetwarza feedback loop dla iteracyjnych poprawek jakości.
+
+    DESCRIPTION: Process feedback loop for iterative quality improvements and correction suggestions
+    ARGS:
+        qa_report (Dict): Raport QA validation
+        completeness_report (Dict): Raport kompletności danych
+    RETURNS:
+        Dict: Analiza feedbacku z correction suggestions i iteration recommendations
+    RAISES:
+        ValueError: Gdy raporty są nieprawidłowe
+    """
+    try:
+        logger.info("🔄 Starting feedback loop processing...")
+
+        # Basic feedback processing (simplified since full system has file issues)
+        feedback_items = []
+        recommendations = []
+
+        # Analyze QA report
+        if qa_report.get("success", False):
+            qa_data = qa_report.get("enhanced_qa_report", {})
+            critical_count = qa_data.get("critical_issues_count", 0)
+            warnings_count = qa_data.get("warnings_count", 0)
+            overall_score = qa_data.get("overall_score", 0.0)
+
+            if critical_count > 0:
+                feedback_items.append(
+                    {
+                        "type": "critical_issue",
+                        "priority": "critical",
+                        "message": f"{critical_count} critical QA issues detected",
+                        "correction": "Address critical issues immediately",
+                    }
+                )
+                recommendations.append("🚨 Fix critical QA issues before proceeding")
+
+            if warnings_count > 0:
+                feedback_items.append(
+                    {
+                        "type": "warning",
+                        "priority": "high",
+                        "message": f"{warnings_count} QA warnings found",
+                        "correction": "Review and improve quality issues",
+                    }
+                )
+                recommendations.append(f"⚠️ Address {warnings_count} quality warnings")
+
+            if overall_score < 0.7:
+                recommendations.append("📈 Improve overall quality score")
+
+        # Analyze completeness report
+        if completeness_report.get("success", False):
+            comp_data = completeness_report.get("completeness_report", {})
+            missing_required = comp_data.get("missing_required", [])
+            missing_important = comp_data.get("missing_important", [])
+            overall_score = comp_data.get("overall_score", 0.0)
+
+            if missing_required:
+                feedback_items.append(
+                    {
+                        "type": "missing_required_data",
+                        "priority": "critical",
+                        "message": f"Missing required fields: {', '.join(missing_required)}",
+                        "correction": "Collect missing required data",
+                    }
+                )
+                recommendations.append(
+                    f"🚨 Add missing required fields: {', '.join(missing_required)}"
+                )
+
+            if missing_important:
+                feedback_items.append(
+                    {
+                        "type": "missing_important_data",
+                        "priority": "high",
+                        "message": f"Missing important fields: {', '.join(missing_important)}",
+                        "correction": "Try to obtain missing important data",
+                    }
+                )
+                recommendations.append(
+                    f"⚠️ Consider adding: {', '.join(missing_important)}"
+                )
+
+        # Determine if iteration needed
+        critical_issues = len(
+            [f for f in feedback_items if f.get("priority") == "critical"]
+        )
+        needs_iteration = critical_issues > 0
+
+        result = {
+            "success": True,
+            "processing_type": "feedback_loop",
+            "feedback_summary": {
+                "total_items": len(feedback_items),
+                "critical_issues_count": critical_issues,
+                "high_priority_count": len(
+                    [f for f in feedback_items if f.get("priority") == "high"]
+                ),
+                "needs_iteration": needs_iteration,
+            },
+            "feedback_items": feedback_items,
+            "recommendations": recommendations,
+            "iteration_guidance": {
+                "next_action": (
+                    "Address critical issues"
+                    if needs_iteration
+                    else "Quality acceptable"
+                ),
+                "estimated_effort": (
+                    "high"
+                    if critical_issues > 2
+                    else "medium" if critical_issues > 0 else "low"
+                ),
+                "priority_focus": (
+                    "critical_issues" if critical_issues > 0 else "improvements"
+                ),
+            },
+            "timestamp": datetime.now().isoformat(),
+        }
+
+        logger.info(
+            f"🔄 Feedback loop processing completed: {len(feedback_items)} items, iteration needed: {needs_iteration}"
+        )
+        return result
+
+    except Exception as e:
+        error_msg = f"Feedback loop processing error: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {
+            "success": False,
+            "error": error_msg,
+            "processing_type": "feedback_loop",
+            "timestamp": datetime.now().isoformat(),
+        }

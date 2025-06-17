@@ -319,6 +319,12 @@ if __name__ == "__main__":
         "Hollow Knight",
         "Cuphead",
         "Celeste",  # Dodaj inną grę, żeby sprawdzić, czy działa dla różnych
+        "Super Mario Odyssey",
+        "Witcher 3",
+        "baba is you",
+        "Transistor",
+        "streets of rogue",
+        "the last of us",
     ]
 
     for game_name in test_games:
