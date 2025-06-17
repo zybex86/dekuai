@@ -15,6 +15,9 @@ from agent_tools import (
     generate_comprehensive_game_review,
     generate_quick_game_opinion,
     compare_games_with_reviews,
+    get_random_game_sample,
+    scrape_dekudeals_category,
+    get_games_from_popular_categories,
 )
 import logging
 
@@ -247,6 +250,20 @@ def run_phase3_point1_tests():
     # Test 3: Games Comparison
     test3_result = test_games_comparison()
     results.append(("Games Comparison", test3_result))
+
+    # Test z losowymi deals
+    random_deals = get_random_game_sample(5, "deals")
+    test_games = random_deals["selected_games"]
+
+    # Test z highest-rated games
+    top_games = scrape_dekudeals_category("highest-rated", max_games=8)
+    quality_test = top_games["game_titles"]
+
+    # Test mieszany z różnych kategorii
+    mixed_collection = get_games_from_popular_categories(
+        3, ["hottest", "staff-picks", "deepest-discounts"]
+    )
+    diverse_test = mixed_collection["all_unique_titles"]
 
     # Summary
     print("\n" + "=" * 70)
