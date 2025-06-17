@@ -18,6 +18,7 @@ from agent_tools import (
     validate_game_data,
     format_game_summary,
     extract_key_metrics,
+    calculate_value_score,
 )
 
 # Validate API key before creating agents
@@ -162,6 +163,14 @@ def check_data_quality(game_data: Dict[str, Any]) -> Dict[str, Any]:
 def get_analysis_metrics(game_data: Dict[str, Any]) -> Dict[str, Any]:
     """Wrapper function for extract_key_metrics tool"""
     return extract_key_metrics(game_data)
+
+@user_proxy.register_for_execution()
+@price_analyzer.register_for_llm(
+    description="Calculate value for money based on price and ratings - Input: game_data (Dict) - Output: Dict with comprehensive value analysis"
+)
+def analyze_game_value(game_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Wrapper function for calculate_value_score tool"""
+    return calculate_value_score(game_data)
 
 
 def create_analysis_team() -> list:
