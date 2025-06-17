@@ -27,6 +27,10 @@ from agent_tools import (
     generate_comprehensive_game_review,
     generate_quick_game_opinion,
     compare_games_with_reviews,
+    # Category scraping tools for diverse testing
+    scrape_dekudeals_category,
+    get_games_from_popular_categories,
+    get_random_game_sample,
 )
 
 # Validate API key before creating agents
@@ -258,6 +262,40 @@ def compare_games_with_full_reviews(
 ) -> Dict[str, Any]:
     """Wrapper function for compare_games_with_reviews tool (Phase 3 Point 1)"""
     return compare_games_with_reviews(game_names, comparison_focus)
+
+
+# Category Scraping Tools for Diverse Testing
+@user_proxy.register_for_execution()
+@data_collector.register_for_llm(
+    description="Scrape games from specific DekuDeals category pages for diverse testing data - Input: category (str), max_games (int), include_details (bool) - Output: Dict with games list and metadata"
+)
+def get_games_from_category(
+    category: str, max_games: int = 20, include_details: bool = False
+) -> Dict[str, Any]:
+    """Wrapper function for scrape_dekudeals_category tool"""
+    return scrape_dekudeals_category(category, max_games, include_details)
+
+
+@user_proxy.register_for_execution()
+@data_collector.register_for_llm(
+    description="Get games from multiple popular DekuDeals categories for comprehensive testing - Input: max_games_per_category (int), categories (List[str]) - Output: Dict with categorized games"
+)
+def collect_games_from_categories(
+    max_games_per_category: int = 10, categories: Optional[List[str]] = None
+) -> Dict[str, Any]:
+    """Wrapper function for get_games_from_popular_categories tool"""
+    return get_games_from_popular_categories(max_games_per_category, categories)
+
+
+@user_proxy.register_for_execution()
+@data_collector.register_for_llm(
+    description="Get random sample of games from DekuDeals for unbiased testing - Input: sample_size (int), category_preference (str) - Output: Dict with random game selection"
+)
+def get_random_games_sample(
+    sample_size: int = 5, category_preference: str = "mixed"
+) -> Dict[str, Any]:
+    """Wrapper function for get_random_game_sample tool"""
+    return get_random_game_sample(sample_size, category_preference)
 
 
 def create_analysis_team() -> list:
