@@ -695,4 +695,4 @@ def get_random_game_sample(
     except Exception as e:
         error_msg = f"Error getting random game sample: {str(e)}"
         logger.error(f"❌ {error_msg}")
-        return {"success": False, "error": error_msg} 
+        return {"success": False, "error": error_msg}
