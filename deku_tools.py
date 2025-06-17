@@ -299,9 +299,7 @@ def scrape_game_details(game_url: str) -> Optional[Dict]:
             game_details["lowest_historical_price"] = "Brak danych o historii cen"
 
         print(f"Szczegóły zebrane dla {game_details.get('title', 'gry')}:")
-        print(
-            json.dumps(game_details, indent=4, ensure_ascii=False)
-        )  # Ładne wyświetlanie JSON
+
         return game_details
 
     except requests.exceptions.RequestException as e:

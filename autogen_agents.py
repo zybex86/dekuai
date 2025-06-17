@@ -7,22 +7,24 @@ import autogen
 from typing import Dict, Any, Optional
 from config.llm_config import (
     get_data_collector_config,
-    get_price_analyzer_config, 
+    get_price_analyzer_config,
     get_review_generator_config,
     get_quality_assurance_config,
     get_user_proxy_config,
-    validate_api_key
+    validate_api_key,
 )
 from agent_tools import (
     search_and_scrape_game,
     validate_game_data,
     format_game_summary,
-    extract_key_metrics
+    extract_key_metrics,
 )
 
 # Validate API key before creating agents
 if not validate_api_key():
-    raise ValueError("OpenAI API key is required. Set OPENAI_API_KEY environment variable.")
+    raise ValueError(
+        "OpenAI API key is required. Set OPENAI_API_KEY environment variable."
+    )
 
 # Agent 1: DATA_COLLECTOR_agent
 data_collector = autogen.AssistantAgent(
@@ -41,10 +43,10 @@ Format your response clearly and pass complete data to the next agent.
 
 Terminate when: You obtain complete game data or determine that the game doesn't exist.
 Reply 'TERMINATE' when your task is complete.""",
-    llm_config=get_data_collector_config()
+    llm_config=get_data_collector_config(),
 )
 
-# Agent 2: PRICE_ANALYZER_agent  
+# Agent 2: PRICE_ANALYZER_agent
 price_analyzer = autogen.AssistantAgent(
     name="PRICE_ANALYZER_agent",
     system_message="""You are a game price and value analyst.
@@ -64,12 +66,12 @@ Focus on:
 
 Terminate when: You provide complete price analysis with clear recommendations.
 Reply 'TERMINATE' when your analysis is complete.""",
-    llm_config=get_price_analyzer_config()
+    llm_config=get_price_analyzer_config(),
 )
 
 # Agent 3: REVIEW_GENERATOR_agent
 review_generator = autogen.AssistantAgent(
-    name="REVIEW_GENERATOR_agent", 
+    name="REVIEW_GENERATOR_agent",
     system_message="""You are a game critic specializing in objective reviews.
 
 Your tasks:
@@ -90,7 +92,7 @@ Be objective and base your opinion on data, not speculation.
 
 Terminate when: You create a complete opinion with argumentation and recommendation.
 Reply 'TERMINATE' when your review is complete.""",
-    llm_config=get_review_generator_config()
+    llm_config=get_review_generator_config(),
 )
 
 # Agent 4: QUALITY_ASSURANCE_agent
@@ -113,7 +115,7 @@ Quality checkpoints:
 
 Terminate when: You confirm high quality of final analysis or suggest specific improvements.
 Reply 'TERMINATE' when quality check is complete.""",
-    llm_config=get_quality_assurance_config()
+    llm_config=get_quality_assurance_config(),
 )
 
 # Agent 5: USER_PROXY (Human Interface)
@@ -130,8 +132,9 @@ Your tasks:
 You can execute functions and coordinate the conversation flow.""",
     human_input_mode="NEVER",  # Automated for now
     max_consecutive_auto_reply=10,
-    code_execution_config={"work_dir": "logs", "use_docker": False}
+    code_execution_config={"work_dir": "logs", "use_docker": False},
 )
+
 
 # Register tools for agents
 @user_proxy.register_for_execution()
@@ -142,6 +145,7 @@ def get_game_data(game_name: str) -> Dict[str, Any]:
     """Wrapper function for search_and_scrape_game tool"""
     return search_and_scrape_game(game_name)
 
+
 @user_proxy.register_for_execution()
 @data_collector.register_for_llm(
     description="Validate completeness of game data - Input: game_data (dict) - Output: validation report"
@@ -149,6 +153,7 @@ def get_game_data(game_name: str) -> Dict[str, Any]:
 def check_data_quality(game_data: Dict[str, Any]) -> Dict[str, Any]:
     """Wrapper function for validate_game_data tool"""
     return validate_game_data(game_data)
+
 
 @user_proxy.register_for_execution()
 @price_analyzer.register_for_llm(
@@ -158,28 +163,30 @@ def get_analysis_metrics(game_data: Dict[str, Any]) -> Dict[str, Any]:
     """Wrapper function for extract_key_metrics tool"""
     return extract_key_metrics(game_data)
 
+
 def create_analysis_team() -> list:
     """
     Tworzy zespół agentów do analizy gier.
-    
+
     Returns:
         list: Lista agentów w kolejności workflow
     """
     return [
         user_proxy,
-        data_collector, 
+        data_collector,
         price_analyzer,
         review_generator,
-        quality_assurance
+        quality_assurance,
     ]
+
 
 def get_agent_by_name(name: str) -> Optional[autogen.Agent]:
     """
     Pobiera agenta po nazwie.
-    
+
     Args:
         name (str): Nazwa agenta
-        
+
     Returns:
         Optional[autogen.Agent]: Agent lub None jeśli nie znaleziono
     """
@@ -188,6 +195,6 @@ def get_agent_by_name(name: str) -> Optional[autogen.Agent]:
         "PRICE_ANALYZER_agent": price_analyzer,
         "REVIEW_GENERATOR_agent": review_generator,
         "QUALITY_ASSURANCE_agent": quality_assurance,
-        "USER_PROXY": user_proxy
+        "USER_PROXY": user_proxy,
     }
-    return agents.get(name) 
+    return agents.get(name)
