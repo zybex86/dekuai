@@ -45,6 +45,9 @@ from utils.opinion_adapters import (
     create_context_presets,
     format_for_multiple_platforms,
 )
+
+# Phase 4 - Advanced Quality Control
+from utils.quality_validation import validate_game_analysis
 from datetime import datetime
 import requests
 from bs4 import BeautifulSoup, Tag
@@ -2321,6 +2324,154 @@ def get_available_adaptation_options() -> Dict[str, Any]:
         error_msg = f"Error getting adaptation options: {str(e)}"
         logger.error(f"❌ {error_msg}")
         return {"success": False, "error": error_msg}
+
+
+# ======================== PHASE 4: QUALITY VALIDATION TOOLS ========================
+
+
+def perform_quality_validation(
+    complete_analysis_data: Dict[str, Any],
+) -> Dict[str, Any]:
+    """
+    Przeprowadza zaawansowaną walidację jakości kompletnej analizy gry.
+
+    DESCRIPTION: Perform comprehensive quality validation of complete game analysis using automated rules
+    ARGS:
+        complete_analysis_data (Dict): Kompletne dane analizy gry (raw data + value analysis + review + recommendations)
+    RETURNS:
+        Dict: Raport jakości z wynikami validation, rekomendacjami i metrics
+    RAISES:
+        ValueError: Gdy brakuje wymaganych danych do walidacji
+    """
+    try:
+        logger.info("🔍 Starting comprehensive quality validation...")
+
+        # Validate input structure
+        if not isinstance(complete_analysis_data, dict):
+            error_msg = "Analysis data must be a dictionary"
+            logger.error(f"❌ {error_msg}")
+            return {
+                "success": False,
+                "error": error_msg,
+                "validation_type": "input_structure",
+                "timestamp": datetime.now().isoformat(),
+            }
+
+        # Perform validation using quality validation system
+        validation_result = validate_game_analysis(complete_analysis_data)
+
+        if not validation_result.get("success", False):
+            logger.error(
+                f"❌ Quality validation failed: {validation_result.get('error')}"
+            )
+            return validation_result
+
+        # Extract quality report
+        quality_report = validation_result.get("quality_report", {})
+        quality_level = quality_report.get("quality_level", "UNKNOWN")
+        overall_score = quality_report.get("overall_score", 0.0)
+        critical_failures = quality_report.get("critical_failures_count", 0)
+        recommendations = quality_report.get("recommendations", [])
+
+        # Log validation results
+        if critical_failures > 0:
+            logger.warning(
+                f"⚠️ Quality validation completed with {critical_failures} critical failures"
+            )
+        else:
+            logger.info(
+                f"✅ Quality validation passed: {quality_level} ({overall_score:.2f}/1.0)"
+            )
+
+        # Enhance result with actionable insights
+        enhanced_result = {
+            "success": True,
+            "validation_type": "comprehensive_quality_check",
+            "game_title": complete_analysis_data.get("title", "Unknown"),
+            "quality_assessment": {
+                "overall_score": overall_score,
+                "quality_level": quality_level,
+                "critical_failures_count": critical_failures,
+                "passes_quality_gates": critical_failures == 0,
+                "publication_ready": overall_score >= 0.7 and critical_failures == 0,
+            },
+            "quality_metrics": {
+                "data_completeness": quality_report.get("data_completeness", 0.0),
+                "logical_consistency": quality_report.get("logical_consistency", 0.0),
+                "content_quality": quality_report.get("content_quality", 0.0),
+            },
+            "validation_details": quality_report.get("details", []),
+            "improvement_recommendations": recommendations,
+            "timestamp": validation_result.get("timestamp"),
+            "validation_summary": _generate_validation_summary(quality_report),
+        }
+
+        return enhanced_result
+
+    except Exception as e:
+        error_msg = f"Error during quality validation: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {
+            "success": False,
+            "error": error_msg,
+            "validation_type": "system_error",
+            "timestamp": datetime.now().isoformat(),
+        }
+
+
+def _generate_validation_summary(quality_report: Dict[str, Any]) -> str:
+    """
+    Generuje tekstowe podsumowanie wyników walidacji.
+
+    Args:
+        quality_report: Raport jakości z validate_game_analysis
+
+    Returns:
+        str: Tekstowe podsumowanie wyników walidacji
+    """
+    try:
+        overall_score = quality_report.get("overall_score", 0.0)
+        quality_level = quality_report.get("quality_level", "UNKNOWN")
+        critical_failures = quality_report.get("critical_failures_count", 0)
+        total_validations = quality_report.get("total_validations", 0)
+
+        # Create summary components
+        summary_parts = []
+
+        # Overall assessment
+        if quality_level == "EXCELLENT":
+            summary_parts.append("⭐ Exceptional analysis quality")
+        elif quality_level == "GOOD":
+            summary_parts.append("✅ High-quality analysis")
+        elif quality_level == "ACCEPTABLE":
+            summary_parts.append("👍 Acceptable analysis quality")
+        elif quality_level == "POOR":
+            summary_parts.append("⚠️ Below-standard analysis quality")
+        else:
+            summary_parts.append("❌ Unacceptable analysis quality")
+
+        # Score breakdown
+        summary_parts.append(f"Score: {overall_score:.1f}/1.0")
+
+        # Critical issues
+        if critical_failures == 0:
+            summary_parts.append("No critical issues")
+        else:
+            summary_parts.append(f"{critical_failures} critical issues")
+
+        # Data quality metrics
+        data_completeness = quality_report.get("data_completeness", 0.0)
+        logical_consistency = quality_report.get("logical_consistency", 0.0)
+        content_quality = quality_report.get("content_quality", 0.0)
+
+        summary_parts.append(
+            f"Metrics: Data {data_completeness:.1f} | Logic {logical_consistency:.1f} | Content {content_quality:.1f}"
+        )
+
+        return " | ".join(summary_parts)
+
+    except Exception as e:
+        return f"Summary generation error: {str(e)}"
 
 
 # Example usage (commented out to avoid circular import):
