@@ -4,7 +4,7 @@ Agenci AutoGen do analizy gier z DekuDeals
 """
 
 import autogen
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from config.llm_config import (
     get_data_collector_config,
     get_price_analyzer_config,
@@ -20,6 +20,9 @@ from agent_tools import (
     extract_key_metrics,
     calculate_value_score,
     calculate_advanced_value_analysis,
+    generate_personalized_recommendations,
+    compare_games_for_user,
+    get_recommendation_insights,
 )
 
 # Validate API key before creating agents
@@ -165,6 +168,7 @@ def get_analysis_metrics(game_data: Dict[str, Any]) -> Dict[str, Any]:
     """Wrapper function for extract_key_metrics tool"""
     return extract_key_metrics(game_data)
 
+
 @user_proxy.register_for_execution()
 @price_analyzer.register_for_llm(
     description="Calculate value for money based on price and ratings - Input: game_data (Dict) - Output: Dict with comprehensive value analysis"
@@ -173,6 +177,7 @@ def analyze_game_value(game_data: Dict[str, Any]) -> Dict[str, Any]:
     """Wrapper function for calculate_value_score tool"""
     return calculate_value_score(game_data)
 
+
 @user_proxy.register_for_execution()
 @price_analyzer.register_for_llm(
     description="Perform advanced comprehensive value analysis with genre factors, market position, and age considerations - Input: game_data (Dict) - Output: Dict with advanced analysis"
@@ -180,6 +185,43 @@ def analyze_game_value(game_data: Dict[str, Any]) -> Dict[str, Any]:
 def analyze_advanced_value(game_data: Dict[str, Any]) -> Dict[str, Any]:
     """Wrapper function for calculate_advanced_value_analysis tool (Point 2 of Phase 2)"""
     return calculate_advanced_value_analysis(game_data)
+
+
+@user_proxy.register_for_execution()
+@review_generator.register_for_llm(
+    description="Generate personalized game recommendations based on user preferences - Input: games_list (List[str]), user_preference (str), max_recommendations (int) - Output: Dict with personalized recommendations"
+)
+def get_personalized_recommendations(
+    games_list: List[str],
+    user_preference: str = "bargain_hunter",
+    max_recommendations: int = 5,
+) -> Dict[str, Any]:
+    """Wrapper function for generate_personalized_recommendations tool (Point 3 of Phase 2)"""
+    return generate_personalized_recommendations(
+        games_list, user_preference, max_recommendations
+    )
+
+
+@user_proxy.register_for_execution()
+@review_generator.register_for_llm(
+    description="Compare games for specific user preferences and provide ranked recommendations - Input: game_names (List[str]), user_preference (str) - Output: Dict with comparison and ranking"
+)
+def compare_games_by_preference(
+    game_names: List[str], user_preference: str = "bargain_hunter"
+) -> Dict[str, Any]:
+    """Wrapper function for compare_games_for_user tool (Point 3 of Phase 2)"""
+    return compare_games_for_user(game_names, user_preference)
+
+
+@user_proxy.register_for_execution()
+@review_generator.register_for_llm(
+    description="Analyze how a game fits different user preference types - Input: game_name (str), user_preferences (List[str]) - Output: Dict with multi-user analysis"
+)
+def analyze_game_for_users(
+    game_name: str, user_preferences: Optional[List[str]] = None
+) -> Dict[str, Any]:
+    """Wrapper function for get_recommendation_insights tool (Point 3 of Phase 2)"""
+    return get_recommendation_insights(game_name, user_preferences)
 
 
 def create_analysis_team() -> list:

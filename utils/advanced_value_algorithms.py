@@ -44,57 +44,58 @@ DEVELOPER_REPUTATION = {
     "Indie": 0.9,  # Generic indie multiplier
 }
 
+
 def calculate_genre_value_score(
-    current_price: Optional[float], 
-    genres: List[str], 
+    current_price: Optional[float],
+    genres: List[str],
     metacritic: Optional[float],
-    developer: Optional[str] = None
+    developer: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Oblicza wartość za pieniądze uwzględniając specyfikę gatunków.
-    
+
     Args:
         current_price: Aktualna cena gry
         genres: Lista gatunków gry
         metacritic: Ocena Metacritic
         developer: Deweloper gry
-        
+
     Returns:
         Dict: Szczegółowa analiza wartości według gatunku
     """
     if not current_price or not genres or not metacritic:
         return {"error": "Insufficient data for genre-based value analysis"}
-    
+
     # Znajdź profil gatunku (użyj pierwszego rozpoznanego)
     genre_profile = None
     primary_genre = None
-    
+
     for genre in genres:
         if genre in GENRE_VALUE_PROFILES:
             genre_profile = GENRE_VALUE_PROFILES[genre]
             primary_genre = genre
             break
-    
+
     # Fallback do Action jeśli nie znaleziono
     if not genre_profile:
         genre_profile = GENRE_VALUE_PROFILES["Action"]
         primary_genre = "Action"
-    
+
     # Podstawowy score per dollar
     base_value = metacritic / current_price
-    
+
     # Zastosuj modyfikatory gatunku
     expected_hours = genre_profile["expected_hours"]
     replay_value = genre_profile["replay_value"]
     price_tolerance = genre_profile["price_tolerance"]
-    
+
     # Oblicz oczekiwaną wartość za godzinę
     expected_value_per_hour = metacritic / expected_hours
     actual_cost_per_hour = current_price / expected_hours
-    
+
     # Score uwzględniający gatunek
     genre_adjusted_value = base_value * replay_value * price_tolerance
-    
+
     # Modyfikator dewelopera
     dev_multiplier = 1.0
     if developer:
@@ -102,9 +103,9 @@ def calculate_genre_value_score(
         # Sprawdź czy to indie studio
         if developer not in DEVELOPER_REPUTATION and current_price < 50:
             dev_multiplier = DEVELOPER_REPUTATION["Indie"]
-    
+
     final_value_score = genre_adjusted_value * dev_multiplier
-    
+
     return {
         "primary_genre": primary_genre,
         "base_value_score": round(base_value, 2),
@@ -117,42 +118,43 @@ def calculate_genre_value_score(
         "genre_factors": {
             "replay_value": replay_value,
             "price_tolerance": price_tolerance,
-        }
+        },
     }
+
 
 def calculate_age_factor(release_dates: Dict[str, Any]) -> float:
     """
     Oblicza współczynnik wieku gry wpływający na wartość.
-    
+
     Args:
         release_dates: Słownik z datami wydania gry
-        
+
     Returns:
         float: Współczynnik wieku (1.0 = nowa gra, < 1.0 = stara gra)
     """
     if not release_dates:
         return 1.0
-    
+
     # Spróbuj znaleźć najwcześniejszą datę wydania
     earliest_date = None
     current_year = datetime.now().year
-    
+
     # Sprawdź różne możliwe formaty dat
     for platform, date_str in release_dates.items():
         if isinstance(date_str, str) and date_str:
             # Wyciągnij rok z daty
-            year_match = re.search(r'\b(20\d{2})\b', date_str)
+            year_match = re.search(r"\b(20\d{2})\b", date_str)
             if year_match:
                 year = int(year_match.group(1))
                 if not earliest_date or year < earliest_date:
                     earliest_date = year
-    
+
     if not earliest_date:
         return 1.0
-    
+
     # Oblicz wiek gry w latach
     game_age = current_year - earliest_date
-    
+
     # Współczynnik wieku - nowe gry (0-1 rok) = 1.0, starsze maleją
     if game_age <= 1:
         return 1.0
@@ -165,25 +167,24 @@ def calculate_age_factor(release_dates: Dict[str, Any]) -> float:
     else:
         return 0.80  # Stare/retro gry
 
+
 def calculate_market_position_score(
-    current_price: Optional[float],
-    msrp: Optional[float], 
-    metacritic: Optional[float]
+    current_price: Optional[float], msrp: Optional[float], metacritic: Optional[float]
 ) -> Dict[str, Any]:
     """
     Ocenia pozycję gry na rynku pod względem ceny i jakości.
-    
+
     Args:
         current_price: Aktualna cena
         msrp: MSRP
         metacritic: Ocena Metacritic
-        
+
     Returns:
         Dict: Analiza pozycji rynkowej
     """
     if not all([current_price, metacritic]):
         return {"error": "Insufficient data for market position analysis"}
-    
+
     # Określ kategorię cenową
     price_category = "Unknown"
     if current_price and current_price <= 20:
@@ -194,7 +195,7 @@ def calculate_market_position_score(
         price_category = "Premium"
     elif current_price:
         price_category = "AAA"
-    
+
     # Określ kategorię jakości
     quality_category = "Unknown"
     if metacritic and metacritic >= 90:
@@ -207,40 +208,35 @@ def calculate_market_position_score(
         quality_category = "Average"
     elif metacritic:
         quality_category = "Poor"
-    
+
     # Macierz pozycji rynkowej (quality vs price)
     market_position_matrix = {
         ("Exceptional", "Budget"): "Hidden Gem",
         ("Exceptional", "Mid-tier"): "Excellent Value",
         ("Exceptional", "Premium"): "Premium Quality",
         ("Exceptional", "AAA"): "Flagship Title",
-        
         ("Great", "Budget"): "Great Deal",
         ("Great", "Mid-tier"): "Solid Choice",
         ("Great", "Premium"): "Worth Considering",
         ("Great", "AAA"): "Expensive",
-        
         ("Good", "Budget"): "Good Value",
         ("Good", "Mid-tier"): "Fair Price",
         ("Good", "Premium"): "Overpriced",
         ("Good", "AAA"): "Poor Value",
-        
         ("Average", "Budget"): "Budget Option",
         ("Average", "Mid-tier"): "Questionable",
         ("Average", "Premium"): "Avoid",
         ("Average", "AAA"): "Terrible Deal",
-        
         ("Poor", "Budget"): "Still Overpriced",
         ("Poor", "Mid-tier"): "Waste of Money",
         ("Poor", "Premium"): "Avoid at All Costs",
         ("Poor", "AAA"): "Scam",
     }
-    
+
     market_position = market_position_matrix.get(
-        (quality_category, price_category), 
-        "Unknown Position"
+        (quality_category, price_category), "Unknown Position"
     )
-    
+
     # Score pozycji (im lepszy positioning, tym wyższy score)
     position_scores = {
         "Hidden Gem": 10.0,
@@ -264,16 +260,17 @@ def calculate_market_position_score(
         "Terrible Deal": 0.3,
         "Scam": 0.1,
     }
-    
+
     position_score = position_scores.get(market_position, 5.0)
-    
+
     return {
         "price_category": price_category,
         "quality_category": quality_category,
         "market_position": market_position,
         "position_score": position_score,
-        "value_tier": _determine_value_tier(position_score)
+        "value_tier": _determine_value_tier(position_score),
     }
+
 
 def _determine_value_tier(position_score: float) -> str:
     """Określa tier wartości na podstawie score pozycji."""
@@ -288,13 +285,14 @@ def _determine_value_tier(position_score: float) -> str:
     else:
         return "D-Tier Value"
 
+
 def calculate_comprehensive_value_analysis(game_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Przeprowadza kompleksową analizę wartości używając wszystkich zaawansowanych algorytmów.
-    
+
     Args:
         game_data: Kompletne dane o grze
-        
+
     Returns:
         Dict: Pełna zaawansowana analiza wartości
     """
@@ -304,42 +302,44 @@ def calculate_comprehensive_value_analysis(game_data: Dict[str, Any]) -> Dict[st
         msrp = extract_price(game_data.get("MSRP", "N/A"))
         metacritic = extract_score(game_data.get("metacritic_score", "0"))
         opencritic = extract_score(game_data.get("opencritic_score", "0"))
-        
+
         genres = game_data.get("genres", [])
         developer = game_data.get("developer", "Unknown")
         release_dates = game_data.get("release_dates_parsed", {})
-        
+
         # Użyj lepszej oceny (Metacritic lub OpenCritic)
         best_score = max(metacritic or 0, opencritic or 0)
-        
+
         if not current_price or not best_score:
             return {"error": "Insufficient data for comprehensive analysis"}
-        
+
         # Analizy
         genre_analysis = calculate_genre_value_score(
             current_price, genres, best_score, developer
         )
-        
+
         market_analysis = calculate_market_position_score(
             current_price, msrp, best_score
         )
-        
+
         age_factor = calculate_age_factor(release_dates)
-        
+
         # Skomponuj final score
         base_score = genre_analysis.get("final_value_score", 0)
         position_score = market_analysis.get("position_score", 5.0)
-        
+
         # Ważona średnia różnych score
         comprehensive_score = (
-            base_score * 0.4 +           # 40% - genre-adjusted value
-            position_score * 0.4 +       # 40% - market position
-            (age_factor * 10) * 0.2      # 20% - age factor
+            base_score * 0.4  # 40% - genre-adjusted value
+            + position_score * 0.4  # 40% - market position
+            + (age_factor * 10) * 0.2  # 20% - age factor
         )
-        
+
         # Rekomendacja na podstawie comprehensive score
-        recommendation = _generate_advanced_recommendation(comprehensive_score, market_analysis)
-        
+        recommendation = _generate_advanced_recommendation(
+            comprehensive_score, market_analysis
+        )
+
         return {
             "success": True,
             "comprehensive_score": round(comprehensive_score, 2),
@@ -349,25 +349,25 @@ def calculate_comprehensive_value_analysis(game_data: Dict[str, Any]) -> Dict[st
             "advanced_recommendation": recommendation,
             "value_breakdown": {
                 "genre_contribution": round(base_score * 0.4, 2),
-                "market_contribution": round(position_score * 0.4, 2), 
+                "market_contribution": round(position_score * 0.4, 2),
                 "age_contribution": round((age_factor * 10) * 0.2, 2),
             },
             "analysis_summary": _generate_comprehensive_summary(
                 comprehensive_score, market_analysis, genre_analysis, age_factor
-            )
+            ),
         }
-        
+
     except Exception as e:
         logger.error(f"Error in comprehensive value analysis: {e}")
         return {"error": str(e), "analysis": "incomplete"}
 
+
 def _generate_advanced_recommendation(
-    comprehensive_score: float, 
-    market_analysis: Dict[str, Any]
+    comprehensive_score: float, market_analysis: Dict[str, Any]
 ) -> str:
     """Generuje zaawansowaną rekomendację na podstawie comprehensive score."""
     market_position = market_analysis.get("market_position", "Unknown")
-    
+
     # Uwzględnij zarówno score jak i market position
     if comprehensive_score >= 8.0 and "Gem" in market_position:
         return "INSTANT BUY - Hidden Gem!"
@@ -382,27 +382,28 @@ def _generate_advanced_recommendation(
     else:
         return "SKIP"
 
+
 def _generate_comprehensive_summary(
-    score: float, 
-    market_analysis: Dict[str, Any], 
-    genre_analysis: Dict[str, Any], 
-    age_factor: float
+    score: float,
+    market_analysis: Dict[str, Any],
+    genre_analysis: Dict[str, Any],
+    age_factor: float,
 ) -> str:
     """Generuje tekstowe podsumowanie comprehensive analysis."""
     market_position = market_analysis.get("market_position", "Unknown")
     value_tier = market_analysis.get("value_tier", "Unknown")
     primary_genre = genre_analysis.get("primary_genre", "Unknown")
     cost_per_hour = genre_analysis.get("cost_per_hour", 0)
-    
+
     summary_parts = [
         f"🎯 {market_position}",
-        f"🏆 {value_tier}", 
+        f"🏆 {value_tier}",
         f"🎮 {primary_genre} game",
         f"💰 ~{cost_per_hour:.1f} per expected hour",
     ]
-    
+
     if age_factor < 0.9:
         years_old = int((1.0 - age_factor) / 0.05 * 2)  # Rough estimate
         summary_parts.append(f"📅 ~{years_old}+ years old")
-    
-    return " | ".join(summary_parts) 
+
+    return " | ".join(summary_parts)
