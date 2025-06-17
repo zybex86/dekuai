@@ -35,6 +35,16 @@ from utils.review_generator import (
     RecommendationType,
     format_review_for_display,
 )
+from utils.opinion_adapters import (
+    OpinionAdapter,
+    AdaptationContext,
+    AdaptedOpinion,
+    CommunicationStyle,
+    OutputFormat,
+    AudienceType,
+    create_context_presets,
+    format_for_multiple_platforms,
+)
 from datetime import datetime
 import requests
 from bs4 import BeautifulSoup, Tag
@@ -1919,5 +1929,392 @@ def get_random_game_sample(
 
     except Exception as e:
         error_msg = f"Error getting random game sample: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {"success": False, "error": error_msg}
+
+
+# Initialize global opinion adapter
+_opinion_adapter = OpinionAdapter()
+
+
+def adapt_review_for_context(
+    game_name: str,
+    style: str = "casual",
+    format_type: str = "summary",
+    audience: str = "general_public",
+    platform: str = "website",
+    max_length: Optional[int] = None,
+) -> Dict[str, Any]:
+    """
+    Adaptuje opinię o grze do określonego kontekstu komunikacyjnego.
+
+    DESCRIPTION: Adapt game review to specific communication context and audience
+    ARGS:
+        game_name (str): Nazwa gry do adaptacji
+        style (str): Styl komunikacji (casual, technical, social_media, professional, gaming_enthusiast, beginner_friendly)
+        format_type (str): Format wyjściowy (detailed, summary, bullet_points, social_post, comparison_table, recommendation_card)
+        audience (str): Grupa docelowa (bargain_hunters, quality_seekers, casual_gamers, hardcore_gamers, indie_lovers, family_oriented, general_public)
+        platform (str): Platforma docelowa (twitter, reddit, facebook, website, blog, newsletter)
+        max_length (int): Maksymalna długość treści (opcjonalne)
+    RETURNS:
+        Dict: Adaptowana opinia z metadanymi
+    RAISES:
+        ValueError: Gdy nie można wygenerować opinii lub nieprawidłowe parametry
+    """
+    try:
+        logger.info(
+            f"🎭 Adapting review for {game_name}: {style}/{format_type}/{audience}"
+        )
+
+        # Generate base comprehensive review
+        base_review_result = generate_comprehensive_game_review(
+            game_name, include_recommendations=True
+        )
+
+        if not base_review_result.get("success", False):
+            error_msg = f"Could not generate base review for '{game_name}'"
+            logger.error(f"❌ {error_msg}")
+            return {"success": False, "error": error_msg, "game_name": game_name}
+
+        # Extract review object (we need to reconstruct it from result)
+        from utils.review_generator import (
+            GameReview,
+            ReviewConfidence,
+            RecommendationType,
+        )
+
+        review_data = base_review_result.get("review_data", {})
+
+        # Map string values back to enums
+        confidence_mapping = {
+            "very_high": ReviewConfidence.VERY_HIGH,
+            "high": ReviewConfidence.HIGH,
+            "medium": ReviewConfidence.MEDIUM,
+            "low": ReviewConfidence.LOW,
+            "very_low": ReviewConfidence.VERY_LOW,
+        }
+
+        recommendation_mapping = {
+            "instant_buy": RecommendationType.INSTANT_BUY,
+            "strong_buy": RecommendationType.STRONG_BUY,
+            "buy": RecommendationType.BUY,
+            "consider": RecommendationType.CONSIDER,
+            "wait_for_sale": RecommendationType.WAIT_FOR_SALE,
+            "wait": RecommendationType.WAIT,
+            "skip": RecommendationType.SKIP,
+        }
+
+        # Reconstruct GameReview object
+        review = GameReview(
+            game_title=review_data.get("overall_rating", game_name),
+            overall_rating=review_data.get("overall_rating", 5.0),
+            recommendation=recommendation_mapping.get(
+                review_data.get("recommendation", "consider"),
+                RecommendationType.CONSIDER,
+            ),
+            confidence=confidence_mapping.get(
+                review_data.get("confidence", "medium"), ReviewConfidence.MEDIUM
+            ),
+            strengths=review_data.get("strengths", []),
+            weaknesses=review_data.get("weaknesses", []),
+            target_audience=review_data.get("target_audience", []),
+            value_assessment=review_data.get("value_assessment", "Standard value"),
+            price_recommendation=review_data.get(
+                "price_recommendation", "No recommendation"
+            ),
+            timing_advice=review_data.get("timing_advice", "Consider timing"),
+            final_verdict=review_data.get("final_verdict", "Game review completed"),
+        )
+
+        # Map string parameters to enums
+        style_mapping = {
+            "technical": CommunicationStyle.TECHNICAL,
+            "casual": CommunicationStyle.CASUAL,
+            "social_media": CommunicationStyle.SOCIAL_MEDIA,
+            "professional": CommunicationStyle.PROFESSIONAL,
+            "gaming_enthusiast": CommunicationStyle.GAMING_ENTHUSIAST,
+            "beginner_friendly": CommunicationStyle.BEGINNER_FRIENDLY,
+        }
+
+        format_mapping = {
+            "detailed": OutputFormat.DETAILED,
+            "summary": OutputFormat.SUMMARY,
+            "bullet_points": OutputFormat.BULLET_POINTS,
+            "social_post": OutputFormat.SOCIAL_POST,
+            "comparison_table": OutputFormat.COMPARISON_TABLE,
+            "recommendation_card": OutputFormat.RECOMMENDATION_CARD,
+        }
+
+        audience_mapping = {
+            "bargain_hunters": AudienceType.BARGAIN_HUNTERS,
+            "quality_seekers": AudienceType.QUALITY_SEEKERS,
+            "casual_gamers": AudienceType.CASUAL_GAMERS,
+            "hardcore_gamers": AudienceType.HARDCORE_GAMERS,
+            "indie_lovers": AudienceType.INDIE_LOVERS,
+            "family_oriented": AudienceType.FAMILY_ORIENTED,
+            "general_public": AudienceType.GENERAL_PUBLIC,
+        }
+
+        # Validate and map parameters
+        comm_style = style_mapping.get(style)
+        output_format = format_mapping.get(format_type)
+        target_audience = audience_mapping.get(audience)
+
+        if not comm_style or not output_format or not target_audience:
+            error_msg = f"Invalid parameters: style='{style}', format='{format_type}', audience='{audience}'"
+            logger.error(f"❌ {error_msg}")
+            return {
+                "success": False,
+                "error": error_msg,
+                "available_styles": list(style_mapping.keys()),
+                "available_formats": list(format_mapping.keys()),
+                "available_audiences": list(audience_mapping.keys()),
+            }
+
+        # Create adaptation context
+        context = AdaptationContext(
+            style=comm_style,
+            format=output_format,
+            audience=target_audience,
+            platform=platform,
+            max_length=max_length,
+            include_emoji=platform in ["twitter", "facebook", "instagram"],
+            include_price_focus=target_audience == AudienceType.BARGAIN_HUNTERS,
+            include_technical_details=comm_style == CommunicationStyle.TECHNICAL,
+        )
+
+        # Adapt the review
+        adapted_opinion = _opinion_adapter.adapt_opinion(review, context)
+
+        # Create result
+        result = {
+            "success": True,
+            "game_title": game_name,
+            "adaptation_context": {
+                "style": style,
+                "format": format_type,
+                "audience": audience,
+                "platform": platform,
+                "max_length": max_length,
+            },
+            "adapted_content": adapted_opinion.content,
+            "metadata": adapted_opinion.metadata,
+            "character_count": adapted_opinion.character_count,
+            "engagement_elements": adapted_opinion.engagement_elements,
+            "call_to_action": adapted_opinion.call_to_action,
+            "original_review_data": {
+                "rating": review.overall_rating,
+                "recommendation": review.recommendation.value,
+                "confidence": review.confidence.value,
+            },
+            "adaptation_timestamp": adapted_opinion.adaptation_timestamp.isoformat(),
+        }
+
+        logger.info(
+            f"✅ Review adapted successfully: {adapted_opinion.character_count} chars"
+        )
+        return result
+
+    except Exception as e:
+        error_msg = f"Error adapting review for '{game_name}': {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {"success": False, "error": error_msg, "game_name": game_name}
+
+
+def create_multi_platform_opinions(
+    game_name: str, platforms: List[str] = None
+) -> Dict[str, Any]:
+    """
+    Tworzy opinie o grze dla wielu platform jednocześnie.
+
+    DESCRIPTION: Create game opinions for multiple platforms simultaneously with platform-specific adaptations
+    ARGS:
+        game_name (str): Nazwa gry do analizy
+        platforms (List[str]): Lista platform (twitter, reddit, facebook, website, blog, newsletter)
+    RETURNS:
+        Dict: Opinie dostosowane do różnych platform z metadanymi
+    """
+    try:
+        logger.info(f"🌐 Creating multi-platform opinions for: {game_name}")
+
+        if platforms is None:
+            platforms = ["twitter", "reddit", "website", "blog"]
+
+        # Generate base comprehensive review
+        base_review_result = generate_comprehensive_game_review(
+            game_name, include_recommendations=True
+        )
+
+        if not base_review_result.get("success", False):
+            error_msg = f"Could not generate base review for '{game_name}'"
+            logger.error(f"❌ {error_msg}")
+            return {"success": False, "error": error_msg, "game_name": game_name}
+
+        # Reconstruct GameReview object (same logic as above)
+        from utils.review_generator import (
+            GameReview,
+            ReviewConfidence,
+            RecommendationType,
+        )
+
+        review_data = base_review_result.get("review_data", {})
+
+        confidence_mapping = {
+            "very_high": ReviewConfidence.VERY_HIGH,
+            "high": ReviewConfidence.HIGH,
+            "medium": ReviewConfidence.MEDIUM,
+            "low": ReviewConfidence.LOW,
+            "very_low": ReviewConfidence.VERY_LOW,
+        }
+
+        recommendation_mapping = {
+            "instant_buy": RecommendationType.INSTANT_BUY,
+            "strong_buy": RecommendationType.STRONG_BUY,
+            "buy": RecommendationType.BUY,
+            "consider": RecommendationType.CONSIDER,
+            "wait_for_sale": RecommendationType.WAIT_FOR_SALE,
+            "wait": RecommendationType.WAIT,
+            "skip": RecommendationType.SKIP,
+        }
+
+        review = GameReview(
+            game_title=review_data.get("game_title", game_name),
+            overall_rating=review_data.get("overall_rating", 5.0),
+            recommendation=recommendation_mapping.get(
+                review_data.get("recommendation", "consider"),
+                RecommendationType.CONSIDER,
+            ),
+            confidence=confidence_mapping.get(
+                review_data.get("confidence", "medium"), ReviewConfidence.MEDIUM
+            ),
+            strengths=review_data.get("strengths", []),
+            weaknesses=review_data.get("weaknesses", []),
+            target_audience=review_data.get("target_audience", []),
+            value_assessment=review_data.get("value_assessment", "Standard value"),
+            price_recommendation=review_data.get(
+                "price_recommendation", "No recommendation"
+            ),
+            timing_advice=review_data.get("timing_advice", "Consider timing"),
+            final_verdict=review_data.get("final_verdict", "Game review completed"),
+        )
+
+        # Generate platform-specific opinions
+        platform_opinions = format_for_multiple_platforms(review, platforms)
+
+        # Format results
+        formatted_results = {}
+        for platform, adapted_opinion in platform_opinions.items():
+            formatted_results[platform] = {
+                "content": adapted_opinion.content,
+                "character_count": adapted_opinion.character_count,
+                "style": adapted_opinion.style_used.value,
+                "format": adapted_opinion.format_used.value,
+                "audience": adapted_opinion.audience_targeted.value,
+                "engagement_elements": adapted_opinion.engagement_elements,
+                "call_to_action": adapted_opinion.call_to_action,
+                "metadata": adapted_opinion.metadata,
+            }
+
+        result = {
+            "success": True,
+            "game_title": game_name,
+            "platforms_generated": len(formatted_results),
+            "platform_opinions": formatted_results,
+            "generation_summary": {
+                "total_characters": sum(
+                    op.character_count for op in platform_opinions.values()
+                ),
+                "platforms_requested": platforms,
+                "timestamp": datetime.now().isoformat(),
+            },
+            "base_review_rating": review.overall_rating,
+            "base_recommendation": review.recommendation.value,
+        }
+
+        logger.info(
+            f"✅ Multi-platform opinions created for {len(platforms)} platforms"
+        )
+        return result
+
+    except Exception as e:
+        error_msg = (
+            f"Error creating multi-platform opinions for '{game_name}': {str(e)}"
+        )
+        logger.error(f"❌ {error_msg}")
+        return {"success": False, "error": error_msg, "game_name": game_name}
+
+
+def get_available_adaptation_options() -> Dict[str, Any]:
+    """
+    Zwraca dostępne opcje adaptacji opinii.
+
+    DESCRIPTION: Get available adaptation options for review customization
+    RETURNS:
+        Dict: Wszystkie dostępne opcje adaptacji z opisami
+    """
+    try:
+        logger.info("📋 Getting available adaptation options...")
+
+        presets = create_context_presets()
+
+        options = {
+            "success": True,
+            "communication_styles": {
+                "technical": "Detailed, analytical communication with data focus",
+                "casual": "Friendly, conversational tone for general audience",
+                "social_media": "Short, engaging content with emojis and hashtags",
+                "professional": "Formal, business-oriented communication",
+                "gaming_enthusiast": "Expert-level discussion for passionate gamers",
+                "beginner_friendly": "Simple, easy-to-understand explanations",
+            },
+            "output_formats": {
+                "detailed": "Full, comprehensive review with all sections",
+                "summary": "Brief overview with key points",
+                "bullet_points": "Organized list format for easy scanning",
+                "social_post": "Social media ready post with hashtags",
+                "comparison_table": "Structured table format for comparisons",
+                "recommendation_card": "Visual card-style recommendation",
+            },
+            "audience_types": {
+                "bargain_hunters": "Price-focused users looking for best deals",
+                "quality_seekers": "Users prioritizing game quality and ratings",
+                "casual_gamers": "Occasional players seeking accessible games",
+                "hardcore_gamers": "Enthusiast players wanting depth and challenge",
+                "indie_lovers": "Supporters of independent game developers",
+                "family_oriented": "Parents looking for family-friendly content",
+                "general_public": "Broad audience with mixed interests",
+            },
+            "supported_platforms": {
+                "twitter": "280 character limit, hashtag optimized",
+                "reddit": "Detailed discussion format",
+                "facebook": "Casual social sharing",
+                "website": "Professional web content",
+                "blog": "Long-form article style",
+                "newsletter": "Email-friendly format",
+            },
+            "preset_combinations": {
+                name: {
+                    "style": preset.style.value,
+                    "format": preset.format.value,
+                    "audience": preset.audience.value,
+                    "platform": preset.platform,
+                    "description": f"{preset.style.value.replace('_', ' ').title()} style {preset.format.value} for {preset.audience.value.replace('_', ' ')}",
+                }
+                for name, preset in presets.items()
+            },
+            "usage_examples": [
+                "adapt_review_for_context('Celeste', 'social_media', 'social_post', 'bargain_hunters', 'twitter')",
+                "create_multi_platform_opinions('Hollow Knight', ['twitter', 'reddit', 'blog'])",
+                "adapt_review_for_context('INSIDE', 'beginner_friendly', 'bullet_points', 'family_oriented')",
+            ],
+        }
+
+        logger.info(
+            f"✅ Retrieved adaptation options: {len(options['communication_styles'])} styles, {len(options['output_formats'])} formats"
+        )
+        return options
+
+    except Exception as e:
+        error_msg = f"Error getting adaptation options: {str(e)}"
         logger.error(f"❌ {error_msg}")
         return {"success": False, "error": error_msg}

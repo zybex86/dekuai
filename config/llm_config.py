@@ -15,13 +15,15 @@ def get_llm_config() -> Dict[str, Any]:
         Dict: Konfiguracja modelu językowego
     """
     return {
-        "model": "gpt-4",
-        "api_key": os.environ.get("OPENAI_API_KEY"),
+        "config_list": [
+            {
+                "model": "gpt-4",
+                "api_key": os.environ.get("OPENAI_API_KEY"),
+            }
+        ],
         "temperature": 0.7,
         "max_tokens": 1500,
         "timeout": 30,
-        "retry_wait_time": 5,
-        "max_retry_period": 60,
     }
 
 

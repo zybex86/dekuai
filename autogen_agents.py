@@ -31,6 +31,10 @@ from agent_tools import (
     scrape_dekudeals_category,
     get_games_from_popular_categories,
     get_random_game_sample,
+    # Phase 3 Point 2 - Opinion Adaptations
+    adapt_review_for_context,
+    create_multi_platform_opinions,
+    get_available_adaptation_options,
 )
 
 # Validate API key before creating agents
@@ -296,6 +300,45 @@ def get_random_games_sample(
 ) -> Dict[str, Any]:
     """Wrapper function for get_random_game_sample tool"""
     return get_random_game_sample(sample_size, category_preference)
+
+
+# Phase 3 Point 2: Opinion Adaptation Tools
+@user_proxy.register_for_execution()
+@review_generator.register_for_llm(
+    description="Adapt game review to specific communication context and audience - Input: game_name (str), style (str), format_type (str), audience (str), platform (str), max_length (int) - Output: Dict with adapted review content"
+)
+def adapt_game_review_style(
+    game_name: str,
+    style: str = "casual",
+    format_type: str = "summary",
+    audience: str = "general_public",
+    platform: str = "website",
+    max_length: Optional[int] = None,
+) -> Dict[str, Any]:
+    """Wrapper function for adapt_review_for_context tool (Phase 3 Point 2)"""
+    return adapt_review_for_context(
+        game_name, style, format_type, audience, platform, max_length
+    )
+
+
+@user_proxy.register_for_execution()
+@review_generator.register_for_llm(
+    description="Create game opinions for multiple platforms simultaneously with platform-specific adaptations - Input: game_name (str), platforms (List[str]) - Output: Dict with platform-specific review adaptations"
+)
+def create_platform_specific_reviews(
+    game_name: str, platforms: Optional[List[str]] = None
+) -> Dict[str, Any]:
+    """Wrapper function for create_multi_platform_opinions tool (Phase 3 Point 2)"""
+    return create_multi_platform_opinions(game_name, platforms)
+
+
+@user_proxy.register_for_execution()
+@review_generator.register_for_llm(
+    description="Get available adaptation options for review customization - Input: none - Output: Dict with all available styles, formats, audiences, and platforms"
+)
+def get_adaptation_options() -> Dict[str, Any]:
+    """Wrapper function for get_available_adaptation_options tool (Phase 3 Point 2)"""
+    return get_available_adaptation_options()
 
 
 def create_analysis_team() -> list:
