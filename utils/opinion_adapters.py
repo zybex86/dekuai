@@ -7,7 +7,7 @@ Faza 3 Punkt 2: Adaptacje opinii dla różnych kontekstów i odbiorców
 """
 
 import logging
-from typing import Dict, List, Any, Optional, Union
+from typing import Dict, List, Any, Optional, Union, Callable
 from dataclasses import dataclass, field
 from enum import Enum
 from datetime import datetime
@@ -143,7 +143,7 @@ class OpinionAdapter:
             },
         }
 
-    def _initialize_format_processors(self) -> Dict[OutputFormat, callable]:
+    def _initialize_format_processors(self) -> Dict[OutputFormat, Callable[..., Any]]:
         """Inicjalizuje procesory dla różnych formatów."""
         return {
             OutputFormat.DETAILED: self._format_detailed,
@@ -382,6 +382,33 @@ class OpinionAdapter:
                 RecommendationType.WAIT: "Hold up ⏳",
                 RecommendationType.SKIP: "Pass 👎",
             },
+            CommunicationStyle.PROFESSIONAL: {
+                RecommendationType.INSTANT_BUY: "Highly recommended for immediate purchase",
+                RecommendationType.STRONG_BUY: "Recommended for acquisition",
+                RecommendationType.BUY: "Suitable for purchase",
+                RecommendationType.CONSIDER: "Consider based on requirements",
+                RecommendationType.WAIT_FOR_SALE: "Recommend waiting for price reduction",
+                RecommendationType.WAIT: "Suggest delaying purchase",
+                RecommendationType.SKIP: "Not recommended",
+            },
+            CommunicationStyle.GAMING_ENTHUSIAST: {
+                RecommendationType.INSTANT_BUY: "Must-have for any serious gamer!",
+                RecommendationType.STRONG_BUY: "This one's a keeper, add to collection",
+                RecommendationType.BUY: "Solid addition to your library",
+                RecommendationType.CONSIDER: "Worth considering for your playstyle",
+                RecommendationType.WAIT_FOR_SALE: "Wait for the next Steam sale",
+                RecommendationType.WAIT: "Hold off for now, fellow gamer",
+                RecommendationType.SKIP: "Skip this one, trust me",
+            },
+            CommunicationStyle.BEGINNER_FRIENDLY: {
+                RecommendationType.INSTANT_BUY: "Perfect for newcomers - get it now!",
+                RecommendationType.STRONG_BUY: "Great choice for new gamers",
+                RecommendationType.BUY: "Good option to try",
+                RecommendationType.CONSIDER: "Think about whether you'd enjoy it",
+                RecommendationType.WAIT_FOR_SALE: "Maybe wait for a cheaper price",
+                RecommendationType.WAIT: "You might want to wait",
+                RecommendationType.SKIP: "Probably not the best choice for beginners",
+            },
         }
 
         style_adaptations = recommendation_adaptations.get(style, {})
@@ -523,7 +550,7 @@ class OpinionAdapter:
         if context.audience == AudienceType.BARGAIN_HUNTERS:
             elements.extend(["price_alerts", "deal_comparisons"])
 
-        if context.audience == AudienceType.GAMING_ENTHUSIAST:
+        if context.audience == AudienceType.HARDCORE_GAMERS:
             elements.extend(["technical_discussion", "community_input"])
 
         return elements

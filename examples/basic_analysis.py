@@ -74,7 +74,8 @@ Please start by collecting the game data.
         )
 
         manager = autogen.GroupChatManager(
-            groupchat=groupchat, llm_config={"model": "gpt-4"}
+            groupchat=groupchat,
+            llm_config={"model": "gpt-4o-mini"},  # Updated to cost-efficient model
         )
 
         # Start the analysis

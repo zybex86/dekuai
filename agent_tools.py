@@ -49,6 +49,9 @@ from datetime import datetime
 import requests
 from bs4 import BeautifulSoup, Tag
 
+# Lazy import to avoid circular dependency
+# from conversation_manager import GameAnalysisManager
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -2318,3 +2321,9 @@ def get_available_adaptation_options() -> Dict[str, Any]:
         error_msg = f"Error getting adaptation options: {str(e)}"
         logger.error(f"❌ {error_msg}")
         return {"success": False, "error": error_msg}
+
+
+# Example usage (commented out to avoid circular import):
+# manager = GameAnalysisManager()
+# result = manager.analyze_game("Celeste")
+# Output: 5-agent coordinated analysis with quality assurance
