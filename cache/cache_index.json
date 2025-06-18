@@ -34,5 +34,9 @@
   "tetris_effect:_connected": "cache_tetris_effect:_connected.pkl",
   "the_survivalists": "cache_the_survivalists.pkl",
   "tales_of_vesperia:_definitive_edition": "cache_tales_of_vesperia:_definitive_edition.pkl",
-  "limbo": "cache_limbo.pkl"
+  "limbo": "cache_limbo.pkl",
+  "ace_attorney_investigations_collection": "cache_ace_attorney_investigations_collection.pkl",
+  "deltarune": "cache_deltarune.pkl",
+  "the_legend_of_zelda:_breath_of_the_wild": "cache_the_legend_of_zelda:_breath_of_the_wild.pkl",
+  "dicey_dungeons": "cache_dicey_dungeons.pkl"
 }

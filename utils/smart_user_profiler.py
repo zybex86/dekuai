@@ -105,7 +105,7 @@ class SmartUserProfiler:
         # Learning parameters
         self.min_interactions_for_profiling = 3
         self.confidence_threshold = 0.6
-        self.pattern_detection_window_days = 30
+        self.pattern_detection_window_days = 365  # Analizuj całą historię (1 rok)
 
         # Initialize analytics integration
         self.analytics = get_usage_analytics()
@@ -166,11 +166,11 @@ class SmartUserProfiler:
                         )
                         self.user_profiles[user_id] = profile
 
-            # Load recent interactions (last 30 days)
+            # Load recent interactions (last 90 days for pattern stability)
             if self.interactions_file.exists():
                 with open(self.interactions_file, "r") as f:
                     data = json.load(f)
-                    cutoff = datetime.now() - timedelta(days=30)
+                    cutoff = datetime.now() - timedelta(days=90)
                     for interaction_data in data.get("interactions", []):
                         timestamp = datetime.fromisoformat(
                             interaction_data["timestamp"]
@@ -280,8 +280,10 @@ class SmartUserProfiler:
         quality_analysis = self._analyze_quality_preferences(recent_interactions)
         new_preferences.extend(quality_analysis)
 
-        # Update profile
-        profile.detected_preferences = new_preferences
+        # Update profile - merge with existing preferences instead of overwriting
+        profile.detected_preferences = self._merge_preferences(
+            profile.detected_preferences, new_preferences
+        )
         profile.confidence_level = self._calculate_confidence_level(profile)
 
         # Update favorite genres
@@ -440,6 +442,52 @@ class SmartUserProfiler:
 
         return preferences
 
+    def _merge_preferences(
+        self,
+        existing_preferences: List[PreferenceInsight],
+        new_preferences: List[PreferenceInsight],
+    ) -> List[PreferenceInsight]:
+        """Merge existing and new preferences, keeping the best confidence for each pattern"""
+
+        # Create a map of existing preferences by pattern
+        existing_map = {pref.pattern: pref for pref in existing_preferences}
+
+        # Merge with new preferences
+        merged_preferences = []
+
+        # Add all new preferences, updating existing ones if better confidence
+        for new_pref in new_preferences:
+            if new_pref.pattern in existing_map:
+                existing_pref = existing_map[new_pref.pattern]
+                # Keep the preference with higher confidence
+                if new_pref.confidence > existing_pref.confidence:
+                    merged_preferences.append(new_pref)
+                    logger.debug(
+                        f"Updated {new_pref.pattern.value}: {existing_pref.confidence:.3f} → {new_pref.confidence:.3f}"
+                    )
+                else:
+                    merged_preferences.append(existing_pref)
+                # Remove from existing map to avoid duplicates
+                del existing_map[new_pref.pattern]
+            else:
+                # New pattern
+                merged_preferences.append(new_pref)
+                logger.debug(
+                    f"Added new pattern: {new_pref.pattern.value} ({new_pref.confidence:.3f})"
+                )
+
+        # Add remaining existing preferences that weren't updated
+        for remaining_pref in existing_map.values():
+            merged_preferences.append(remaining_pref)
+            logger.debug(
+                f"Kept existing pattern: {remaining_pref.pattern.value} ({remaining_pref.confidence:.3f})"
+            )
+
+        # Sort by confidence (highest first)
+        merged_preferences.sort(key=lambda p: p.confidence, reverse=True)
+
+        return merged_preferences
+
     def _calculate_confidence_level(self, profile: DynamicUserProfile) -> str:
         """Calculate overall confidence level of the profile"""
 
@@ -576,7 +624,9 @@ class SmartUserProfiler:
                         "user_response": i.user_response,
                         "session_context": i.session_context,
                     }
-                    for i in self.interaction_history[-100:]  # Keep last 100
+                    for i in self.interaction_history[
+                        -500:
+                    ]  # Keep last 500 for better ML learning
                 ],
                 "last_updated": datetime.now().isoformat(),
             }

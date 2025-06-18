@@ -889,106 +889,114 @@ class EnhancedCLI:
         """Browse category with progress visualization and improved game selection."""
         self.print_header(f"📂 Browsing Category: {category.title()}")
 
-        progress = self.create_progress_bar("Fetching games", 100, "blue")
+        while True:  # Outer loop for refreshing the category list
+            progress = self.create_progress_bar("Fetching games", 100, "blue")
 
-        try:
-            # Simulate loading
-            for i in range(0, 101, 25):
-                progress.update(25)
-                time.sleep(0.2)
+            try:
+                # Simulate loading
+                for i in range(0, 101, 25):
+                    progress.update(25)
+                    time.sleep(0.2)
 
-            progress.close()
+                progress.close()
 
-            result = scrape_dekudeals_category(category, max_games=count)
+                result = scrape_dekudeals_category(category, max_games=count)
 
-            if result.get("success", False):
-                games = result.get("game_titles", [])
-                self.print_status(f"Found {len(games)} games in {category}", "success")
+                if result.get("success", False):
+                    games = result.get("game_titles", [])
+                    self.print_status(
+                        f"Found {len(games)} games in {category}", "success"
+                    )
 
-                if games:
-                    while True:  # Loop for game selection
-                        self.print_section(
-                            f"🎮 Games in {category.title()}", style="info"
-                        )
-                        for i, game in enumerate(games, 1):
-                            cprint(f"   {i:2d}. {game}", "white")
+                    if games:
+                        while True:  # Inner loop for game selection within current list
+                            self.print_section(
+                                f"🎮 Games in {category.title()}", style="info"
+                            )
+                            for i, game in enumerate(games, 1):
+                                cprint(f"   {i:2d}. {game}", "white")
 
-                        print()
-                        action = self.get_user_choice(
-                            "What would you like to do?",
-                            [
-                                "📊 Analyze a game from this list",
-                                "🔄 Get another list from this category",
-                                "🔙 Back to main menu",
-                            ],
-                        )
+                            print()
+                            action = self.get_user_choice(
+                                "What would you like to do?",
+                                [
+                                    "📊 Analyze a game from this list",
+                                    "🔄 Get another list from this category",
+                                    "🔙 Back to main menu",
+                                ],
+                            )
 
-                        if not action:  # User cancelled
-                            break
+                            if not action:  # User cancelled
+                                return  # Exit completely
 
-                        if "Analyze a game" in action:
-                            # Let user choose which game to analyze
-                            game_choice = input(
-                                colored(
-                                    f"\n🎯 Enter game number (1-{len(games)}) to analyze: ",
-                                    "cyan",
-                                    attrs=["bold"],
-                                )
-                            ).strip()
+                            if "Analyze a game" in action:
+                                # Let user choose which game to analyze
+                                game_choice = input(
+                                    colored(
+                                        f"\n🎯 Enter game number (1-{len(games)}) to analyze: ",
+                                        "cyan",
+                                        attrs=["bold"],
+                                    )
+                                ).strip()
 
-                            try:
-                                game_index = int(game_choice) - 1
-                                if 0 <= game_index < len(games):
-                                    selected_game = games[game_index]
+                                try:
+                                    game_index = int(game_choice) - 1
+                                    if 0 <= game_index < len(games):
+                                        selected_game = games[game_index]
+                                        self.print_status(
+                                            f"Analyzing: {selected_game}", "info"
+                                        )
+                                        results = self.analyze_game_with_progress(
+                                            selected_game
+                                        )
+                                        self.display_game_analysis_results(
+                                            results, selected_game
+                                        )
+                                    else:
+                                        self.print_status(
+                                            f"Invalid choice. Please enter 1-{len(games)}",
+                                            "error",
+                                        )
+                                except ValueError:
                                     self.print_status(
-                                        f"Analyzing: {selected_game}", "info"
+                                        "Invalid input. Please enter a number.", "error"
                                     )
-                                    results = self.analyze_game_with_progress(
-                                        selected_game
-                                    )
-                                    self.display_game_analysis_results(
-                                        results, selected_game
-                                    )
-                                else:
-                                    self.print_status(
-                                        f"Invalid choice. Please enter 1-{len(games)}",
-                                        "error",
-                                    )
-                            except ValueError:
+
+                            elif "Get another list" in action:
+                                # Refresh the list - get new games from same category
                                 self.print_status(
-                                    "Invalid input. Please enter a number.", "error"
+                                    f"Refreshing {category} list...", "info"
                                 )
+                                break  # Exit inner loop to refetch, stay in outer loop
 
-                        elif "Get another list" in action:
-                            # Refresh the list - get new games from same category
-                            self.print_status(f"Refreshing {category} list...", "info")
-                            break  # Exit the while loop to refetch
+                            elif "Back to main menu" in action:
+                                return  # Exit completely
 
-                        elif "Back to main menu" in action:
-                            return  # Exit completely
-
+                    else:
+                        self.print_status(f"No games found in {category}", "warning")
+                        return  # Exit if no games found
                 else:
-                    self.print_status(f"No games found in {category}", "warning")
-            else:
-                error_msg = result.get("error", "Unknown error")
-                self.print_status(
-                    f"Failed to fetch games from {category}: {error_msg}", "error"
-                )
-
-                # Provide help for eshop-sales issue
-                if category == "eshop-sales":
-                    print()
+                    error_msg = result.get("error", "Unknown error")
                     self.print_status(
-                        "💡 Tip: 'eshop-sales' category might be temporarily unavailable",
-                        "info",
-                    )
-                    self.print_status(
-                        "    Try 'hottest' or 'recent-drops' instead", "info"
+                        f"Failed to fetch games from {category}: {error_msg}", "error"
                     )
 
-        except Exception as e:
-            progress.close()
-            self.print_status(f"Error browsing category: {str(e)}", "error")
+                    # Provide help for eshop-sales issue
+                    if category == "eshop-sales":
+                        print()
+                        self.print_status(
+                            "💡 Tip: 'eshop-sales' category might be temporarily unavailable",
+                            "info",
+                        )
+                        self.print_status(
+                            "    Try 'hottest' or 'recent-drops' instead", "info"
+                        )
+                    return  # Exit if fetching failed
+
+            except Exception as e:
+                progress.close()
+                self.print_status(f"Error browsing category: {str(e)}", "error")
+                return  # Exit on error
 
     def random_recommendations_interactive(self):
         """Interactive random game recommendations."""
