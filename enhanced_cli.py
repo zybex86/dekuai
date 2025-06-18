@@ -286,9 +286,52 @@ class EnhancedCLI:
             ("🎬 --demo", "Run full system demonstration"),
         ]
 
+        # Add batch processing commands section (Phase 6.2)
+        print()
+        self.print_section(
+            "🚀 Batch Processing Commands (NEW - Phase 6.2)", style="highlight"
+        )
+
+        batch_commands = [
+            ("🔥 --batch-analyze <games>", "Analyze multiple games concurrently"),
+            ("📦 --batch-category <cat>", "Batch analyze games from category"),
+            ("🎲 --batch-random <num>", "Batch analyze random games"),
+            ("📊 --batch-status", "Show status of batch operations"),
+            ("📈 --batch-results <id>", "Show results of completed batch"),
+            ("❌ --batch-cancel <id>", "Cancel running batch analysis"),
+            ("⚙️ --batch-type [quick|comprehensive]", "Set batch analysis type"),
+        ]
+
+        for cmd, desc in batch_commands:
+            cprint(f"   {cmd:<32}", "magenta", attrs=["bold"], end="")
+            print(f" {desc}")
+
+        print()
+        self.print_section("Standard Commands", style="info")
+
         for cmd, desc in commands:
             cprint(f"   {cmd:<20}", "cyan", attrs=["bold"], end="")
             print(f" {desc}")
+
+        # Add usage examples
+        print()
+        self.print_section("💡 Batch Processing Examples", style="secondary")
+        examples = [
+            'python enhanced_cli.py --batch-analyze "INSIDE" "Celeste" "Hollow Knight"',
+            "python enhanced_cli.py --batch-category hottest --count 5 --batch-type quick",
+            "python enhanced_cli.py --batch-random 3 --preference deals --batch-type comprehensive",
+            "python enhanced_cli.py --batch-status  # Show all active batches",
+        ]
+
+        for example in examples:
+            cprint(f"   {example}", "white")
+
+        print()
+        cprint(
+            "💾 Advanced Features: Multi-level caching, persistent storage, concurrent processing",
+            "yellow",
+            attrs=["bold"],
+        )
 
     def get_user_choice(
         self, prompt: str, choices: List[str], allow_custom: bool = False
@@ -657,6 +700,10 @@ class EnhancedCLI:
                     "📂 Browse games by category",
                     "🎲 Get random game recommendations",
                     "🆚 Compare multiple games",
+                    "🔥 Batch analyze multiple games",
+                    "📦 Batch analyze category games",
+                    "🎲 Batch analyze random games",
+                    "📊 View batch operations status",
                     "📋 View available categories",
                     "🚪 Exit interactive mode",
                 ],
@@ -679,8 +726,20 @@ class EnhancedCLI:
             elif "random" in action:
                 self.random_recommendations_interactive()
 
-            elif "compare" in action:
+            elif "Compare multiple games" in action:
                 self.compare_games_interactive()
+
+            elif "Batch analyze multiple games" in action:
+                self.batch_analyze_interactive()
+
+            elif "Batch analyze category games" in action:
+                self.batch_category_interactive()
+
+            elif "Batch analyze random games" in action:
+                self.batch_random_interactive()
+
+            elif "View batch operations status" in action:
+                self.show_batch_status()
 
             elif "categories" in action:
                 self.show_categories()
@@ -689,6 +748,113 @@ class EnhancedCLI:
                 break
 
         self.print_status("Interactive mode ended", "info")
+
+    def batch_analyze_interactive(self):
+        """Interactive batch analysis of multiple games."""
+        self.print_section("🔥 Batch Game Analysis Setup", style="highlight")
+
+        games_to_analyze = []
+
+        # Get games from user
+        while len(games_to_analyze) < 10:  # Max 10 games for interactive
+            game = input(
+                colored(
+                    f"Enter game {len(games_to_analyze)+1} name (or 'done' to start): ",
+                    "cyan",
+                    attrs=["bold"],
+                )
+            )
+
+            if game.strip().lower() == "done" and len(games_to_analyze) >= 1:
+                break
+            elif game.strip() and game.strip().lower() != "done":
+                games_to_analyze.append(game.strip())
+                self.print_status(f"Added: {game.strip()}", "success")
+            elif not game.strip() and len(games_to_analyze) >= 1:
+                break
+
+        if games_to_analyze:
+            # Get analysis type
+            analysis_type = self.get_user_choice(
+                "Select analysis type:", ["quick", "comprehensive"]
+            )
+
+            if analysis_type:
+                batch_id = self.batch_analyze_games_with_progress(
+                    games_to_analyze, analysis_type
+                )
+                self.print_status(
+                    f"Batch analysis completed! (ID: {batch_id})", "success"
+                )
+
+                # Ask if user wants to see detailed results for comprehensive analysis
+                if analysis_type == "comprehensive":
+                    show_details = self.get_user_choice(
+                        "Would you like to see detailed analysis results?",
+                        ["Yes", "No"],
+                    )
+                    if "Yes" in show_details:
+                        self.display_detailed_batch_results(batch_id)
+        else:
+            self.print_status("No games added for batch analysis", "warning")
+
+    def batch_category_interactive(self):
+        """Interactive batch analysis of category games."""
+        categories = [
+            "hottest",
+            "recent-drops",
+            "deepest-discounts",
+            "highest-rated",
+            "staff-picks",
+            "trending",
+            "recently-released",
+        ]
+
+        category = self.get_user_choice(
+            "Select category:", categories, allow_custom=True
+        )
+
+        if category:
+            count = self.get_user_choice(
+                "How many games to analyze?", ["3", "5", "10"], allow_custom=True
+            )
+
+            analysis_type = self.get_user_choice(
+                "Select analysis type:", ["quick", "comprehensive"]
+            )
+
+            try:
+                count_num = int(count) if count.isdigit() else 5
+                self.batch_analyze_category_with_progress(
+                    category, count_num, analysis_type
+                )
+            except:
+                self.print_status("Invalid count, using default of 5", "warning")
+                self.batch_analyze_category_with_progress(category, 5, analysis_type)
+
+    def batch_random_interactive(self):
+        """Interactive batch analysis of random games."""
+        count = self.get_user_choice(
+            "How many random games?", ["3", "5", "10"], allow_custom=True
+        )
+
+        preference = self.get_user_choice(
+            "What type of games?", ["mixed", "deals", "quality", "trending"]
+        )
+
+        analysis_type = self.get_user_choice(
+            "Select analysis type:", ["quick", "comprehensive"]
+        )
+
+        if count and preference and analysis_type:
+            try:
+                count_num = int(count) if count.isdigit() else 5
+                self.batch_analyze_random_with_progress(
+                    count_num, preference, analysis_type
+                )
+            except:
+                self.print_status("Invalid count, using default of 5", "warning")
+                self.batch_analyze_random_with_progress(5, preference, analysis_type)
 
     def browse_categories_interactive(self):
         """Interactive category browsing."""
@@ -1221,7 +1387,10 @@ class EnhancedCLI:
             # Show quick result or error
             if status == "completed" and result["result"]:
                 game_result = result["result"]
+
+                # Try different result structures
                 if "quick_summary" in game_result:
+                    # Quick analysis results
                     summary = game_result["quick_summary"]
                     rating = summary.get("rating", "N/A")
                     recommendation = summary.get("recommendation", "N/A")
@@ -1230,6 +1399,7 @@ class EnhancedCLI:
                         "white",
                     )
                 elif "review_data" in game_result.get("data", {}):
+                    # Comprehensive analysis - review_data structure
                     review_data = game_result["data"]["review_data"]
                     rating = review_data.get("overall_rating", "N/A")
                     recommendation = review_data.get("recommendation", "N/A")
@@ -1237,9 +1407,82 @@ class EnhancedCLI:
                         f"       Rating: {rating}/10, Recommendation: {recommendation}",
                         "white",
                     )
+                elif isinstance(game_result, dict) and any(
+                    step_key.startswith("step_") for step_key in game_result.keys()
+                ):
+                    # Comprehensive analysis - step-based structure
+                    self._extract_step_based_summary(game_result, "       ")
+                else:
+                    # Fallback - show what we can
+                    cprint(
+                        f"       Analysis completed (use --batch-results {batch_id} for details)",
+                        "cyan",
+                    )
             elif status == "failed":
                 error = result.get("error", "Unknown error")
                 cprint(f"       Error: {error[:80]}...", "red")
+
+    def _extract_step_based_summary(self, game_result: Dict, indent: str = ""):
+        """Extract summary from step-based comprehensive analysis results."""
+        try:
+            # Look for review data in different steps
+            review_data = None
+
+            # Check step_3 (review generation)
+            if "step_3" in game_result and game_result["step_3"].get("success"):
+                step3_data = game_result["step_3"].get("data", {})
+                if "review_data" in step3_data:
+                    review_data = step3_data["review_data"]
+                elif "data" in step3_data and "review_data" in step3_data["data"]:
+                    review_data = step3_data["data"]["review_data"]
+
+            if review_data:
+                rating = review_data.get("overall_rating", "N/A")
+                recommendation = review_data.get("recommendation", "N/A")
+                cprint(
+                    f"{indent}Rating: {rating}/10, Recommendation: {recommendation}",
+                    "white",
+                )
+            else:
+                # Fallback - show completion status
+                completed_steps = sum(
+                    1
+                    for key, value in game_result.items()
+                    if key.startswith("step_") and value.get("success", False)
+                )
+                total_steps = len(
+                    [key for key in game_result.keys() if key.startswith("step_")]
+                )
+                cprint(
+                    f"{indent}Comprehensive analysis: {completed_steps}/{total_steps} steps completed",
+                    "cyan",
+                )
+
+        except Exception as e:
+            cprint(f"{indent}Analysis completed (structure parsing failed)", "yellow")
+
+    def display_detailed_batch_results(self, batch_id: str):
+        """Display detailed batch results with full comprehensive analysis data."""
+        manager = get_batch_manager()
+        results = manager.get_batch_results(batch_id)
+
+        if not results:
+            self.print_status(f"Batch {batch_id} not found", "error")
+            return
+
+        self.print_header(f"📋 Detailed Batch Results: {results['batch_name']}")
+
+        for i, result in enumerate(results["results"], 1):
+            if result["status"] == "completed" and result["result"]:
+                game_name = result["game_name"]
+                game_result = result["result"]
+
+                self.print_header(f"🎮 {i}. {game_name}", "info")
+
+                # Display using the same logic as single game analysis
+                self.display_game_analysis_results(game_result, game_name)
+
+                print()  # Add spacing between games
 
     def show_batch_status(self, batch_id: Optional[str] = None):
         """Show status of batch operations."""
