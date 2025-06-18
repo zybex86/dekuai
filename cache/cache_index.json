@@ -31,5 +31,8 @@
   "battle_train": "cache_battle_train.pkl",
   "the_legend_of_zelda:_link\u2019s_awakening": "cache_the_legend_of_zelda:_link\u2019s_awakening.pkl",
   "splatoon_raiders": "cache_splatoon_raiders.pkl",
-  "tetris_effect:_connected": "cache_tetris_effect:_connected.pkl"
+  "tetris_effect:_connected": "cache_tetris_effect:_connected.pkl",
+  "the_survivalists": "cache_the_survivalists.pkl",
+  "tales_of_vesperia:_definitive_edition": "cache_tales_of_vesperia:_definitive_edition.pkl",
+  "limbo": "cache_limbo.pkl"
 }
