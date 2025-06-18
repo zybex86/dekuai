@@ -53,7 +53,7 @@ services:
     
     # Health check override for development
     healthcheck:
-      test: ["CMD-SHELL", "python -c 'import pyautogen, openai; print(\"Health OK\")' || exit 1"]
+      test: ["CMD-SHELL", "python -c 'import autogen, openai; print(\"Health OK\")' || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

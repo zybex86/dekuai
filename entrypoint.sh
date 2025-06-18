@@ -51,10 +51,10 @@ validate_environment() {
     log_info "Python version: $python_version"
     
     # Check required packages
-    if python -c "import pyautogen" 2>/dev/null; then
-        log_info "PyAutoGen package available"
+    if python -c "import autogen" 2>/dev/null; then
+        log_info "AutoGen package available"
     else
-        log_error "PyAutoGen package not found!"
+        log_error "AutoGen package not found!"
         exit 1
     fi
     
@@ -78,7 +78,7 @@ setup_directories() {
     mkdir -p /app/data
     
     # Set proper permissions (in case volume mounted)
-    chmod 755 /app/logs /app/cache /app/data
+    chmod 755 /app/logs /app/cache /app/data 2>/dev/null || true
     
     log_info "Directory setup completed"
 }
@@ -90,7 +90,7 @@ health_check() {
     log_info "Running health check..."
     
     # Basic Python health check
-    if python -c "import pyautogen, openai; print('Health check passed')" 2>/dev/null; then
+    if python -c "import autogen, openai; print('Health check passed')" 2>/dev/null; then
         log_info "Health check: PASSED"
         return 0
     else

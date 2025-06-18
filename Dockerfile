@@ -39,7 +39,13 @@ WORKDIR /app
 
 # Copy and install Python dependencies
 COPY requirements.txt .
+
+# Switch to appuser for pip install --user
+USER appuser
 RUN pip install --no-cache-dir --user -r requirements.txt
+
+# Switch back to root for file operations
+USER root
 
 # Copy application code
 COPY --chown=appuser:appuser . .
