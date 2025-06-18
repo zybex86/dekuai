@@ -19,3 +19,4 @@ deepnext.md
 # pycache
 __pycache__
 *.pyc
+cache/*
