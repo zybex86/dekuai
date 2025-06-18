@@ -56,6 +56,13 @@ import logging
 # Configure logging for CLI
 logging.basicConfig(level=logging.WARNING)  # Less verbose for better CLI experience
 
+# New import for batch processing
+from utils.batch_processor import (
+    get_batch_manager,
+    create_batch_analysis,
+    BatchStatus,
+)
+
 
 class EnhancedCLI:
     """Enhanced CLI Interface with colors, progress bars and interactive elements."""
@@ -1088,6 +1095,291 @@ class EnhancedCLI:
 
         self.print_status("Demo completed successfully!", "success")
 
+    def batch_analyze_games_with_progress(
+        self, game_names: List[str], analysis_type: str = "comprehensive"
+    ) -> str:
+        """
+        Analyze multiple games concurrently with batch processing.
+
+        Args:
+            game_names: List of game names to analyze
+            analysis_type: Type of analysis (comprehensive, quick)
+
+        Returns:
+            str: Batch ID for tracking
+        """
+        self.print_header(
+            f"🚀 Batch Analysis: {len(game_names)} Games ({analysis_type})"
+        )
+
+        # Create progress callback
+        progress_bar = None
+
+        def progress_callback(session):
+            nonlocal progress_bar
+            if progress_bar is None:
+                progress_bar = self.create_progress_bar(
+                    f"Analyzing {session.total_tasks} games",
+                    session.total_tasks,
+                    "cyan",
+                )
+
+            completed = session.completed_tasks + session.failed_tasks
+            progress_bar.update(completed - progress_bar.n)
+
+        # Start batch analysis
+        manager = get_batch_manager()
+        batch_id = manager.create_batch_session(
+            game_names, analysis_type, progress_callback=progress_callback
+        )
+
+        self.print_status(f"Starting batch analysis... (ID: {batch_id})", "info")
+
+        # Start analysis
+        success = manager.start_batch_analysis(batch_id)
+        if not success:
+            self.print_status("Failed to start batch analysis", "error")
+            return batch_id
+
+        # Wait for completion and show progress
+        import time
+
+        while True:
+            status = manager.get_batch_status(batch_id)
+            if not status:
+                break
+
+            if status["status"] in ["completed", "failed", "cancelled"]:
+                break
+
+            time.sleep(0.5)
+
+        if progress_bar:
+            progress_bar.close()
+
+        # Show results
+        self.display_batch_results(batch_id)
+        return batch_id
+
+    def display_batch_results(self, batch_id: str):
+        """Display batch analysis results in formatted way."""
+        manager = get_batch_manager()
+        results = manager.get_batch_results(batch_id)
+
+        if not results:
+            self.print_status(f"Batch {batch_id} not found", "error")
+            return
+
+        # Display summary
+        summary = results["summary"]
+        self.print_header(f"📊 Batch Results: {results['batch_name']}")
+
+        print()
+        cprint(f"📈 Summary:", "cyan", attrs=["bold"])
+        cprint(f"   Total Games: {summary['total_games']}", "white")
+        cprint(f"   Successful: {summary['successful']}", "green")
+        cprint(
+            f"   Failed: {summary['failed']}",
+            "red" if summary["failed"] > 0 else "white",
+        )
+        cprint(
+            f"   Success Rate: {summary['success_rate']:.1f}%",
+            (
+                "green"
+                if summary["success_rate"] >= 80
+                else "yellow" if summary["success_rate"] >= 50 else "red"
+            ),
+        )
+        cprint(f"   Duration: {results['duration']:.1f}s", "white")
+
+        # Display individual results
+        print()
+        cprint(f"🎮 Individual Results:", "cyan", attrs=["bold"])
+
+        for i, result in enumerate(results["results"], 1):
+            game_name = result["game_name"]
+            status = result["status"]
+            duration = result["duration"] or 0
+
+            # Status symbol and color
+            if status == "completed":
+                symbol = "✅"
+                color = "green"
+            elif status == "failed":
+                symbol = "❌"
+                color = "red"
+            else:
+                symbol = "⚠️"
+                color = "yellow"
+
+            print()
+            cprint(f"   {i:2d}. {symbol} {game_name}", color, attrs=["bold"])
+            cprint(
+                f"       Status: {status.title()}, Duration: {duration:.1f}s", "white"
+            )
+
+            # Show quick result or error
+            if status == "completed" and result["result"]:
+                game_result = result["result"]
+                if "quick_summary" in game_result:
+                    summary = game_result["quick_summary"]
+                    rating = summary.get("rating", "N/A")
+                    recommendation = summary.get("recommendation", "N/A")
+                    cprint(
+                        f"       Rating: {rating}, Recommendation: {recommendation}",
+                        "white",
+                    )
+                elif "review_data" in game_result.get("data", {}):
+                    review_data = game_result["data"]["review_data"]
+                    rating = review_data.get("overall_rating", "N/A")
+                    recommendation = review_data.get("recommendation", "N/A")
+                    cprint(
+                        f"       Rating: {rating}/10, Recommendation: {recommendation}",
+                        "white",
+                    )
+            elif status == "failed":
+                error = result.get("error", "Unknown error")
+                cprint(f"       Error: {error[:80]}...", "red")
+
+    def show_batch_status(self, batch_id: Optional[str] = None):
+        """Show status of batch operations."""
+        manager = get_batch_manager()
+
+        if batch_id:
+            # Show specific batch status
+            status = manager.get_batch_status(batch_id)
+            if not status:
+                self.print_status(f"Batch {batch_id} not found", "error")
+                return
+
+            self.print_header(f"📊 Batch Status: {batch_id}")
+
+            print()
+            cprint(f"Batch: {status['batch_name']}", "cyan", attrs=["bold"])
+            cprint(f"Status: {status['status'].title()}", "white")
+            cprint(f"Progress: {status['progress_percentage']:.1f}%", "green")
+            cprint(
+                f"Tasks: {status['completed_tasks']}/{status['total_tasks']} completed",
+                "white",
+            )
+            if status["failed_tasks"] > 0:
+                cprint(f"Failed: {status['failed_tasks']}", "red")
+
+            if status.get("duration"):
+                cprint(f"Duration: {status['duration']:.1f}s", "white")
+        else:
+            # Show all active batches
+            active_batches = manager.list_active_batches()
+
+            self.print_header("📊 Active Batch Operations")
+
+            if not active_batches:
+                self.print_status("No active batch operations", "info")
+                return
+
+            for batch in active_batches:
+                print()
+                cprint(
+                    f"🎯 {batch['batch_name']} ({batch['batch_id']})",
+                    "cyan",
+                    attrs=["bold"],
+                )
+                cprint(f"   Status: {batch['status'].title()}", "white")
+                cprint(f"   Progress: {batch['progress']:.1f}%", "green")
+                cprint(f"   Games: {', '.join(batch['games'][:3])}", "white")
+                if len(batch["games"]) > 3:
+                    cprint(f"   ... and {len(batch['games']) - 3} more", "white")
+
+    def cancel_batch_analysis(self, batch_id: str):
+        """Cancel running batch analysis."""
+        manager = get_batch_manager()
+
+        success = manager.cancel_batch(batch_id)
+        if success:
+            self.print_status(f"Cancelled batch analysis: {batch_id}", "warning")
+        else:
+            self.print_status(
+                f"Could not cancel batch: {batch_id} (not found or not running)",
+                "error",
+            )
+
+    def batch_analyze_category_with_progress(
+        self, category: str, count: int = 5, analysis_type: str = "quick"
+    ):
+        """Analyze multiple games from a category using batch processing."""
+        self.print_header(f"🚀 Batch Category Analysis: {category.title()}")
+
+        # Get games from category
+        progress = self.create_progress_bar("Fetching games", 100, "blue")
+
+        try:
+            for i in range(0, 101, 25):
+                progress.update(25)
+                time.sleep(0.1)
+
+            progress.close()
+
+            result = scrape_dekudeals_category(category, max_games=count)
+
+            if result.get("success", False):
+                games = result.get("game_titles", [])
+                self.print_status(f"Found {len(games)} games in {category}", "success")
+
+                if games:
+                    # Start batch analysis
+                    batch_id = self.batch_analyze_games_with_progress(
+                        games, analysis_type
+                    )
+                    return batch_id
+                else:
+                    self.print_status(f"No games found in {category}", "warning")
+            else:
+                error_msg = result.get("error", "Unknown error")
+                self.print_status(
+                    f"Failed to fetch games from {category}: {error_msg}", "error"
+                )
+
+        except Exception as e:
+            progress.close()
+            self.print_status(f"Error in batch category analysis: {str(e)}", "error")
+
+    def batch_analyze_random_with_progress(
+        self, count: int = 5, preference: str = "mixed", analysis_type: str = "quick"
+    ):
+        """Analyze random games using batch processing."""
+        self.print_header(f"🚀 Batch Random Analysis: {count} Games ({preference})")
+
+        # Get random games
+        progress = self.create_progress_bar("Getting random games", 100, "magenta")
+
+        try:
+            for i in range(0, 101, 20):
+                progress.update(20)
+                time.sleep(0.1)
+
+            progress.close()
+
+            result = get_random_game_sample(count, preference)
+
+            if result.get("success", False):
+                games = result.get("selected_games", [])
+                self.print_status(f"Selected {len(games)} random games", "success")
+
+                if games:
+                    # Start batch analysis
+                    batch_id = self.batch_analyze_games_with_progress(
+                        games, analysis_type
+                    )
+                    return batch_id
+                else:
+                    self.print_status("No random games selected", "warning")
+            else:
+                self.print_status("Failed to get random games", "error")
+
+        except Exception as e:
+            progress.close()
+            self.print_status(f"Error in batch random analysis: {str(e)}", "error")
+
 
 def main():
     """Main CLI function with enhanced argument parsing."""
@@ -1103,6 +1395,15 @@ Examples:
   %(prog)s --compare "INSIDE" "Limbo"          # Compare games
   %(prog)s --interactive                       # Launch interactive mode
   %(prog)s --demo                              # Full system demo
+
+Batch Processing (NEW - Phase 6.2):
+  %(prog)s --batch-analyze "INSIDE" "Celeste" "Hollow Knight"  # Analyze multiple games concurrently
+  %(prog)s --batch-category hottest --count 5 --batch-type quick  # Batch analyze category
+  %(prog)s --batch-random 3 --preference mixed --batch-type comprehensive  # Batch random analysis
+  %(prog)s --batch-status                      # Show all active batch operations
+  %(prog)s --batch-status abc123ef            # Show specific batch status
+  %(prog)s --batch-cancel abc123ef            # Cancel running batch
+  %(prog)s --batch-results abc123ef           # Show batch results
         """,
     )
 
@@ -1150,6 +1451,50 @@ Examples:
     )
     parser.add_argument(
         "--demo", action="store_true", help="Run full system demonstration"
+    )
+
+    # Batch processing arguments (NEW - Phase 6.2)
+    parser.add_argument(
+        "--batch-analyze",
+        nargs="+",
+        metavar="GAME",
+        help="Analyze multiple games concurrently with batch processing",
+    )
+    parser.add_argument(
+        "--batch-category",
+        type=str,
+        metavar="CATEGORY",
+        help="Batch analyze games from specific category",
+    )
+    parser.add_argument(
+        "--batch-random", type=int, metavar="N", help="Batch analyze N random games"
+    )
+    parser.add_argument(
+        "--batch-type",
+        type=str,
+        default="quick",
+        choices=["quick", "comprehensive"],
+        help="Type of analysis for batch processing (default: quick)",
+    )
+    parser.add_argument(
+        "--batch-status",
+        type=str,
+        metavar="BATCH_ID",
+        nargs="?",
+        const="",
+        help="Show status of batch operations (optional: specific batch ID)",
+    )
+    parser.add_argument(
+        "--batch-cancel",
+        type=str,
+        metavar="BATCH_ID",
+        help="Cancel running batch analysis",
+    )
+    parser.add_argument(
+        "--batch-results",
+        type=str,
+        metavar="BATCH_ID",
+        help="Show results of completed batch analysis",
     )
 
     # Options
@@ -1203,6 +1548,38 @@ Examples:
         elif args.compare:
             cli.show_welcome()
             cli.compare_games_with_progress(args.compare)
+
+        elif args.batch_analyze:
+            cli.show_welcome()
+            cli.batch_analyze_games_with_progress(args.batch_analyze, args.batch_type)
+
+        elif args.batch_category:
+            cli.show_welcome()
+            cli.batch_analyze_category_with_progress(
+                args.batch_category, args.count, args.batch_type
+            )
+
+        elif args.batch_random:
+            cli.show_welcome()
+            cli.batch_analyze_random_with_progress(
+                args.batch_random, args.preference, args.batch_type
+            )
+
+        elif args.batch_status is not None:
+            if args.batch_status == "":
+                # Show all active batches
+                cli.show_batch_status()
+            else:
+                # Show specific batch
+                cli.show_batch_status(args.batch_status)
+
+        elif args.batch_cancel:
+            cli.show_welcome()
+            cli.cancel_batch_analysis(args.batch_cancel)
+
+        elif args.batch_results:
+            cli.show_welcome()
+            cli.display_batch_results(args.batch_results)
 
         else:
             # Show welcome and help

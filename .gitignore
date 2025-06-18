@@ -20,3 +20,4 @@ deepnext.md
 __pycache__
 *.pyc
 cache/*
+cache_index.json

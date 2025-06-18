@@ -3206,3 +3206,198 @@ def perform_cache_maintenance() -> Dict:
             "message": "Cache maintenance operation failed",
             "fallback_action": "Manual cache cleanup may be required",
         }
+
+
+@register_for_llm(
+    description="Create and start batch game analysis - Input: game_names (List[str]), analysis_type (str) - Output: Dict with batch ID and status"
+)
+@register_for_execution()
+def batch_analyze_games(game_names: List[str], analysis_type: str = "quick") -> Dict:
+    """
+    Create and start batch analysis of multiple games.
+
+    DESCRIPTION: Analyze multiple games concurrently using batch processing
+    ARGS:
+        game_names: List of game names to analyze
+        analysis_type: Type of analysis ('quick' or 'comprehensive')
+    RETURNS:
+        Dict: Batch session details and status
+    """
+    try:
+        logger.info(
+            f"🚀 Starting batch analysis: {len(game_names)} games ({analysis_type})"
+        )
+
+        from utils.batch_processor import get_batch_manager
+
+        # Validate inputs
+        if not game_names or len(game_names) == 0:
+            return {"success": False, "error": "No games provided for batch analysis"}
+
+        if analysis_type not in ["quick", "comprehensive"]:
+            return {
+                "success": False,
+                "error": f"Invalid analysis type: {analysis_type}. Use 'quick' or 'comprehensive'",
+            }
+
+        # Create and start batch session
+        manager = get_batch_manager()
+        batch_id = manager.create_batch_session(game_names, analysis_type)
+
+        success = manager.start_batch_analysis(batch_id)
+        if not success:
+            return {
+                "success": False,
+                "error": "Failed to start batch analysis",
+                "batch_id": batch_id,
+            }
+
+        # Wait for completion
+        import time
+
+        while True:
+            status = manager.get_batch_status(batch_id)
+            if not status:
+                break
+
+            if status["status"] in ["completed", "failed", "cancelled"]:
+                break
+
+            time.sleep(0.5)
+
+        # Get final results
+        results = manager.get_batch_results(batch_id)
+
+        return {
+            "success": True,
+            "batch_id": batch_id,
+            "status": status,
+            "results": results,
+            "message": f"Batch analysis completed: {len(game_names)} games processed",
+        }
+
+    except Exception as e:
+        error_msg = f"Error in batch analysis: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {"success": False, "error": error_msg}
+
+
+@register_for_llm(
+    description="Get batch analysis status and progress - Input: batch_id (str, optional) - Output: Dict with batch status"
+)
+@register_for_execution()
+def get_batch_analysis_status(batch_id: str = None) -> Dict:
+    """
+    Get status of batch analysis operations.
+
+    DESCRIPTION: Check status of batch analysis (all batches or specific batch)
+    ARGS:
+        batch_id: Optional specific batch ID to check
+    RETURNS:
+        Dict: Batch status information
+    """
+    try:
+        from utils.batch_processor import get_batch_manager
+
+        manager = get_batch_manager()
+
+        if batch_id:
+            # Get specific batch status
+            status = manager.get_batch_status(batch_id)
+            if not status:
+                return {"success": False, "error": f"Batch {batch_id} not found"}
+
+            return {"success": True, "batch_status": status}
+        else:
+            # Get all active batches
+            active_batches = manager.list_active_batches()
+
+            return {
+                "success": True,
+                "active_batches": active_batches,
+                "count": len(active_batches),
+            }
+
+    except Exception as e:
+        error_msg = f"Error getting batch status: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {"success": False, "error": error_msg}
+
+
+@register_for_llm(
+    description="Cancel running batch analysis - Input: batch_id (str) - Output: Dict with cancellation result"
+)
+@register_for_execution()
+def cancel_batch_analysis(batch_id: str) -> Dict:
+    """
+    Cancel running batch analysis.
+
+    DESCRIPTION: Stop and cancel ongoing batch analysis operation
+    ARGS:
+        batch_id: ID of batch to cancel
+    RETURNS:
+        Dict: Cancellation result
+    """
+    try:
+        from utils.batch_processor import get_batch_manager
+
+        if not batch_id:
+            return {"success": False, "error": "Batch ID is required"}
+
+        manager = get_batch_manager()
+        success = manager.cancel_batch(batch_id)
+
+        if success:
+            return {
+                "success": True,
+                "batch_id": batch_id,
+                "message": f"Batch analysis {batch_id} cancelled successfully",
+            }
+        else:
+            return {
+                "success": False,
+                "error": f"Could not cancel batch {batch_id} (not found or not running)",
+                "batch_id": batch_id,
+            }
+
+    except Exception as e:
+        error_msg = f"Error cancelling batch: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {"success": False, "error": error_msg, "batch_id": batch_id}
+
+
+@register_for_llm(
+    description="Get batch analysis results - Input: batch_id (str) - Output: Dict with complete batch results"
+)
+@register_for_execution()
+def get_batch_analysis_results(batch_id: str) -> Dict:
+    """
+    Get complete results from batch analysis.
+
+    DESCRIPTION: Retrieve detailed results and statistics from completed batch analysis
+    ARGS:
+        batch_id: ID of completed batch
+    RETURNS:
+        Dict: Complete batch results with individual game analysis
+    """
+    try:
+        from utils.batch_processor import get_batch_manager
+
+        if not batch_id:
+            return {"success": False, "error": "Batch ID is required"}
+
+        manager = get_batch_manager()
+        results = manager.get_batch_results(batch_id)
+
+        if not results:
+            return {
+                "success": False,
+                "error": f"Batch {batch_id} not found or not completed",
+            }
+
+        return {"success": True, "batch_results": results}
+
+    except Exception as e:
+        error_msg = f"Error getting batch results: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {"success": False, "error": error_msg, "batch_id": batch_id}
