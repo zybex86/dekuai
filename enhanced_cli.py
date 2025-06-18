@@ -20,6 +20,9 @@ import threading
 from functools import lru_cache
 import hashlib
 
+# 🚀 FAZA 6.1 - KROK 2: Advanced Cache System
+from utils.advanced_cache_system import get_advanced_cache
+
 # Add project root to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -71,64 +74,113 @@ class EnhancedCLI:
             "loading": "yellow",
         }
 
-        # 🚀 FAZA 6.1: Game Data Cache System
-        self._game_data_cache = {}
+        # 🚀 FAZA 6.1 - KROK 2: Advanced Multi-Level Cache System
+        self.advanced_cache = get_advanced_cache()
         self._cache_hits = 0
         self._cache_misses = 0
 
-        # Setup cache-aware functions (monkey-patch for performance)
-        self._setup_cached_functions()
+        # Setup cache-aware functions with advanced caching
+        self._setup_advanced_cached_functions()
 
-    def _setup_cached_functions(self):
+    def _setup_advanced_cached_functions(self):
         """
-        🚀 FAZA 6.1: Setup cache-aware versions of scraping functions.
-        This eliminates redundant scraping by patching agent_tools functions.
+        🚀 FAZA 6.1 - KROK 2: Setup advanced multi-level cache system.
+        Features: Persistent cache, TTL expiration, memory+disk hierarchy.
         """
         # Store original functions
         self._original_search_and_scrape = search_and_scrape_game
 
-        # Create cached version
-        def cached_search_and_scrape_game(game_name: str) -> Dict:
-            """Cache-aware version of search_and_scrape_game."""
+        # Create advanced cached version
+        def advanced_cached_search_and_scrape_game(game_name: str) -> Dict:
+            """Advanced cache-aware version with persistent storage."""
             cache_key = game_name.lower().strip()
 
-            if cache_key in self._game_data_cache:
+            # Try to get from advanced cache (memory → disk → scrape)
+            cached_result = self.advanced_cache.get(cache_key, game_name)
+
+            if cached_result is not None:
                 self._cache_hits += 1
+                cache_stats = self.advanced_cache.get_cache_statistics()
+                memory_hits = cache_stats["cache_performance"]["memory_hits"]
+                disk_hits = cache_stats["cache_performance"]["disk_hits"]
+
+                cache_type = "MEMORY" if memory_hits > disk_hits else "DISK"
+
                 self.print_status(
-                    f"💾 Cache HIT for '{game_name}' (saves ~2-3s scraping)", "info"
+                    f"💾 Advanced Cache {cache_type} HIT for '{game_name}' (persistent cache)",
+                    "success",
                 )
-                return self._game_data_cache[cache_key]
+                return cached_result
             else:
                 self._cache_misses += 1
                 self.print_status(
-                    f"🔍 Cache MISS for '{game_name}' - scraping...", "info"
+                    f"🔍 Advanced Cache MISS for '{game_name}' - scraping & persisting...",
+                    "info",
                 )
+
+                # Scrape new data
                 result = self._original_search_and_scrape(game_name)
-                # Cache the result for future use
-                self._game_data_cache[cache_key] = result
+
+                # Store in advanced cache with TTL
+                ttl_hours = 24  # Default 24h TTL
+
+                # Extend TTL for popular games
+                if any(
+                    popular in game_name.lower()
+                    for popular in [
+                        "zelda",
+                        "mario",
+                        "hollow",
+                        "celeste",
+                        "hades",
+                        "metroid",
+                    ]
+                ):
+                    ttl_hours = 72  # 3 days for popular games
+
+                self.advanced_cache.put(cache_key, result, game_name, ttl_hours)
+
                 return result
 
-        # Monkey-patch the global function temporarily
+        # Monkey-patch the global function
         import agent_tools
 
-        agent_tools.search_and_scrape_game = cached_search_and_scrape_game
+        agent_tools.search_and_scrape_game = advanced_cached_search_and_scrape_game
 
-        self.print_status("🚀 Performance cache system activated", "success")
+        self.print_status("🚀 Advanced multi-level cache system activated", "success")
 
     def get_cache_stats(self) -> Dict:
-        """Get cache performance statistics."""
+        """
+        🚀 FAZA 6.1 - KROK 2: Get advanced cache performance statistics.
+        Now includes multi-level cache metrics and persistent storage info.
+        """
+        # Get comprehensive statistics from advanced cache
+        advanced_stats = self.advanced_cache.get_cache_statistics()
+
         total_requests = self._cache_hits + self._cache_misses
         hit_rate = (
             (self._cache_hits / total_requests * 100) if total_requests > 0 else 0
         )
 
+        # Combine basic stats with advanced cache metrics
         return {
-            "cache_hits": self._cache_hits,
-            "cache_misses": self._cache_misses,
-            "hit_rate": hit_rate,
-            "cached_games": len(self._game_data_cache),
-            "estimated_time_saved": self._cache_hits
-            * 2.5,  # ~2.5s per scraping avoided
+            "basic_tracking": {
+                "cache_hits": self._cache_hits,
+                "cache_misses": self._cache_misses,
+                "hit_rate": hit_rate,
+                "estimated_time_saved": self._cache_hits
+                * 2.5,  # ~2.5s per scraping avoided
+            },
+            "advanced_cache": advanced_stats,
+            "cache_efficiency": {
+                "multi_level_hit_rate": advanced_stats["cache_performance"]["hit_rate"],
+                "memory_vs_disk": {
+                    "memory_hits": advanced_stats["cache_performance"]["memory_hits"],
+                    "disk_hits": advanced_stats["cache_performance"]["disk_hits"],
+                },
+                "storage_efficiency": advanced_stats["cache_health"]["efficiency"],
+                "persistent_entries": advanced_stats["cache_status"]["disk_size"],
+            },
         }
 
     def print_header(
@@ -416,16 +468,34 @@ class EnhancedCLI:
             f"💡 Performance: ~{len(results)-1} parallel operations", "info"
         )
 
-        # Cache performance summary
-        if cache_stats["cache_hits"] > 0:
+        # Advanced Cache performance summary (FAZA 6.1 - KROK 2)
+        basic_stats = cache_stats["basic_tracking"]
+        advanced_stats = cache_stats["advanced_cache"]
+        efficiency_stats = cache_stats["cache_efficiency"]
+
+        if basic_stats["cache_hits"] > 0:
             self.print_status(
-                f"💾 Cache: {cache_stats['cache_hits']} hits, "
-                f"{cache_stats['hit_rate']:.1f}% hit rate, "
-                f"~{cache_stats['estimated_time_saved']:.1f}s saved",
+                f"💾 Advanced Cache: {basic_stats['cache_hits']} hits, "
+                f"{efficiency_stats['multi_level_hit_rate']} hit rate, "
+                f"~{basic_stats['estimated_time_saved']:.1f}s saved",
                 "success",
             )
+
+            # Show cache level breakdown
+            memory_hits = efficiency_stats["memory_vs_disk"]["memory_hits"]
+            disk_hits = efficiency_stats["memory_vs_disk"]["disk_hits"]
+
+            if memory_hits > 0 or disk_hits > 0:
+                self.print_status(
+                    f"📊 Cache levels: Memory={memory_hits}, Disk={disk_hits}, "
+                    f"Persistent entries={efficiency_stats['persistent_entries']}, "
+                    f"Efficiency={efficiency_stats['storage_efficiency']}",
+                    "info",
+                )
         else:
-            self.print_status("💾 Cache: No hits (first run for this game)", "info")
+            self.print_status(
+                "💾 Advanced Cache: No hits (first run for this game)", "info"
+            )
 
         return results
 
@@ -643,7 +713,7 @@ class EnhancedCLI:
                 self.browse_category_with_progress(category, 5)
 
     def browse_category_with_progress(self, category: str, count: int):
-        """Browse category with progress visualization."""
+        """Browse category with progress visualization and improved game selection."""
         self.print_header(f"📂 Browsing Category: {category.title()}")
 
         progress = self.create_progress_bar("Fetching games", 100, "blue")
@@ -663,21 +733,85 @@ class EnhancedCLI:
                 self.print_status(f"Found {len(games)} games in {category}", "success")
 
                 if games:
-                    self.print_section(f"🎮 Games in {category.title()}", style="info")
-                    for i, game in enumerate(games, 1):
-                        cprint(f"   {i:2d}. {game}", "white")
+                    while True:  # Loop for game selection
+                        self.print_section(
+                            f"🎮 Games in {category.title()}", style="info"
+                        )
+                        for i, game in enumerate(games, 1):
+                            cprint(f"   {i:2d}. {game}", "white")
 
-                # Offer to analyze first game
-                if games:
-                    analyze = self.get_user_choice(
-                        f"Would you like to analyze '{games[0]}'?", ["Yes", "No"]
-                    )
+                        print()
+                        action = self.get_user_choice(
+                            "What would you like to do?",
+                            [
+                                "📊 Analyze a game from this list",
+                                "🔄 Get another list from this category",
+                                "🔙 Back to main menu",
+                            ],
+                        )
 
-                    if "Yes" in analyze:
-                        results = self.analyze_game_with_progress(games[0])
-                        self.display_game_analysis_results(results, games[0])
+                        if not action:  # User cancelled
+                            break
+
+                        if "Analyze a game" in action:
+                            # Let user choose which game to analyze
+                            game_choice = input(
+                                colored(
+                                    f"\n🎯 Enter game number (1-{len(games)}) to analyze: ",
+                                    "cyan",
+                                    attrs=["bold"],
+                                )
+                            ).strip()
+
+                            try:
+                                game_index = int(game_choice) - 1
+                                if 0 <= game_index < len(games):
+                                    selected_game = games[game_index]
+                                    self.print_status(
+                                        f"Analyzing: {selected_game}", "info"
+                                    )
+                                    results = self.analyze_game_with_progress(
+                                        selected_game
+                                    )
+                                    self.display_game_analysis_results(
+                                        results, selected_game
+                                    )
+                                else:
+                                    self.print_status(
+                                        f"Invalid choice. Please enter 1-{len(games)}",
+                                        "error",
+                                    )
+                            except ValueError:
+                                self.print_status(
+                                    "Invalid input. Please enter a number.", "error"
+                                )
+
+                        elif "Get another list" in action:
+                            # Refresh the list - get new games from same category
+                            self.print_status(f"Refreshing {category} list...", "info")
+                            break  # Exit the while loop to refetch
+
+                        elif "Back to main menu" in action:
+                            return  # Exit completely
+
+                else:
+                    self.print_status(f"No games found in {category}", "warning")
             else:
-                self.print_status(f"Failed to fetch games from {category}", "error")
+                error_msg = result.get("error", "Unknown error")
+                self.print_status(
+                    f"Failed to fetch games from {category}: {error_msg}", "error"
+                )
+
+                # Provide help for eshop-sales issue
+                if category == "eshop-sales":
+                    print()
+                    self.print_status(
+                        "💡 Tip: 'eshop-sales' category might be temporarily unavailable",
+                        "info",
+                    )
+                    self.print_status(
+                        "    Try 'hottest' or 'recent-drops' instead", "info"
+                    )
 
         except Exception as e:
             progress.close()
@@ -877,7 +1011,7 @@ class EnhancedCLI:
             "💰 Deal Categories": [
                 ("hottest", "🔥 Hottest Deals"),
                 ("recent-drops", "📉 Recent Price Drops"),
-                ("eshop-sales", "🏪 eShop Sales"),
+                # ("eshop-sales", "🏪 eShop Sales"),  # Temporarily disabled
                 ("deepest-discounts", "💸 Deepest Discounts"),
                 ("bang-for-your-buck", "💎 Bang for Your Buck"),
                 ("ending-soon", "⏰ Ending Soon"),
@@ -903,6 +1037,17 @@ class EnhancedCLI:
             for cat_id, cat_display in group_categories:
                 print(f"   {cat_display}")
                 cprint(f"     └─ Use: --category {cat_id}", "white")
+
+        # Add note about temporarily unavailable categories
+        print()
+        self.print_status(
+            "⚠️ Note: Some categories may be temporarily unavailable due to site protection",
+            "warning",
+        )
+        self.print_status(
+            "   If a category fails, try 'hottest', 'recent-drops', or 'deepest-discounts'",
+            "info",
+        )
 
     def run_demo_mode(self):
         """Run full system demonstration."""
