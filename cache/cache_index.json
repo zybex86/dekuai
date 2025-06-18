@@ -38,5 +38,12 @@
   "ace_attorney_investigations_collection": "cache_ace_attorney_investigations_collection.pkl",
   "deltarune": "cache_deltarune.pkl",
   "the_legend_of_zelda:_breath_of_the_wild": "cache_the_legend_of_zelda:_breath_of_the_wild.pkl",
-  "dicey_dungeons": "cache_dicey_dungeons.pkl"
+  "dicey_dungeons": "cache_dicey_dungeons.pkl",
+  "darkest_dungeon": "cache_darkest_dungeon.pkl",
+  "cris_tales": "cache_cris_tales.pkl",
+  "blasphemous_2": "cache_blasphemous_2.pkl",
+  "mario_+_rabbids_sparks_of_hope": "cache_mario_+_rabbids_sparks_of_hope.pkl",
+  "13_sentinels:_aegis_rim": "cache_13_sentinels:_aegis_rim.pkl",
+  "undertale": "cache_undertale.pkl",
+  "stardew_valley": "cache_stardew_valley.pkl"
 }

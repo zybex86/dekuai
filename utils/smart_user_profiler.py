@@ -286,8 +286,11 @@ class SmartUserProfiler:
         )
         profile.confidence_level = self._calculate_confidence_level(profile)
 
-        # Update favorite genres
-        profile.favorite_genres = self._extract_favorite_genres(recent_interactions)
+        # Update favorite genres - merge with existing instead of overwriting
+        new_favorite_genres = self._extract_favorite_genres(recent_interactions)
+        profile.favorite_genres = self._merge_favorite_genres(
+            profile.favorite_genres, new_favorite_genres
+        )
 
         logger.info(
             f"Updated profile for {profile.user_id}: {len(new_preferences)} preferences detected"
@@ -487,6 +490,60 @@ class SmartUserProfiler:
         merged_preferences.sort(key=lambda p: p.confidence, reverse=True)
 
         return merged_preferences
+
+    def _merge_favorite_genres(
+        self,
+        existing_genres: List[Tuple[str, float]],
+        new_genres: List[Tuple[str, float]],
+    ) -> List[Tuple[str, float]]:
+        """Merge existing and new favorite genres, keeping stable preferences while updating with new data"""
+
+        # Create a map of existing genres by name
+        existing_map = {genre: confidence for genre, confidence in existing_genres}
+
+        # Merge with new genres - use weighted average for stability
+        merged_genres = {}
+
+        # Add all new genres, updating existing ones with weighted average
+        for genre, new_confidence in new_genres:
+            if genre in existing_map:
+                existing_confidence = existing_map[genre]
+                # Weighted average: 70% existing + 30% new (for stability)
+                merged_confidence = (existing_confidence * 0.7) + (new_confidence * 0.3)
+                merged_genres[genre] = merged_confidence
+                logger.debug(
+                    f"Updated favorite genre {genre}: {existing_confidence:.3f} → {merged_confidence:.3f}"
+                )
+                # Remove from existing map to avoid duplicates
+                del existing_map[genre]
+            else:
+                # New genre - add with reduced confidence for first appearance
+                initial_confidence = (
+                    new_confidence * 0.6
+                )  # Start with 60% of calculated confidence
+                merged_genres[genre] = initial_confidence
+                logger.debug(
+                    f"Added new favorite genre: {genre} ({initial_confidence:.3f})"
+                )
+
+        # Add remaining existing genres that weren't updated (decay slightly over time)
+        for genre, confidence in existing_map.items():
+            # Slight decay for genres not seen recently (95% of previous confidence)
+            decayed_confidence = confidence * 0.95
+            if decayed_confidence >= 0.1:  # Keep only if still above 10% confidence
+                merged_genres[genre] = decayed_confidence
+                logger.debug(
+                    f"Kept existing genre with decay: {genre} ({decayed_confidence:.3f})"
+                )
+
+        # Convert back to list and sort by confidence (highest first)
+        result = [(genre, confidence) for genre, confidence in merged_genres.items()]
+        result.sort(key=lambda x: x[1], reverse=True)
+
+        # Keep only top 10 genres to avoid bloat
+        result = result[:10]
+
+        return result
 
     def _calculate_confidence_level(self, profile: DynamicUserProfile) -> str:
         """Calculate overall confidence level of the profile"""
