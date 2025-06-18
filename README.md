@@ -1,5 +1,9 @@
 # 🎮 AutoGen DekuDeals Game Analysis
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![AutoGen](https://img.shields.io/badge/Framework-AutoGen-green.svg)](https://github.com/microsoft/autogen)
+
 An intelligent multi-agent system using AutoGen to analyze games from DekuDeals.com and generate comprehensive purchase recommendations with **enterprise-level quality control**.
 
 ## 📋 Project Overview
@@ -429,7 +433,21 @@ This project follows a structured phase-based development approach. Currently **
 
 ## 📝 License
 
-This project is for educational and personal use. DekuDeals.com scraping should respect their robots.txt and terms of service.
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+### 🎯 What This Means:
+- ✅ **Free to use** - Personal and commercial use allowed
+- ✅ **Free to modify** - Change, adapt, and build upon the code
+- ✅ **Free to distribute** - Share original or modified versions
+- ✅ **Free to sell** - Use in commercial products
+- ⚠️ **Attribution required** - Include original copyright notice
+- ⚠️ **No warranty** - Software provided "as is"
+
+### 📋 Additional Notes:
+- **Educational & Research Purpose**: This project demonstrates AutoGen capabilities and ML intelligence
+- **DekuDeals Respect**: Web scraping should respect robots.txt and terms of service
+- **API Keys**: You need your own OpenAI API key for operation
+- **Community**: Contributions and improvements are welcome under the same license
 
 ---
 
