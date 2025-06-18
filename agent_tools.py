@@ -3401,3 +3401,641 @@ def get_batch_analysis_results(batch_id: str) -> Dict:
         error_msg = f"Error getting batch results: {str(e)}"
         logger.error(f"❌ {error_msg}")
         return {"success": False, "error": error_msg, "batch_id": batch_id}
+
+
+# ====================================================================
+# 🔍 FAZA 6.4: MONITORING & ANALYTICS TOOLS
+# ====================================================================
+
+
+@register_for_llm(
+    description="Get real-time monitoring dashboard data - Input: time_range (str, optional) - Output: Dict with comprehensive dashboard data"
+)
+@register_for_execution()
+def get_monitoring_dashboard_data(time_range: str = "1h") -> Dict:
+    """
+    🔍 FAZA 6.4: Get comprehensive real-time monitoring dashboard data.
+
+    Provides complete dashboard with:
+    - System health status
+    - Performance metrics
+    - Usage statistics
+    - Active alerts
+    - Widget data for visualization
+
+    Args:
+        time_range: Time range for metrics ('1h', '6h', '24h', '7d')
+
+    Returns:
+        Dict: Complete dashboard data for monitoring
+    """
+    try:
+        from utils.monitoring_dashboard import create_default_dashboard
+
+        logger.info(f"📊 Getting monitoring dashboard data for {time_range}")
+
+        dashboard = create_default_dashboard()
+        dashboard_data = dashboard.get_dashboard_data()
+
+        # Get metrics for the specified time range
+        metrics_data = dashboard.get_metrics("*", time_range, "raw")
+
+        # Generate summary
+        summary = {
+            "time_range": time_range,
+            "last_updated": dashboard_data["timestamp"],
+            "system_health": dashboard_data["system_health"]["status"],
+            "overall_score": dashboard_data["system_health"]["overall_score"],
+            "active_alerts": len(dashboard_data["system_health"]["active_alerts"]),
+            "total_metrics": len(metrics_data),
+            "widgets_count": len(dashboard_data["widgets"]),
+        }
+
+        logger.info(f"✅ Dashboard data retrieved: {summary['system_health']} status")
+
+        return {
+            "success": True,
+            "dashboard_data": dashboard_data,
+            "metrics": metrics_data[:100],  # Limit for performance
+            "summary": summary,
+            "recommendations": _generate_dashboard_recommendations(dashboard_data),
+        }
+
+    except Exception as e:
+        error_msg = f"Error getting monitoring dashboard: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {
+            "success": False,
+            "error": error_msg,
+            "fallback": "Monitoring dashboard temporarily unavailable",
+        }
+
+
+@register_for_llm(
+    description="Get comprehensive performance monitoring summary - Input: time_range (str, optional) - Output: Dict with performance analysis"
+)
+@register_for_execution()
+def get_performance_monitoring_summary(time_range: str = "24h") -> Dict:
+    """
+    🔍 FAZA 6.4: Get comprehensive performance monitoring and analysis.
+
+    Provides detailed performance insights:
+    - Function performance profiles
+    - Bottleneck identification
+    - Performance trends
+    - Optimization recommendations
+    - Resource usage analysis
+
+    Args:
+        time_range: Time range for analysis ('1h', '24h', '7d')
+
+    Returns:
+        Dict: Complete performance monitoring analysis
+    """
+    try:
+        from utils.performance_monitor import get_performance_monitor
+
+        logger.info(f"⚡ Getting performance summary for {time_range}")
+
+        monitor = get_performance_monitor()
+        performance_summary = monitor.get_performance_summary(time_range)
+
+        if "error" in performance_summary:
+            return {
+                "success": False,
+                "error": performance_summary["error"],
+                "time_range": time_range,
+            }
+
+        # Get bottlenecks
+        bottlenecks = monitor.get_bottlenecks(10)
+
+        # Generate insights
+        insights = _generate_performance_insights(performance_summary, bottlenecks)
+
+        logger.info(
+            f"✅ Performance analysis completed: {len(bottlenecks)} bottlenecks identified"
+        )
+
+        return {
+            "success": True,
+            "performance_summary": performance_summary,
+            "bottlenecks": bottlenecks,
+            "insights": insights,
+            "recommendations": _generate_performance_recommendations(bottlenecks),
+            "time_range": time_range,
+        }
+
+    except Exception as e:
+        error_msg = f"Error getting performance summary: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {
+            "success": False,
+            "error": error_msg,
+            "fallback": "Performance monitoring temporarily unavailable",
+        }
+
+
+@register_for_llm(
+    description="Get comprehensive usage analytics and user behavior insights - Input: period (str, optional) - Output: Dict with usage analytics"
+)
+@register_for_execution()
+def get_usage_analytics_summary(period: str = "7d") -> Dict:
+    """
+    🔍 FAZA 6.4: Get comprehensive usage analytics and user behavior insights.
+
+    Provides detailed usage analysis:
+    - User behavior patterns
+    - Usage statistics and trends
+    - Popular games and commands
+    - User segmentation
+    - Growth metrics
+
+    Args:
+        period: Analysis period ('1d', '7d', '30d')
+
+    Returns:
+        Dict: Complete usage analytics and insights
+    """
+    try:
+        from utils.usage_analytics import get_usage_analytics
+
+        logger.info(f"📈 Getting usage analytics for {period}")
+
+        analytics = get_usage_analytics()
+        usage_stats = analytics.get_usage_statistics(period)
+        user_insights = analytics.get_user_insights()
+        analytics_summary = analytics.get_analytics_summary()
+
+        # Generate behavioral insights
+        behavioral_insights = _generate_behavioral_insights(usage_stats, user_insights)
+
+        logger.info(
+            f"✅ Usage analytics completed: {usage_stats.total_users} users, {usage_stats.total_events} events"
+        )
+
+        return {
+            "success": True,
+            "usage_statistics": {
+                "period": usage_stats.period,
+                "total_users": usage_stats.total_users,
+                "total_sessions": usage_stats.total_sessions,
+                "total_events": usage_stats.total_events,
+                "unique_games_analyzed": usage_stats.unique_games_analyzed,
+                "avg_session_duration": usage_stats.avg_session_duration,
+                "most_popular_games": usage_stats.most_popular_games,
+                "most_used_commands": usage_stats.most_used_commands,
+                "user_segments": usage_stats.user_segments,
+                "error_rate": usage_stats.error_rate,
+                "cache_hit_rate": usage_stats.cache_hit_rate,
+                "peak_usage_hours": usage_stats.peak_usage_hours,
+                "growth_metrics": usage_stats.growth_metrics,
+            },
+            "user_insights": user_insights,
+            "analytics_summary": analytics_summary,
+            "behavioral_insights": behavioral_insights,
+            "recommendations": _generate_usage_recommendations(usage_stats),
+        }
+
+    except Exception as e:
+        error_msg = f"Error getting usage analytics: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {
+            "success": False,
+            "error": error_msg,
+            "fallback": "Usage analytics temporarily unavailable",
+        }
+
+
+@register_for_llm(
+    description="Evaluate system alerts and get alerting status - Input: metrics (Dict, optional) - Output: Dict with alerts and system status"
+)
+@register_for_execution()
+def evaluate_system_alerts(metrics: Optional[Dict[str, float]] = None) -> Dict:
+    """
+    🔍 FAZA 6.4: Evaluate system metrics against alert rules and get alerting status.
+
+    Provides comprehensive alerting analysis:
+    - Active alerts and their status
+    - Alert rule evaluation
+    - System health assessment
+    - Alert history and trends
+    - Notification status
+
+    Args:
+        metrics: Optional system metrics to evaluate
+
+    Returns:
+        Dict: Complete alerting system status and analysis
+    """
+    try:
+        from utils.alerting_system import get_alerting_system
+
+        logger.info("🚨 Evaluating system alerts and alerting status")
+
+        alerting = get_alerting_system()
+
+        # If metrics provided, evaluate them
+        triggered_alerts = []
+        if metrics:
+            triggered_alerts = alerting.evaluate_metrics(metrics)
+            logger.info(
+                f"📊 Evaluated metrics, triggered {len(triggered_alerts)} alerts"
+            )
+
+        # Get comprehensive alerting summary
+        alerting_summary = alerting.get_alerting_summary()
+        active_alerts = alerting.get_active_alerts()
+
+        # Format active alerts
+        formatted_alerts = []
+        for alert in active_alerts:
+            formatted_alerts.append(
+                {
+                    "alert_id": alert.alert_id,
+                    "title": alert.title,
+                    "message": alert.message,
+                    "severity": alert.severity.value,
+                    "category": alert.category.value,
+                    "status": alert.status.value,
+                    "created_at": alert.created_at.isoformat(),
+                    "trigger_value": alert.trigger_value,
+                    "threshold_value": alert.threshold_value,
+                }
+            )
+
+        # Generate alert insights
+        alert_insights = _generate_alert_insights(alerting_summary, active_alerts)
+
+        logger.info(
+            f"✅ Alert evaluation completed: {len(active_alerts)} active alerts"
+        )
+
+        return {
+            "success": True,
+            "triggered_alerts": triggered_alerts,
+            "alerting_summary": {
+                "total_rules": alerting_summary.total_rules,
+                "active_rules": alerting_summary.active_rules,
+                "total_alerts": alerting_summary.total_alerts,
+                "active_alerts": alerting_summary.active_alerts,
+                "alerts_by_severity": alerting_summary.alerts_by_severity,
+                "alerts_by_category": alerting_summary.alerts_by_category,
+                "system_health": alerting_summary.system_health,
+                "last_evaluation": alerting_summary.last_evaluation.isoformat(),
+            },
+            "active_alerts": formatted_alerts,
+            "recent_alerts": alerting_summary.recent_alerts,
+            "alert_insights": alert_insights,
+            "recommendations": _generate_alert_recommendations(
+                alerting_summary, active_alerts
+            ),
+        }
+
+    except Exception as e:
+        error_msg = f"Error evaluating system alerts: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {
+            "success": False,
+            "error": error_msg,
+            "fallback": "Alerting system temporarily unavailable",
+        }
+
+
+@register_for_llm(
+    description="Get comprehensive monitoring overview and system health - Input: None - Output: Dict with complete monitoring overview"
+)
+@register_for_execution()
+def get_comprehensive_monitoring_overview() -> Dict:
+    """
+    🔍 FAZA 6.4: Get complete monitoring overview integrating all monitoring systems.
+
+    Provides unified monitoring view:
+    - Real-time dashboard status
+    - Performance monitoring summary
+    - Usage analytics overview
+    - Alert system status
+    - System health assessment
+    - Integrated recommendations
+
+    Returns:
+        Dict: Complete unified monitoring overview
+    """
+    try:
+        logger.info("🔍 Getting comprehensive monitoring overview...")
+
+        # Get data from all monitoring systems
+        dashboard_result = get_monitoring_dashboard_data("1h")
+        performance_result = get_performance_monitoring_summary("24h")
+        usage_result = get_usage_analytics_summary("7d")
+        alerts_result = evaluate_system_alerts()
+
+        # Calculate overall system health
+        health_scores = []
+
+        if dashboard_result.get("success"):
+            health_scores.append(dashboard_result["summary"]["overall_score"])
+
+        if performance_result.get("success"):
+            perf_summary = performance_result["performance_summary"]["overall_stats"]
+            # Convert success rate to 0-1 scale
+            health_scores.append(perf_summary["success_rate"] / 100.0)
+
+        if alerts_result.get("success"):
+            alert_summary = alerts_result["alerting_summary"]
+            # Invert active alerts ratio (fewer alerts = better health)
+            alert_health = 1.0 - min(alert_summary["active_alerts"] / 10.0, 1.0)
+            health_scores.append(alert_health)
+
+        overall_health_score = (
+            sum(health_scores) / len(health_scores) if health_scores else 0.5
+        )
+
+        # Determine overall status
+        if overall_health_score >= 0.9:
+            overall_status = "EXCELLENT"
+        elif overall_health_score >= 0.8:
+            overall_status = "GOOD"
+        elif overall_health_score >= 0.7:
+            overall_status = "FAIR"
+        elif overall_health_score >= 0.5:
+            overall_status = "DEGRADED"
+        else:
+            overall_status = "CRITICAL"
+
+        # Generate integrated insights
+        integrated_insights = _generate_integrated_insights(
+            dashboard_result, performance_result, usage_result, alerts_result
+        )
+
+        logger.info(f"✅ Monitoring overview completed: {overall_status} health status")
+
+        return {
+            "success": True,
+            "monitoring_overview": {
+                "overall_health_score": round(overall_health_score, 3),
+                "overall_status": overall_status,
+                "last_updated": datetime.now().isoformat(),
+                "systems_operational": {
+                    "dashboard": dashboard_result.get("success", False),
+                    "performance": performance_result.get("success", False),
+                    "usage_analytics": usage_result.get("success", False),
+                    "alerting": alerts_result.get("success", False),
+                },
+            },
+            "dashboard_summary": dashboard_result.get("summary", {}),
+            "performance_summary": performance_result.get(
+                "performance_summary", {}
+            ).get("overall_stats", {}),
+            "usage_summary": {
+                "total_users": usage_result.get("usage_statistics", {}).get(
+                    "total_users", 0
+                ),
+                "total_events": usage_result.get("usage_statistics", {}).get(
+                    "total_events", 0
+                ),
+                "error_rate": usage_result.get("usage_statistics", {}).get(
+                    "error_rate", 0
+                ),
+            },
+            "alert_summary": {
+                "active_alerts": alerts_result.get("alerting_summary", {}).get(
+                    "active_alerts", 0
+                ),
+                "system_health": alerts_result.get("alerting_summary", {}).get(
+                    "system_health", "unknown"
+                ),
+            },
+            "integrated_insights": integrated_insights,
+            "comprehensive_recommendations": _generate_comprehensive_recommendations(
+                dashboard_result, performance_result, usage_result, alerts_result
+            ),
+        }
+
+    except Exception as e:
+        error_msg = f"Error getting monitoring overview: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {
+            "success": False,
+            "error": error_msg,
+            "fallback": "Monitoring overview temporarily unavailable",
+        }
+
+
+# ====================================================================
+# Helper Functions for Monitoring & Analytics
+# ====================================================================
+
+
+def _generate_dashboard_recommendations(dashboard_data: Dict) -> List[str]:
+    """Generate recommendations based on dashboard data"""
+    recommendations = []
+
+    system_health = dashboard_data.get("system_health", {})
+    overall_score = system_health.get("overall_score", 1.0)
+
+    if overall_score < 0.8:
+        recommendations.append("System health degraded - investigate component issues")
+
+    if len(system_health.get("active_alerts", [])) > 0:
+        recommendations.append("Active alerts require attention")
+
+    if not recommendations:
+        recommendations.append("System operating normally")
+
+    return recommendations
+
+
+def _generate_performance_insights(summary: Dict, bottlenecks: List) -> Dict:
+    """Generate performance insights"""
+    insights = {"performance_level": "GOOD", "key_metrics": {}, "trends": []}
+
+    overall_stats = summary.get("overall_stats", {})
+    avg_time = overall_stats.get("avg_execution_time", 0)
+
+    if avg_time > 10:
+        insights["performance_level"] = "POOR"
+        insights["trends"].append("High average response times detected")
+    elif avg_time > 5:
+        insights["performance_level"] = "FAIR"
+        insights["trends"].append("Elevated response times")
+
+    insights["key_metrics"] = {
+        "avg_response_time": avg_time,
+        "success_rate": overall_stats.get("success_rate", 100),
+        "bottlenecks_count": len(bottlenecks),
+    }
+
+    return insights
+
+
+def _generate_performance_recommendations(bottlenecks: List) -> List[str]:
+    """Generate performance recommendations"""
+    recommendations = []
+
+    if not bottlenecks:
+        recommendations.append("No significant performance bottlenecks detected")
+        return recommendations
+
+    for bottleneck in bottlenecks[:3]:  # Top 3
+        if bottleneck["bottleneck_score"] > 0.7:
+            recommendations.append(f"Critical: Optimize {bottleneck['function_name']}")
+        elif bottleneck["bottleneck_score"] > 0.5:
+            recommendations.append(f"Consider optimizing {bottleneck['function_name']}")
+
+    return recommendations
+
+
+def _generate_behavioral_insights(usage_stats, user_insights: Dict) -> Dict:
+    """Generate behavioral insights from usage data"""
+    insights = {
+        "user_engagement": "NORMAL",
+        "popular_trends": [],
+        "behavior_patterns": {},
+    }
+
+    # Analyze session duration
+    avg_session = usage_stats.avg_session_duration
+    if avg_session > 15:
+        insights["user_engagement"] = "HIGH"
+        insights["behavior_patterns"]["session_length"] = "Long engaged sessions"
+    elif avg_session < 5:
+        insights["user_engagement"] = "LOW"
+        insights["behavior_patterns"]["session_length"] = "Brief interactions"
+
+    # Popular games trend
+    if usage_stats.most_popular_games:
+        top_game = usage_stats.most_popular_games[0]
+        insights["popular_trends"].append(
+            f"Top game: {top_game['game']} ({top_game['count']} analyses)"
+        )
+
+    return insights
+
+
+def _generate_usage_recommendations(usage_stats) -> List[str]:
+    """Generate usage-based recommendations"""
+    recommendations = []
+
+    if usage_stats.error_rate > 10:
+        recommendations.append("High error rate - improve system stability")
+
+    if usage_stats.cache_hit_rate < 50:
+        recommendations.append("Low cache hit rate - optimize caching strategy")
+
+    if usage_stats.total_users < 5:
+        recommendations.append("Consider user acquisition strategies")
+
+    if not recommendations:
+        recommendations.append("Usage patterns are healthy")
+
+    return recommendations
+
+
+def _generate_alert_insights(alerting_summary, active_alerts: List) -> Dict:
+    """Generate alert insights"""
+    insights = {
+        "alert_trend": "STABLE",
+        "severity_distribution": alerting_summary.alerts_by_severity,
+        "category_breakdown": alerting_summary.alerts_by_category,
+    }
+
+    critical_count = alerting_summary.alerts_by_severity.get("critical", 0)
+    emergency_count = alerting_summary.alerts_by_severity.get("emergency", 0)
+
+    if critical_count > 0 or emergency_count > 0:
+        insights["alert_trend"] = "CRITICAL"
+    elif alerting_summary.active_alerts > 5:
+        insights["alert_trend"] = "ELEVATED"
+
+    return insights
+
+
+def _generate_alert_recommendations(alerting_summary, active_alerts: List) -> List[str]:
+    """Generate alert-based recommendations"""
+    recommendations = []
+
+    if alerting_summary.system_health == "critical":
+        recommendations.append(
+            "URGENT: Critical system health - immediate action required"
+        )
+    elif alerting_summary.system_health == "degraded":
+        recommendations.append("System degraded - investigate and resolve alerts")
+
+    if alerting_summary.active_alerts > 10:
+        recommendations.append("High alert volume - review alert thresholds")
+
+    if not recommendations:
+        recommendations.append("Alert system operating normally")
+
+    return recommendations
+
+
+def _generate_integrated_insights(
+    dashboard_result, performance_result, usage_result, alerts_result
+) -> List[str]:
+    """Generate integrated insights across all monitoring systems"""
+    insights = []
+
+    # Cross-system correlations
+    if (
+        performance_result.get("success")
+        and usage_result.get("success")
+        and alerts_result.get("success")
+    ):
+
+        perf_avg_time = (
+            performance_result.get("performance_summary", {})
+            .get("overall_stats", {})
+            .get("avg_execution_time", 0)
+        )
+        usage_error_rate = usage_result.get("usage_statistics", {}).get("error_rate", 0)
+        active_alerts = alerts_result.get("alerting_summary", {}).get(
+            "active_alerts", 0
+        )
+
+        if perf_avg_time > 5 and usage_error_rate > 5:
+            insights.append("Performance degradation correlates with increased errors")
+
+        if active_alerts > 0 and usage_error_rate > 10:
+            insights.append("Alert conditions are impacting user experience")
+
+        if perf_avg_time < 3 and usage_error_rate < 2:
+            insights.append("System performing optimally across all metrics")
+
+    if not insights:
+        insights.append(
+            "Monitoring systems operating independently without notable correlations"
+        )
+
+    return insights
+
+
+def _generate_comprehensive_recommendations(
+    dashboard_result, performance_result, usage_result, alerts_result
+) -> List[str]:
+    """Generate comprehensive recommendations across all systems"""
+    recommendations = []
+
+    # Priority order: alerts -> performance -> usage -> dashboard
+    if alerts_result.get("success"):
+        alert_recs = alerts_result.get("recommendations", [])
+        recommendations.extend(alert_recs[:2])  # Top 2 alert recommendations
+
+    if performance_result.get("success"):
+        perf_recs = performance_result.get("recommendations", [])
+        recommendations.extend(perf_recs[:2])  # Top 2 performance recommendations
+
+    if usage_result.get("success"):
+        usage_recs = usage_result.get("recommendations", [])
+        recommendations.extend(usage_recs[:1])  # Top 1 usage recommendation
+
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_recommendations = []
+    for rec in recommendations:
+        if rec not in seen:
+            seen.add(rec)
+            unique_recommendations.append(rec)
+
+    return unique_recommendations[:5]  # Top 5 overall
