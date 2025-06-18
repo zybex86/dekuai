@@ -51,6 +51,16 @@ from datetime import datetime
 import requests
 from bs4 import BeautifulSoup, Tag
 
+# Phase 6.5 - ML Intelligence Enhancement
+from utils.smart_user_profiler import (
+    get_smart_user_profiler,
+    record_user_interaction,
+    get_personalized_adjustments,
+    SmartUserProfiler,
+    DynamicUserProfile,
+    GamePreferencePattern,
+)
+
 # AutoGen decorators for Phase 4 tools
 try:
     from autogen import register_for_execution, register_for_llm
@@ -127,6 +137,15 @@ def search_and_scrape_game(game_name: Optional[str]) -> Dict[str, Any]:
         logger.info(
             f"✅ Successfully scraped data for: {game_details.get('title', game_name)}"
         )
+
+        # PHASE 6.5: Record user interaction for ML learning
+        try:
+            game_title = game_details.get("title", game_name)
+            record_user_interaction(game_title, game_details, "search_and_scrape")
+            logger.debug(f"🧠 Recorded interaction for smart profiling: {game_title}")
+        except Exception as e:
+            logger.debug(f"Smart profiling recording failed (non-critical): {e}")
+
         return game_details
 
     except Exception as e:
@@ -347,6 +366,14 @@ def calculate_value_score(game_data: Dict[str, Any]) -> Dict[str, Any]:
         recommendation = value_analysis["value_metrics"]["recommendation"]
         timing = value_analysis["value_metrics"]["buy_timing"]
         logger.info(f"✅ Analysis complete: {recommendation} | Timing: {timing}")
+
+        # PHASE 6.5: Record value analysis interaction for learning
+        try:
+            game_title = game_data.get("title", "Unknown")
+            record_user_interaction(game_title, game_data, "value_analysis")
+            logger.debug(f"🧠 Recorded value analysis interaction: {game_title}")
+        except Exception as e:
+            logger.debug(f"Smart profiling recording failed (non-critical): {e}")
 
         return value_analysis
 
@@ -4039,3 +4066,419 @@ def _generate_comprehensive_recommendations(
             unique_recommendations.append(rec)
 
     return unique_recommendations[:5]  # Top 5 overall
+
+
+# ====================================================================
+# PHASE 6.5: ML Intelligence Enhancement - Smart User Profiling
+# ====================================================================
+
+
+@register_for_llm(
+    description="Get intelligent user profile and personalized analysis insights - Input: user_id (str, optional) - Output: Dict with user profile and recommendations"
+)
+@register_for_execution()
+def get_smart_user_insights(user_id: Optional[str] = None) -> Dict:
+    """
+    🧠 PHASE 6.5: Get intelligent user profile with ML-powered insights.
+
+    Provides personalized user analysis:
+    - Detected preference patterns
+    - Favorite genres and themes
+    - Price sensitivity analysis
+    - Quality threshold preferences
+    - Personalized recommendation adjustments
+    - Learning confidence level
+
+    Args:
+        user_id: Optional user ID (defaults to current user)
+
+    Returns:
+        Dict: Comprehensive user intelligence profile
+    """
+    try:
+        logger.info("🧠 Getting smart user insights and profile...")
+
+        profiler = get_smart_user_profiler()
+        user_profile = profiler.get_smart_user_profile(user_id)
+
+        if not user_profile:
+            return {
+                "success": True,
+                "user_profile": None,
+                "message": "No user profile data available - analyze some games first!",
+                "recommendations": [
+                    "Analyze 3-5 games to build your personalized profile",
+                    "Try different game genres to improve preference detection",
+                    "Use the system regularly to enable learning",
+                ],
+            }
+
+        # Get personalized adjustments
+        adjustments = profiler.get_personalized_recommendation_adjustments(user_id)
+
+        # Format detected preferences
+        detected_patterns = []
+        for preference in user_profile.detected_preferences:
+            detected_patterns.append(
+                {
+                    "pattern": preference.pattern.value,
+                    "confidence": round(preference.confidence, 3),
+                    "evidence": preference.evidence,
+                    "weight": round(preference.weight, 3),
+                }
+            )
+
+        # Format favorite genres
+        top_genres = [
+            {"genre": genre, "confidence": round(confidence, 3)}
+            for genre, confidence in user_profile.favorite_genres[:5]
+        ]
+
+        # Generate insights
+        insights = []
+        if user_profile.confidence_level in ["high", "very_high"]:
+            insights.append(
+                f"Strong preference patterns detected ({user_profile.confidence_level} confidence)"
+            )
+
+        if len(user_profile.detected_preferences) > 0:
+            main_pattern = user_profile.detected_preferences[0].pattern.value
+            insights.append(
+                f"Primary gaming profile: {main_pattern.replace('_', ' ').title()}"
+            )
+
+        if user_profile.total_interactions >= 10:
+            insights.append("Experienced user with well-established preferences")
+        elif user_profile.total_interactions >= 5:
+            insights.append("Regular user developing preference patterns")
+        else:
+            insights.append("New user - more interactions needed for better profiling")
+
+        # Generate personalized recommendations
+        recommendations = []
+        if user_profile.confidence_level == "low":
+            recommendations.extend(
+                [
+                    "Analyze more games to improve personalization",
+                    "Try games from different genres to build your profile",
+                ]
+            )
+        else:
+            recommendations.extend(
+                [
+                    "Your profile is ready for personalized recommendations",
+                    "Recommendations will automatically adapt to your preferences",
+                ]
+            )
+
+        logger.info(
+            f"✅ Smart user insights completed: {len(detected_patterns)} patterns, {user_profile.confidence_level} confidence"
+        )
+
+        return {
+            "success": True,
+            "user_profile": {
+                "user_id": user_profile.user_id,
+                "confidence_level": user_profile.confidence_level,
+                "total_interactions": user_profile.total_interactions,
+                "last_updated": user_profile.last_updated.isoformat(),
+                "detected_patterns": detected_patterns,
+                "favorite_genres": top_genres,
+                "price_sensitivity": round(user_profile.price_sensitivity, 3),
+                "quality_threshold": user_profile.quality_threshold,
+            },
+            "personalization_data": adjustments,
+            "insights": insights,
+            "recommendations": recommendations,
+        }
+
+    except Exception as e:
+        error_msg = f"Error getting smart user insights: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {
+            "success": False,
+            "error": error_msg,
+            "fallback": "Smart user profiling temporarily unavailable",
+        }
+
+
+@register_for_llm(
+    description="Record user interaction and update smart profile - Input: game_name (str), game_data (Dict), interaction_type (str) - Output: Dict with profiling result"
+)
+@register_for_execution()
+def record_smart_interaction(
+    game_name: str, game_data: Dict[str, Any], interaction_type: str = "analyzed"
+) -> Dict:
+    """
+    🧠 PHASE 6.5: Record user interaction and update intelligent profile.
+
+    Features:
+    - Records game interaction for learning
+    - Updates user preference patterns
+    - Improves personalization accuracy
+    - Tracks user behavior evolution
+
+    Args:
+        game_name: Name of the game analyzed
+        game_data: Complete game data from analysis
+        interaction_type: Type of interaction (analyzed, compared, quick_check)
+
+    Returns:
+        Dict: Interaction recording result and profile updates
+    """
+    try:
+        logger.info(f"🧠 Recording smart interaction: {game_name} ({interaction_type})")
+
+        # Record the interaction
+        interaction_id = record_user_interaction(game_name, game_data, interaction_type)
+
+        # Get updated profile after recording
+        profiler = get_smart_user_profiler()
+        updated_profile = profiler.get_smart_user_profile()
+
+        # Generate interaction insights
+        insights = []
+        if updated_profile:
+            if updated_profile.total_interactions == 1:
+                insights.append("First interaction recorded - building your profile!")
+            elif updated_profile.total_interactions == 3:
+                insights.append(
+                    "Profile development started - preferences being detected"
+                )
+            elif updated_profile.total_interactions == 5:
+                insights.append(
+                    "Profile confidence improving - better recommendations coming!"
+                )
+            elif updated_profile.total_interactions >= 10:
+                insights.append("Mature profile - recommendations highly personalized")
+
+            # Check if new patterns were detected
+            if len(updated_profile.detected_preferences) > 0:
+                latest_pattern = updated_profile.detected_preferences[0].pattern.value
+                insights.append(
+                    f"Detected preference: {latest_pattern.replace('_', ' ').title()}"
+                )
+
+        logger.info(f"✅ Smart interaction recorded: {interaction_id}")
+
+        return {
+            "success": True,
+            "interaction_id": interaction_id,
+            "interaction_data": {
+                "game_name": game_name,
+                "interaction_type": interaction_type,
+                "timestamp": interaction_id,  # Using timestamp as ID
+            },
+            "profile_update": {
+                "total_interactions": (
+                    updated_profile.total_interactions if updated_profile else 1
+                ),
+                "confidence_level": (
+                    updated_profile.confidence_level if updated_profile else "low"
+                ),
+                "patterns_detected": (
+                    len(updated_profile.detected_preferences) if updated_profile else 0
+                ),
+            },
+            "insights": insights,
+        }
+
+    except Exception as e:
+        error_msg = f"Error recording smart interaction: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {
+            "success": False,
+            "error": error_msg,
+            "fallback": "Interaction recording failed, but analysis will continue",
+        }
+
+
+@register_for_llm(
+    description="Get personalized game recommendation with ML adjustments - Input: game_data (Dict), user_id (str, optional) - Output: Dict with personalized recommendation"
+)
+@register_for_execution()
+def get_personalized_game_recommendation(
+    game_data: Dict[str, Any], user_id: Optional[str] = None
+) -> Dict:
+    """
+    🧠 PHASE 6.5: Get ML-powered personalized game recommendation.
+
+    Features:
+    - Uses learned user preferences
+    - Applies personalized weight adjustments
+    - Provides tailored recommendation reasoning
+    - Adapts to user's gaming patterns
+
+    Args:
+        game_data: Complete game data to analyze
+        user_id: Optional user ID (defaults to current user)
+
+    Returns:
+        Dict: Personalized recommendation with ML insights
+    """
+    try:
+        logger.info(
+            f"🧠 Generating personalized recommendation for: {game_data.get('title', 'Unknown')}"
+        )
+
+        # Get personalized adjustments
+        adjustments_result = get_personalized_adjustments(user_id)
+
+        if not adjustments_result.get("adjustments"):
+            # Fallback to standard recommendation if no personalization available
+            logger.info(
+                "No personalization data available - using standard recommendation"
+            )
+
+            # Use existing recommendation system
+            rec_engine = RecommendationEngine()
+            profiles = rec_engine.get_predefined_profiles()
+            default_profile = profiles["bargain_hunter"]  # Safe default
+
+            # Get basic analysis
+            basic_analysis = calculate_value_score(game_data)
+            advanced_analysis = calculate_advanced_value_analysis(game_data)
+
+            if not basic_analysis.get("success") or not advanced_analysis.get(
+                "success"
+            ):
+                return {
+                    "success": False,
+                    "error": "Failed to analyze game data",
+                    "fallback": "Standard analysis required",
+                }
+
+            # Calculate standard recommendation score
+            rec_score = rec_engine.calculate_recommendation_score(
+                game_data, basic_analysis, advanced_analysis, default_profile
+            )
+
+            return {
+                "success": True,
+                "personalized": False,
+                "recommendation": {
+                    "score": round(rec_score, 2),
+                    "confidence": "medium",
+                    "reasoning": "Standard recommendation (no personalization data)",
+                    "recommendation_level": _get_recommendation_for_score(rec_score),
+                },
+                "message": "Analyze more games to enable personalized recommendations",
+            }
+
+        # Apply personalized recommendation logic
+        adjustments = adjustments_result["adjustments"]
+        confidence = adjustments_result["confidence"]
+
+        # Get base analyses
+        basic_analysis = calculate_value_score(game_data)
+        advanced_analysis = calculate_advanced_value_analysis(game_data)
+
+        if not basic_analysis.get("success") or not advanced_analysis.get("success"):
+            return {
+                "success": False,
+                "error": "Failed to analyze game data",
+                "fallback": "Game analysis required for recommendations",
+            }
+
+        # Calculate base score
+        rec_engine = RecommendationEngine()
+        profiles = rec_engine.get_predefined_profiles()
+        base_profile = profiles["quality_seeker"]  # Neutral starting point
+
+        base_score = rec_engine.calculate_recommendation_score(
+            game_data, basic_analysis, advanced_analysis, base_profile
+        )
+
+        # Apply personalized adjustments
+        adjusted_score = base_score
+        reasoning_parts = []
+
+        # Apply weight adjustments
+        weight_adjustments = adjustments.get("weight_adjustments", {})
+        for factor, multiplier in weight_adjustments.items():
+            if factor == "price_fit":
+                price_bonus = (100 - adjusted_score) * (multiplier - 1.0) * 0.1
+                adjusted_score += price_bonus
+                reasoning_parts.append(f"Price preference bonus: +{price_bonus:.1f}")
+            elif factor == "quality_score":
+                quality_bonus = (100 - adjusted_score) * (multiplier - 1.0) * 0.15
+                adjusted_score += quality_bonus
+                reasoning_parts.append(
+                    f"Quality preference bonus: +{quality_bonus:.1f}"
+                )
+
+        # Apply preference boosts
+        preference_boosts = adjustments.get("preference_boosts", {})
+        for preference, multiplier in preference_boosts.items():
+            if preference == "indie_games":
+                current_price = extract_price(
+                    game_data.get("current_eshop_price", "N/A")
+                )
+                if current_price and current_price <= 40:  # Likely indie game
+                    indie_bonus = (100 - adjusted_score) * (multiplier - 1.0) * 0.2
+                    adjusted_score += indie_bonus
+                    reasoning_parts.append(f"Indie game preference: +{indie_bonus:.1f}")
+            elif preference.startswith("genre_"):
+                genre_name = preference.replace("genre_", "").title()
+                game_genres = game_data.get("genres", [])
+                if any(genre_name.lower() in g.lower() for g in game_genres):
+                    genre_bonus = (100 - adjusted_score) * (multiplier - 1.0) * 0.15
+                    adjusted_score += genre_bonus
+                    reasoning_parts.append(
+                        f"{genre_name} genre bonus: +{genre_bonus:.1f}"
+                    )
+
+        # Apply personalized thresholds
+        thresholds = adjustments.get("personalized_thresholds", {})
+        current_price = extract_price(game_data.get("current_eshop_price", "N/A"))
+
+        if current_price and "max_acceptable_price" in thresholds:
+            max_price = thresholds["max_acceptable_price"]
+            if current_price > max_price:
+                price_penalty = min(30, (current_price - max_price) * 2)
+                adjusted_score -= price_penalty
+                reasoning_parts.append(f"Over budget penalty: -{price_penalty:.1f}")
+
+        # Ensure score stays within bounds
+        adjusted_score = max(0, min(100, adjusted_score))
+
+        # Generate personalized reasoning
+        base_reasoning = f"Base score: {base_score:.1f}"
+        if reasoning_parts:
+            full_reasoning = base_reasoning + " | " + " | ".join(reasoning_parts)
+        else:
+            full_reasoning = base_reasoning + " | No significant adjustments applied"
+
+        # Determine final recommendation
+        recommendation_level = _get_recommendation_for_score(adjusted_score)
+
+        logger.info(
+            f"✅ Personalized recommendation: {adjusted_score:.1f} ({recommendation_level})"
+        )
+
+        return {
+            "success": True,
+            "personalized": True,
+            "recommendation": {
+                "score": round(adjusted_score, 2),
+                "base_score": round(base_score, 2),
+                "confidence": confidence,
+                "reasoning": full_reasoning,
+                "recommendation_level": recommendation_level,
+                "detected_patterns": adjustments.get("detected_patterns", []),
+            },
+            "personalization_applied": {
+                "weight_adjustments": len(weight_adjustments),
+                "preference_boosts": len(preference_boosts),
+                "threshold_checks": len(thresholds),
+            },
+        }
+
+    except Exception as e:
+        error_msg = f"Error generating personalized recommendation: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {
+            "success": False,
+            "error": error_msg,
+            "fallback": "Personalized recommendations temporarily unavailable",
+        }
