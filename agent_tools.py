@@ -6,6 +6,9 @@ Narzędzia dla agentów AutoGen do analizy gier z DekuDeals
 import logging
 from typing import Dict, Any, Optional, List
 from deku_tools import search_deku_deals, scrape_game_details
+
+# Note: Removed core imports to avoid circular dependency
+# Backward compatibility functions are implemented directly below
 from utils.price_calculator import (
     extract_price,
     extract_score,
@@ -14,13 +17,9 @@ from utils.price_calculator import (
     calculate_value_ratio,
     assess_buy_timing,
     generate_price_recommendation,
-    get_price_analysis_summary,
 )
 from utils.advanced_value_algorithms import (
     calculate_comprehensive_value_analysis,
-    calculate_genre_value_score,
-    calculate_market_position_score,
-    calculate_age_factor,
 )
 from utils.recommendation_engine import (
     RecommendationEngine,
@@ -69,9 +68,6 @@ except ImportError:
 
         return decorator
 
-
-# Lazy import to avoid circular dependency
-# from conversation_manager import GameAnalysisManager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

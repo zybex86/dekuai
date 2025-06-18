@@ -20,9 +20,6 @@ from .data_collection import (
     validate_game_data,
     format_game_summary,
     extract_key_metrics,
-    scrape_dekudeals_category,
-    get_games_from_popular_categories,
-    get_random_game_sample,
 )
 
 # Step 2: Recommendation system integration (STEP 2 COMPLETED)
@@ -67,12 +64,7 @@ from .quality_control import (
 )
 
 # PHASE 4: Enhanced Quality Control - NEW ADVANCED FUNCTIONS
-from agent_tools import (
-    enhanced_qa_validation,
-    automatic_completeness_check,
-    track_quality_metrics,
-    process_feedback_loop,
-)
+# Note: These functions are available directly from agent_tools to avoid circular imports
 
 __all__ = [
     # Phase 1 - Data Collection (STEP 1 COMPLETED)
@@ -80,9 +72,6 @@ __all__ = [
     "validate_game_data",
     "format_game_summary",
     "extract_key_metrics",
-    "scrape_dekudeals_category",
-    "get_games_from_popular_categories",
-    "get_random_game_sample",
     # Phase 2 - Recommendations (STEP 2 COMPLETED)
     "generate_personalized_recommendations",
     "compare_games_for_user",
@@ -109,9 +98,5 @@ __all__ = [
     "get_quality_control_capabilities",
     "get_quality_standards",
     "validate_analysis_pipeline",
-    # Phase 4 - Enhanced Quality Control (FAZA 4 COMPLETED)
-    "enhanced_qa_validation",
-    "automatic_completeness_check",
-    "track_quality_metrics",
-    "process_feedback_loop",
+    # Phase 4 - Enhanced Quality Control functions available from agent_tools directly
 ]
