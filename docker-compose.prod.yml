@@ -1,0 +1,230 @@
+# ===================================================================
+# 🎮 AutoGen DekuDeals - Production Docker Compose
+# Production environment with enterprise security and performance
+# ===================================================================
+
+version: '3.8'
+
+services:
+  # ===================================================================
+  # Main Application Service (Production)
+  # ===================================================================
+  autogen-dekudeals:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+      args:
+        BUILD_DATE: ${BUILD_DATE}
+        VERSION: ${VERSION:-6.3.0}
+        VCS_REF: ${VCS_REF}
+    
+    image: autogen-dekudeals:${VERSION:-6.3.0}
+    container_name: autogen-dekudeals-prod
+    
+    # Environment variables (production)
+    environment:
+      - APP_ENV=production
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - WORKERS=${WORKERS:-2}
+      - PYTHONPATH=/app
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - MAX_BATCH_SIZE=${MAX_BATCH_SIZE:-10}
+      - CACHE_TTL=${CACHE_TTL:-3600}
+    
+    # Secrets management (production)
+    secrets:
+      - openai_api_key
+    
+    # Volume mounts (production - more restrictive)
+    volumes:
+      # Persistent data volumes (read-write)
+      - autogen_cache_prod:/app/cache
+      - autogen_logs_prod:/app/logs
+      - autogen_data_prod:/app/data
+      
+      # Read-only configuration (if needed)
+      # - ./config:/app/config:ro
+    
+    # Port mapping (production)
+    ports:
+      - "${API_PORT:-8000}:8000"  # Configurable API port
+    
+    # Restart policy (production)
+    restart: always
+    
+    # Health check (production - more frequent)
+    healthcheck:
+      test: ["CMD-SHELL", "/app/entrypoint.sh health"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    
+    # Resource limits (production - stricter)
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 1G
+          cpus: '1.0'
+      
+      # Restart policy for production
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 5
+        window: 120s
+      
+      # Update configuration
+      update_config:
+        parallelism: 1
+        delay: 30s
+        failure_action: rollback
+        order: stop-first
+      
+      # Rollback configuration
+      rollback_config:
+        parallelism: 1
+        delay: 30s
+        order: stop-first
+    
+    # Security options (production)
+    security_opt:
+      - no-new-privileges:true
+    
+    # Drop capabilities (security hardening)
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETGID
+      - SETUID
+    
+    # Read-only root filesystem (security)
+    read_only: true
+    
+    # Temporary filesystem for writable areas
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=100m
+      - /var/tmp:rw,noexec,nosuid,size=50m
+    
+    # User specification (security)
+    user: "1000:1000"
+    
+    # Default command for production
+    command: ["api"]
+    
+    # Logging configuration (production)
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+        compress: "true"
+    
+    # Labels for production
+    labels:
+      - "com.autogen-dekudeals.environment=production"
+      - "com.autogen-dekudeals.version=${VERSION:-6.3.0}"
+      - "com.autogen-dekudeals.description=AutoGen DekuDeals Game Analysis - Production"
+      - "com.autogen-dekudeals.maintainer=AutoGen DekuDeals Team"
+
+  # ===================================================================
+  # Monitoring Service (Production)
+  # ===================================================================
+  autogen-monitor:
+    image: autogen-dekudeals:${VERSION:-6.3.0}
+    container_name: autogen-dekudeals-monitor
+    
+    environment:
+      - APP_ENV=production
+      - MONITOR_MODE=true
+    
+    # Monitoring specific volumes
+    volumes:
+      - autogen_logs_prod:/app/logs:ro
+      - autogen_data_prod:/app/data:ro
+    
+    # Monitor command
+    command: ["info"]
+    
+    # Resource limits for monitoring
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.2'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Security
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    user: "1000:1000"
+    
+    depends_on:
+      autogen-dekudeals:
+        condition: service_healthy
+    
+    labels:
+      - "com.autogen-dekudeals.service=monitor"
+      - "com.autogen-dekudeals.environment=production"
+
+# ===================================================================
+# Production Secrets
+# ===================================================================
+secrets:
+  openai_api_key:
+    external: true
+    name: autogen_openai_api_key
+
+# ===================================================================
+# Named Volumes (Production)
+# ===================================================================
+volumes:
+  # Production cache data
+  autogen_cache_prod:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${CACHE_VOLUME_PATH:-./production/cache}
+  
+  # Production logs
+  autogen_logs_prod:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${LOGS_VOLUME_PATH:-./production/logs}
+  
+  # Production data
+  autogen_data_prod:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_VOLUME_PATH:-./production/data}
+
+# ===================================================================
+# Networks (Production)
+# ===================================================================
+networks:
+  default:
+    name: autogen-dekudeals-prod
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: autogen-prod
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16 

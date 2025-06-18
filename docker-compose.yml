@@ -1,0 +1,135 @@
+# ===================================================================
+# 🎮 AutoGen DekuDeals - Development Docker Compose
+# Development and testing environment configuration
+# ===================================================================
+
+version: '3.8'
+
+services:
+  # ===================================================================
+  # Main Application Service
+  # ===================================================================
+  autogen-dekudeals:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+      args:
+        BUILD_DATE: ${BUILD_DATE:-$(date -u +'%Y-%m-%dT%H:%M:%SZ')}
+        VERSION: ${VERSION:-6.3.0}
+        VCS_REF: ${VCS_REF:-$(git rev-parse --short HEAD)}
+    
+    image: autogen-dekudeals:dev
+    container_name: autogen-dekudeals-dev
+    
+    # Environment variables
+    environment:
+      - APP_ENV=development
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - WORKERS=1
+      - PYTHONPATH=/app
+    
+    # Load environment from file (optional)
+    env_file:
+      - .env
+    
+    # Volume mounts for development
+    volumes:
+      # Persistent data
+      - ./cache:/app/cache
+      - ./logs:/app/logs
+      - ./data:/app/data
+      
+      # Development: mount source code for live editing (optional)
+      # Uncomment below for development mode
+      # - .:/app:ro  # Read-only mount to prevent container from modifying host files
+    
+    # Port mapping (for future API)
+    ports:
+      - "8000:8000"  # API port
+    
+    # Restart policy
+    restart: unless-stopped
+    
+    # Health check override for development
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import pyautogen, openai; print(\"Health OK\")' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Resource limits (development - more generous)
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    
+    # Default command for development
+    command: ["cli"]
+    
+    # Labels for organization
+    labels:
+      - "com.autogen-dekudeals.environment=development"
+      - "com.autogen-dekudeals.version=6.3.0"
+      - "com.autogen-dekudeals.description=AutoGen DekuDeals Game Analysis"
+
+  # ===================================================================
+  # Testing Service (for CI/CD)
+  # ===================================================================
+  autogen-dekudeals-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    
+    image: autogen-dekudeals:test
+    container_name: autogen-dekudeals-test
+    
+    environment:
+      - APP_ENV=test
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - PYTHONPATH=/app
+    
+    # Override entrypoint for testing
+    command: ["test"]
+    
+    # Volume for test results
+    volumes:
+      - ./test-results:/app/test-results
+    
+    # Don't restart test container
+    restart: "no"
+    
+    # Labels
+    labels:
+      - "com.autogen-dekudeals.environment=test"
+      - "com.autogen-dekudeals.version=6.3.0"
+
+# ===================================================================
+# Named Volumes
+# ===================================================================
+volumes:
+  # Persistent cache data
+  autogen_cache:
+    driver: local
+  
+  # Persistent logs
+  autogen_logs:
+    driver: local
+  
+  # Application data
+  autogen_data:
+    driver: local
+
+# ===================================================================
+# Networks
+# ===================================================================
+networks:
+  default:
+    name: autogen-dekudeals-dev
+    driver: bridge 
