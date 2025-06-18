@@ -881,6 +881,19 @@ class EnhancedCLI:
             progress.close()
             self.print_status(f"Error generating recommendations: {str(e)}", "error")
 
+    def _extract_rating_number(self, rating: str) -> float:
+        """Extract numeric rating from string like '7.5/10' or 'N/A'."""
+        try:
+            if rating == "N/A" or not rating:
+                return 0.0
+            # Extract number before "/10" or just the number
+            if "/" in rating:
+                return float(rating.split("/")[0])
+            else:
+                return float(rating)
+        except (ValueError, IndexError):
+            return 0.0
+
     def quick_analyze_multiple_games(self, games: List[str]):
         """Quick analysis of multiple games."""
         self.print_header("⚡ Quick Multi-Game Analysis")
@@ -898,10 +911,15 @@ class EnhancedCLI:
 
                     print()
                     cprint(f"🎮 {game}", "cyan", attrs=["bold"])
+
+                    # Extract numeric rating safely
+                    numeric_rating = self._extract_rating_number(rating)
                     rating_color = (
-                        "green" if rating != "N/A" and float(rating) >= 7 else "yellow"
+                        "green"
+                        if numeric_rating >= 7
+                        else "yellow" if numeric_rating >= 5 else "red"
                     )
-                    cprint(f"   ⭐ Rating: {rating}/10", rating_color)
+                    cprint(f"   ⭐ Rating: {rating}", rating_color)
                     cprint(f"   🎯 Recommendation: {recommendation}", "white")
                 else:
                     print()
