@@ -330,9 +330,14 @@ class EnhancedCLI:
 
         # Extract key information from results
         review_data = None
+        review_result = None
         for step_key, step_result in results.items():
-            if "review" in step_key and step_result.get("success"):
-                review_data = step_result.get("data", {}).get("review_data", {})
+            if "3" in step_key and step_result.get(
+                "success"
+            ):  # Step 3 is review generation
+                review_result = step_result.get("data", {})
+                if review_result.get("success", False):
+                    review_data = review_result.get("review_data", {})
                 break
 
         if review_data:
