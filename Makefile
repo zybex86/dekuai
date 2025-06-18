@@ -3,7 +3,7 @@
 # Enterprise-level deployment and management commands
 # ===================================================================
 
-.PHONY: help build dev prod test clean logs status shell health setup
+.PHONY: help build dev prod test clean logs status shell health setup ci-build ci-deploy ci-deploy-mode ci-quick ci-status ci-test ci-cleanup ci-full
 
 # Variables
 VERSION ?= 6.3.0
@@ -220,6 +220,39 @@ clean-all: ## Clean everything (containers, images, volumes)
 	else \
 		echo "$(YELLOW)❌ Cleanup cancelled$(RESET)"; \
 	fi
+
+# ===================================================================
+# CI/CD Pipeline Commands
+# ===================================================================
+ci-build: ## Run local CI/CD build pipeline
+	@echo "$(BLUE)🔨 Running Local CI/CD Build Pipeline...$(RESET)"
+	./scripts/local-build.sh $(VERSION)
+
+ci-deploy: ## Run local CI/CD deployment
+	@echo "$(BLUE)🚀 Running Local CI/CD Deployment...$(RESET)"
+	./scripts/local-deploy.sh
+
+ci-deploy-mode: ## Deploy with specific mode (usage: make ci-deploy-mode MODE=demo)
+	@echo "$(BLUE)🎯 Deploying with mode: $(MODE)$(RESET)"
+	./scripts/local-deploy.sh -m $(MODE)
+
+ci-quick: ## Quick analysis deployment (usage: make ci-quick GAME="Hollow Knight")
+	@echo "$(BLUE)⚡ Quick analysis for: $(GAME)$(RESET)"
+	./scripts/local-deploy.sh -m quick "$(GAME)"
+
+ci-status: ## Show CI/CD deployment status
+	@echo "$(BLUE)📊 CI/CD Deployment Status:$(RESET)"
+	./scripts/local-deploy.sh status
+
+ci-test: ## Test CI/CD deployment
+	@echo "$(BLUE)🧪 Testing CI/CD Deployment...$(RESET)"
+	./scripts/local-deploy.sh test
+
+ci-cleanup: ## Cleanup CI/CD containers
+	@echo "$(BLUE)🧹 Cleaning up CI/CD containers...$(RESET)"
+	./scripts/local-deploy.sh cleanup
+
+ci-full: ci-build ci-deploy ## Full CI/CD pipeline (build + deploy)
 
 # ===================================================================
 # Utility Commands

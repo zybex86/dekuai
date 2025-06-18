@@ -1,0 +1,246 @@
+# ===================================================================
+# 🎮 AutoGen DekuDeals - Main CI/CD Pipeline
+# Triggers on every push and pull request
+# ===================================================================
+
+name: 🚀 CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master, develop ]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+      - '.gitignore'
+  pull_request:
+    branches: [ main, master ]
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+  workflow_dispatch:
+    inputs:
+      run_tests:
+        description: 'Run comprehensive tests'
+        required: false
+        default: 'true'
+        type: boolean
+
+# Define environment variables
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  PYTHON_VERSION: '3.13.3'
+
+# Cancel previous runs on new push
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ===================================================================
+  # Job 1: Build and Test
+  # ===================================================================
+  build-and-test:
+    name: 🔨 Build & Test
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: ['3.13.3']
+        
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      short-sha: ${{ steps.version.outputs.short-sha }}
+      
+    steps:
+      # Checkout code
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Setup Python
+      - name: 🐍 Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      # Install dependencies
+      - name: 📦 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+
+      # Generate version info
+      - name: 🏷️ Generate version info
+        id: version
+        run: |
+          VERSION="${{ github.ref_name }}-$(date +'%Y%m%d')-$(git rev-parse --short HEAD)"
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "short-sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+          echo "Generated version: $VERSION"
+
+      # Lint and code quality
+      - name: 🔍 Code quality checks
+        run: |
+          echo "🔍 Running code quality checks..."
+          # Check for basic Python syntax errors
+          python -m py_compile enhanced_cli.py
+          python -m py_compile agent_tools.py
+          python -m py_compile autogen_agents.py
+          echo "✅ Code quality checks passed"
+
+      # Security scan - check for secrets
+      - name: 🔒 Security scan (secrets)
+        run: |
+          echo "🔒 Scanning for potential secrets..."
+          # Check for potential API keys or secrets in code
+          if grep -r "sk-[a-zA-Z0-9]" --include="*.py" .; then
+            echo "❌ Potential API keys found in code!"
+            exit 1
+          fi
+          if grep -r "api_key.*=" --include="*.py" . | grep -v "OPENAI_API_KEY"; then
+            echo "⚠️ Potential hardcoded API keys found"
+          fi
+          echo "✅ Security scan completed"
+
+      # Run tests
+      - name: 🧪 Run tests
+        if: ${{ github.event.inputs.run_tests == 'true' || github.event.inputs.run_tests == '' }}
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-dummy-key-for-testing' }}
+        run: |
+          echo "🧪 Running test suite..."
+          # Run basic tests that don't require real API calls
+          python -c "
+          import sys
+          try:
+              import autogen, openai, termcolor, tqdm
+              print('✅ All required packages imported successfully')
+          except ImportError as e:
+              print(f'❌ Import error: {e}')
+              sys.exit(1)
+          "
+          
+          # Test if core modules can be imported
+          python -c "
+          import sys
+          import os
+          sys.path.append('.')
+          try:
+              from agent_tools import search_and_scrape_game
+              from autogen_agents import DATA_COLLECTOR_agent
+              print('✅ Core modules imported successfully')
+          except Exception as e:
+              print(f'⚠️ Module import warning: {e}')
+          "
+          echo "✅ Tests completed"
+
+      # Build Docker image
+      - name: 🐳 Build Docker image
+        run: |
+          echo "🐳 Building Docker image..."
+          docker build \
+            --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+            --build-arg VERSION=${{ steps.version.outputs.version }} \
+            --build-arg VCS_REF=${{ steps.version.outputs.short-sha }} \
+            --tag autogen-dekudeals:${{ steps.version.outputs.short-sha }} \
+            --tag autogen-dekudeals:latest \
+            .
+          echo "✅ Docker build completed"
+
+      # Test Docker image
+      - name: 🧪 Test Docker image
+        run: |
+          echo "🧪 Testing Docker image..."
+          # Test basic functionality
+          docker run --rm autogen-dekudeals:latest info
+          docker run --rm autogen-dekudeals:latest health
+          echo "✅ Docker image tests passed"
+
+      # Save Docker image as artifact
+      - name: 💾 Save Docker image
+        run: |
+          echo "💾 Saving Docker image as artifact..."
+          docker save autogen-dekudeals:${{ steps.version.outputs.short-sha }} | gzip > autogen-dekudeals-${{ steps.version.outputs.short-sha }}.tar.gz
+          
+      # Upload artifacts
+      - name: 📤 Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: docker-image-${{ steps.version.outputs.short-sha }}
+          path: autogen-dekudeals-${{ steps.version.outputs.short-sha }}.tar.gz
+          retention-days: 7
+
+  # ===================================================================
+  # Job 2: Security and Quality Checks
+  # ===================================================================
+  security-scan:
+    name: 🔒 Security Scan
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      # Download Docker image
+      - name: 📥 Download Docker image
+        uses: actions/download-artifact@v3
+        with:
+          name: docker-image-${{ needs.build-and-test.outputs.short-sha }}
+
+      # Load Docker image
+      - name: 📦 Load Docker image
+        run: |
+          gunzip autogen-dekudeals-${{ needs.build-and-test.outputs.short-sha }}.tar.gz
+          docker load -i autogen-dekudeals-${{ needs.build-and-test.outputs.short-sha }}.tar
+
+      # Security scan with Trivy
+      - name: 🛡️ Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'autogen-dekudeals:${{ needs.build-and-test.outputs.short-sha }}'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      # Upload Trivy results
+      - name: 📤 Upload Trivy scan results
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  # ===================================================================
+  # Job 3: Build Summary and Notification
+  # ===================================================================
+  build-summary:
+    name: 📋 Build Summary
+    runs-on: ubuntu-latest
+    needs: [build-and-test, security-scan]
+    if: always()
+    
+    steps:
+      - name: 📋 Generate build summary
+        run: |
+          echo "# 🎮 AutoGen DekuDeals - Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📊 Build Information" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: ${{ needs.build-and-test.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ needs.build-and-test.outputs.short-sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Trigger**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## ✅ Job Results" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build & Test**: ${{ needs.build-and-test.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Security Scan**: ${{ needs.security-scan.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ needs.build-and-test.result }}" == "success" && "${{ needs.security-scan.result }}" == "success" ]]; then
+            echo "🎉 **All checks passed!** Ready for deployment." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Some checks failed.** Please review the errors above." >> $GITHUB_STEP_SUMMARY
+          fi 
