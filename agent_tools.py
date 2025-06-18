@@ -4482,3 +4482,408 @@ def get_personalized_game_recommendation(
             "error": error_msg,
             "fallback": "Personalized recommendations temporarily unavailable",
         }
+
+
+# ====================================================================
+# PHASE 7.1: Advanced ML Features - Price Drop Prediction Models
+# ====================================================================
+
+
+@register_for_llm(
+    description="Generate ML-powered price prediction and analysis - Input: game_data (Dict), user_id (str, optional) - Output: Dict with comprehensive price prediction"
+)
+@register_for_execution()
+def generate_ml_price_prediction(
+    game_data: Dict[str, Any], user_id: Optional[str] = None
+) -> Dict:
+    """
+    🧠 PHASE 7.1: Generate ML-powered price prediction and drop analysis.
+
+    Features:
+    - Historical price trend analysis with linear regression
+    - Price drop probability calculation (0-100%)
+    - Target price recommendations based on user preferences
+    - Confidence levels for predictions (VERY_HIGH → VERY_LOW)
+    - Integration with Smart User Profiler for personalized predictions
+    - Next price drop date estimation
+
+    Args:
+        game_data: Complete game data dictionary
+        user_id: Optional user ID for personalized predictions
+
+    Returns:
+        Dict: Comprehensive ML price prediction with insights
+    """
+    try:
+        from utils.price_prediction_ml import (
+            get_price_prediction_engine,
+            format_price_prediction_summary,
+        )
+
+        logger.info(
+            f"🧠 Generating ML price prediction for: {game_data.get('title', 'Unknown')}"
+        )
+
+        # Extract game details
+        game_title = game_data.get("title", "Unknown Game")
+        current_price_str = game_data.get("current_eshop_price", "0")
+
+        # Parse current price
+        current_price = 0.0
+        if isinstance(current_price_str, str):
+            import re
+
+            price_match = re.search(r"[\d.,]+", current_price_str.replace(",", "."))
+            if price_match:
+                current_price = float(price_match.group())
+        elif isinstance(current_price_str, (int, float)):
+            current_price = float(current_price_str)
+
+        if current_price <= 0:
+            return {
+                "success": False,
+                "error": f"Invalid price data: {current_price_str}",
+                "message": "Cannot generate price prediction without valid price information",
+                "fallback": "Price prediction requires valid current price",
+            }
+
+        # Get price prediction engine
+        prediction_engine = get_price_prediction_engine()
+
+        # Generate comprehensive prediction
+        prediction = prediction_engine.generate_price_prediction(
+            game_title=game_title, current_price=current_price, user_id=user_id
+        )
+
+        # Get user profile for personalized insights (if available)
+        personalized_insights = []
+        if user_id:
+            try:
+                user_insights = get_smart_user_insights(user_id)
+                if user_insights.get("success") and user_insights.get("user_profile"):
+                    profile = user_insights["user_profile"]
+
+                    # Add budget-aware insights
+                    if "budget_conscious" in [
+                        p["pattern"] for p in profile.get("detected_patterns", [])
+                    ]:
+                        if (
+                            prediction.target_price
+                            and prediction.target_price < current_price
+                        ):
+                            savings = current_price - prediction.target_price
+                            personalized_insights.append(
+                                f"💰 Budget-conscious: Wait for target price to save ${savings:.2f}"
+                            )
+
+                    # Add quality-focused insights
+                    if "quality_focused" in [
+                        p["pattern"] for p in profile.get("detected_patterns", [])
+                    ]:
+                        if prediction.confidence.value in ["high", "very_high"]:
+                            personalized_insights.append(
+                                f"⭐ Quality-focused: High confidence prediction ({prediction.confidence.value})"
+                            )
+
+                    # Add genre-specific insights
+                    game_genres = game_data.get("genres", [])
+                    favorite_genres = [
+                        g["genre"] for g in profile.get("favorite_genres", [])
+                    ]
+                    matching_genres = [g for g in game_genres if g in favorite_genres]
+                    if matching_genres:
+                        personalized_insights.append(
+                            f"🎮 Matches your favorite genres: {', '.join(matching_genres)}"
+                        )
+            except Exception as e:
+                logger.debug(f"Could not get personalized insights: {e}")
+
+        # Format comprehensive response
+        prediction_dict = prediction.to_dict()
+
+        # Generate actionable recommendations
+        action_recommendations = []
+
+        if prediction.price_drop_probability > 0.7:
+            action_recommendations.append(
+                "🎯 HIGH DROP PROBABILITY: Consider waiting 2-4 weeks"
+            )
+        elif prediction.price_drop_probability > 0.5:
+            action_recommendations.append(
+                "⚖️ MODERATE DROP CHANCE: Monitor for 2-6 weeks"
+            )
+        elif prediction.price_drop_probability < 0.3:
+            action_recommendations.append(
+                "⬆️ LOW DROP CHANCE: Current price likely stable"
+            )
+
+        if prediction.target_price and prediction.target_price < current_price:
+            savings_potential = current_price - prediction.target_price
+            if savings_potential > 10:
+                action_recommendations.append(
+                    f"💰 TARGET SAVINGS: ${savings_potential:.2f} potential"
+                )
+
+        if (
+            prediction.historical_low
+            and current_price <= prediction.historical_low * 1.1
+        ):
+            action_recommendations.append("💎 NEAR HISTORICAL LOW: Excellent timing!")
+
+        # Add trend-based recommendations
+        if prediction.trend.value == "declining":
+            action_recommendations.append(
+                "📉 DECLINING TREND: Price likely to drop further"
+            )
+        elif prediction.trend.value == "rising":
+            action_recommendations.append("📈 RISING TREND: Price may increase soon")
+        elif prediction.trend.value == "volatile":
+            action_recommendations.append("📊 VOLATILE PRICE: Watch for sudden drops")
+
+        # Generate formatted summary for display
+        formatted_summary = format_price_prediction_summary(prediction)
+
+        logger.info(
+            f"✅ ML price prediction complete: {prediction.trend.value} trend, {prediction.price_drop_probability:.1%} drop probability"
+        )
+
+        return {
+            "success": True,
+            "game_title": game_title,
+            "current_price": current_price,
+            "prediction": prediction_dict,
+            "personalized_insights": personalized_insights,
+            "action_recommendations": action_recommendations,
+            "formatted_summary": formatted_summary,
+            "confidence_level": prediction.confidence.value,
+            "analysis_quality": {
+                "has_historical_data": len(
+                    prediction_engine.get_price_history(game_title)
+                )
+                >= 5,
+                "trend_confidence": prediction.confidence.value,
+                "prediction_timeframe": f"{prediction.prediction_timeframe} days",
+            },
+        }
+
+    except ImportError as e:
+        error_msg = f"ML prediction dependencies not available: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {
+            "success": False,
+            "error": error_msg,
+            "message": "Install ML dependencies: pip install numpy scikit-learn",
+            "fallback": "Basic price analysis available without ML prediction",
+        }
+    except Exception as e:
+        error_msg = f"Error generating ML price prediction: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {
+            "success": False,
+            "error": error_msg,
+            "fallback": "ML price prediction temporarily unavailable",
+        }
+
+
+@register_for_llm(
+    description="Get historical price analysis and trends for a game - Input: game_name (str), days_back (int, optional) - Output: Dict with price history analysis"
+)
+@register_for_execution()
+def get_price_history_analysis(game_name: str, days_back: int = 365) -> Dict:
+    """
+    🧠 PHASE 7.1: Get comprehensive historical price analysis and trends.
+
+    Features:
+    - Historical price data retrieval
+    - Trend analysis with statistical confidence
+    - Price volatility assessment
+    - Significant price drop detection
+    - Price pattern recognition
+
+    Args:
+        game_name: Name of the game to analyze
+        days_back: Number of days of history to analyze (default: 365)
+
+    Returns:
+        Dict: Historical price analysis with trends and insights
+    """
+    try:
+        from utils.price_prediction_ml import get_price_prediction_engine
+
+        logger.info(f"📊 Analyzing price history for: {game_name} ({days_back} days)")
+
+        # Get price prediction engine
+        prediction_engine = get_price_prediction_engine()
+
+        # Get historical data
+        price_history = prediction_engine.get_price_history(game_name, days_back)
+
+        if not price_history:
+            return {
+                "success": True,
+                "game_name": game_name,
+                "price_history": [],
+                "analysis": {
+                    "trend": "unknown",
+                    "data_points": 0,
+                    "message": "No historical price data available for this game",
+                },
+                "recommendations": [
+                    "Check back later as price data is collected",
+                    "Price tracking starts when game is first analyzed",
+                ],
+            }
+
+        # Analyze trend
+        trend_analysis = prediction_engine.analyze_price_trend(price_history)
+
+        # Extract price statistics
+        prices = [point.price for point in price_history]
+        if prices:
+            price_stats = {
+                "current_price": prices[-1],
+                "historical_high": max(prices),
+                "historical_low": min(prices),
+                "average_price": sum(prices) / len(prices),
+                "median_price": sorted(prices)[len(prices) // 2],
+                "price_range": max(prices) - min(prices),
+                "volatility_percent": (
+                    (max(prices) - min(prices)) / max(prices) * 100
+                    if max(prices) > 0
+                    else 0
+                ),
+            }
+        else:
+            price_stats = {}
+
+        # Detect significant price drops
+        significant_drops = []
+        for i in range(1, len(price_history)):
+            prev_price = price_history[i - 1].price
+            curr_price = price_history[i].price
+
+            if prev_price > 0:
+                drop_percentage = (prev_price - curr_price) / prev_price
+                if drop_percentage >= 0.15:  # 15% drop threshold
+                    significant_drops.append(
+                        {
+                            "date": price_history[i].date.isoformat(),
+                            "from_price": prev_price,
+                            "to_price": curr_price,
+                            "drop_percentage": drop_percentage * 100,
+                            "promotion_type": price_history[i].promotion_type,
+                        }
+                    )
+
+        # Generate insights
+        insights = []
+
+        if len(price_history) >= 10:
+            insights.append(
+                f"Rich dataset: {len(price_history)} price points over {days_back} days"
+            )
+        elif len(price_history) >= 5:
+            insights.append(
+                f"Moderate dataset: {len(price_history)} price points available"
+            )
+        else:
+            insights.append(f"Limited dataset: Only {len(price_history)} price points")
+
+        if price_stats:
+            current_vs_low = (
+                (price_stats["current_price"] - price_stats["historical_low"])
+                / price_stats["historical_low"]
+                * 100
+            )
+            if current_vs_low < 10:
+                insights.append(f"💎 Near historical low (+{current_vs_low:.1f}%)")
+            elif current_vs_low > 50:
+                insights.append(
+                    f"💸 Well above historical low (+{current_vs_low:.1f}%)"
+                )
+
+        if len(significant_drops) > 0:
+            insights.append(f"📉 {len(significant_drops)} significant drops detected")
+            if significant_drops:
+                latest_drop = significant_drops[-1]
+                insights.append(
+                    f"Latest drop: {latest_drop['drop_percentage']:.1f}% on {latest_drop['date'][:10]}"
+                )
+
+        # Generate recommendations
+        recommendations = []
+
+        if trend_analysis["trend"].value == "declining":
+            recommendations.append(
+                "📉 Declining trend detected - consider waiting for further drops"
+            )
+        elif trend_analysis["trend"].value == "rising":
+            recommendations.append(
+                "📈 Rising trend detected - current price may be good value"
+            )
+        elif trend_analysis["trend"].value == "volatile":
+            recommendations.append(
+                "📊 Volatile pricing - monitor closely for opportunities"
+            )
+
+        if price_stats and price_stats.get("volatility_percent", 0) > 30:
+            recommendations.append("⚠️ High price volatility - wait for better timing")
+
+        if len(significant_drops) >= 2:
+            recommendations.append(
+                "🎯 History of price drops - good candidate for waiting"
+            )
+
+        # Format price history for response
+        formatted_history = [
+            {
+                "date": point.date.isoformat(),
+                "price": point.price,
+                "promotion_type": point.promotion_type,
+            }
+            for point in price_history[-30:]  # Last 30 points for display
+        ]
+
+        logger.info(
+            f"✅ Price history analysis complete: {len(price_history)} data points, {trend_analysis['trend'].value} trend"
+        )
+
+        return {
+            "success": True,
+            "game_name": game_name,
+            "analysis_period": f"{days_back} days",
+            "data_quality": {
+                "total_data_points": len(price_history),
+                "analysis_confidence": trend_analysis.get("confidence", 0.0),
+                "sufficient_data": len(price_history) >= 5,
+            },
+            "price_statistics": price_stats,
+            "trend_analysis": {
+                "trend": trend_analysis["trend"].value,
+                "confidence": trend_analysis.get("confidence", 0.0),
+                "slope": trend_analysis.get("slope", 0.0),
+                "volatility": trend_analysis.get("volatility", 0.0),
+                "analysis": trend_analysis.get("analysis", ""),
+            },
+            "significant_drops": significant_drops,
+            "price_history": formatted_history,
+            "insights": insights,
+            "recommendations": recommendations,
+        }
+
+    except ImportError as e:
+        error_msg = f"Price analysis dependencies not available: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {
+            "success": False,
+            "error": error_msg,
+            "message": "Install ML dependencies: pip install numpy scikit-learn",
+        }
+    except Exception as e:
+        error_msg = f"Error analyzing price history: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {
+            "success": False,
+            "error": error_msg,
+            "fallback": "Price history analysis temporarily unavailable",
+        }
