@@ -661,8 +661,16 @@ autogen-dekudeals/
 🎯 **Complete ML transformation**: Rule-based → ML-intelligent personalized system
 🎯 **Smart User Profiler (431 lines)**: Production-ready ML learning system
 🎯 **3 AutoGen ML tools**: Seamless integration z existing agent ecosystem
+  - `get_smart_user_insights()`: Get user profile with ML insights
+  - `record_smart_interaction()`: Record interactions for learning  
+  - `get_personalized_game_recommendation()`: ML-powered personalized recommendations
 🎯 **Perfect ML accuracy**: 100% pattern detection confidence w real-world testing  
 🎯 **Transparent ML reasoning**: Users can see exact ML adjustments applied
+🎯 **ML bugfixes implemented**: 
+  - Inteligentne uczenie ulubionych gatunków (weighted average dla stabilności)
+  - Fix issue with ML and interactive lists (external loop dla refreshowania)
+🎯 **Persistent ML data storage**: user_profiles/ directory z profiles (2.6KB) + interactions (285KB)
+🎯 **Comprehensive ML testing**: 3 dedicated test files (test_smart_profiler.py, test_multiple_interactions.py, test_personalized_rec.py)
 ✅ **Production ML deployment**: Persistent learning, automatic profiling, personalized recommendations
 ✅ **Real personalization**: Konkretne score improvements z ML-based bonuses (+1.08 demonstrated)
 
@@ -864,7 +872,7 @@ result = conversation_manager.analyze_game(user_query)
 - **100% ML pattern detection accuracy** - puzzle_lover pattern (1.000 confidence) **🧠 NEW**
 - **+1.08 score improvement** z ML personalization bonuses **🧠 NEW**
 - **17 gier w persistent cache** z automatycznym cache warming
-- **18 CLI commands + 18 AutoGen tools** dla pełnej funkcjonalności (including 3 ML tools)
+- **18 CLI commands + 20 AutoGen tools** dla pełnej funkcjonalności (including 3 ML tools)
 - **40+ comprehensive tests passed** z production validation
 
 **🎯 GOTOWY NA:** Advanced ML features, price prediction, collaborative filtering, public API development
