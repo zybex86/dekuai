@@ -70,15 +70,12 @@ jobs:
       - name: 📦 Install dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
-          # Install with more robust error handling
-          pip install -r requirements.txt || {
-            echo "⚠️ First attempt failed, trying with --use-pep517"
-            pip install --use-pep517 -r requirements.txt
+          # Install with robust error handling and optimization
+          pip install --only-binary=all -r requirements.txt || {
+            echo "⚠️ Binary-only install failed, trying standard install"
+            pip install -r requirements.txt
           }
-          pip install -r requirements-dev.txt || {
-            echo "⚠️ Dev requirements failed, trying individual packages"
-            pip install black termcolor tqdm
-          }
+          pip install -r requirements-dev.txt
 
       # Generate version info
       - name: 🏷️ Generate version info
