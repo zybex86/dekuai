@@ -6,7 +6,7 @@
 # ===================================================================
 # STAGE 1: Builder - Install dependencies and prepare application
 # ===================================================================
-FROM python:3.13.3-slim as builder
+FROM python:3.12.8-slim as builder
 
 LABEL maintainer="AutoGen DekuDeals Team"
 LABEL description="AutoGen DekuDeals Game Analysis System - Builder Stage"
@@ -42,7 +42,8 @@ COPY requirements.txt .
 
 # Switch to appuser for pip install --user
 USER appuser
-RUN pip install --no-cache-dir --user -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir --user -r requirements.txt
 
 # Switch back to root for file operations
 USER root
@@ -57,7 +58,7 @@ RUN mkdir -p /app/logs /app/cache && \
 # ===================================================================
 # STAGE 2: Production - Final optimized image
 # ===================================================================
-FROM python:3.13.3-slim as production
+FROM python:3.12.8-slim as production
 
 LABEL maintainer="AutoGen DekuDeals Team"
 LABEL description="AutoGen DekuDeals Game Analysis System - Production"
