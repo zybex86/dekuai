@@ -6862,3 +6862,153 @@ def import_dekudeals_collection(
             "collection_url": collection_url,
             "timestamp": datetime.now().isoformat(),
         }
+
+
+@register_for_llm(
+    description="Analyze game with collection awareness - checks ownership before analysis - Input: game_name (str), force_analysis (bool, optional) - Output: Dict with analysis or ownership info"
+)
+@register_for_execution()
+def analyze_game_with_collection_awareness(
+    game_name: str, force_analysis: bool = False
+) -> Dict[str, Any]:
+    """
+    Analizuje grę z uwzględnieniem kolekcji użytkownika - sprawdza czy gra jest już posiadana.
+
+    DESCRIPTION: Smart game analysis that checks user collection first and provides appropriate insights
+    ARGS:
+        game_name (str): Name of game to analyze
+        force_analysis (bool): Force analysis even if game is owned (default: False)
+    RETURNS:
+        Dict: Collection-aware analysis results or ownership information
+    RAISES:
+        ValueError: When game name is empty
+    """
+    try:
+        logger.info(f"🔍 Starting collection-aware analysis for: {game_name}")
+
+        # Input validation
+        if not game_name or not game_name.strip():
+            raise ValueError("Game name cannot be empty")
+
+        game_name = game_name.strip()
+
+        # Check if user owns the game
+        ownership_result = check_if_game_owned(game_name)
+
+        if ownership_result.get("success", False) and ownership_result.get(
+            "owned", False
+        ):
+            # User already owns this game
+            game_details = ownership_result.get("game_details", {})
+            user_context = ownership_result.get("user_context", {})
+            username = user_context.get("username", "Unknown User")
+
+            logger.info(f"👑 Game '{game_name}' is already owned by {username}")
+
+            if not force_analysis:
+                # Provide ownership-specific analysis instead of purchase analysis
+                owned_analysis = {
+                    "success": True,
+                    "analysis_type": "already_owned",
+                    "game_title": game_details.get("title", game_name),
+                    "ownership_status": {
+                        "owned": True,
+                        "status": game_details.get("status", "owned"),
+                        "platform": game_details.get("platform", "Nintendo Switch"),
+                        "user_rating": game_details.get("user_rating"),
+                        "hours_played": game_details.get("hours_played"),
+                        "date_added": game_details.get("date_added"),
+                        "notes": game_details.get("notes", ""),
+                    },
+                    "ownership_insights": {
+                        "main_message": f"✅ You already own '{game_details.get('title', game_name)}' in your collection!",
+                        "recommendation": "No need to purchase - you can play this game anytime",
+                        "suggested_actions": [
+                            "Rate this game in your collection if you haven't already",
+                            "Add notes about your experience with the game",
+                            "Update your playtime if you've been playing",
+                            "Mark as completed if you've finished it",
+                        ],
+                    },
+                    "collection_context": {
+                        "owner": username,
+                        "collection_status": game_details.get("status", "owned"),
+                        "personal_rating": game_details.get("user_rating"),
+                        "play_time": game_details.get("hours_played"),
+                    },
+                    "alternative_suggestions": {
+                        "message": "Since you already own this game, here are some alternatives:",
+                        "suggestions": [
+                            "Look for similar games in the same genre",
+                            "Check for DLC or expansion content for this game",
+                            "Find games from the same developer or franchise",
+                            "Get personalized recommendations based on your collection",
+                        ],
+                    },
+                    "next_steps": [
+                        "Use 'Update game in collection' to modify rating or status",
+                        "Export your collection to backup your game library",
+                        "Get personalized recommendations for new games to try",
+                        "Add more games to your wishlist for future purchases",
+                    ],
+                    "user_context": user_context,
+                    "timestamp": datetime.now().isoformat(),
+                }
+
+                logger.info(f"✅ Provided ownership-specific insights for {username}")
+                return owned_analysis
+            else:
+                logger.info(
+                    f"🔄 Force analysis requested - continuing with standard analysis"
+                )
+                # Add ownership context to standard analysis
+                standard_result = search_and_scrape_game(game_name)
+                if standard_result.get("success", False):
+                    standard_result["ownership_context"] = {
+                        "already_owned": True,
+                        "ownership_details": game_details,
+                        "analysis_note": "⚠️ Note: You already own this game. This analysis is for informational purposes.",
+                    }
+                return standard_result
+
+        else:
+            # User doesn't own the game - proceed with standard purchase analysis
+            logger.info(
+                f"🎮 Game '{game_name}' not in collection - proceeding with purchase analysis"
+            )
+
+            # Perform standard analysis
+            analysis_result = search_and_scrape_game(game_name)
+
+            if analysis_result.get("success", False):
+                # Add collection context to analysis
+                analysis_result["collection_context"] = {
+                    "already_owned": False,
+                    "analysis_type": "purchase_decision",
+                    "collection_note": "This game is not in your collection - analysis focused on purchase decision",
+                }
+
+                # Add suggestion to add to collection after analysis
+                if "next_steps" not in analysis_result:
+                    analysis_result["next_steps"] = []
+
+                analysis_result["next_steps"].extend(
+                    [
+                        "Add this game to your wishlist if interested",
+                        "Add to collection once purchased",
+                        "Check for similar games you might also like",
+                    ]
+                )
+
+            return analysis_result
+
+    except Exception as e:
+        error_msg = f"Error in collection-aware analysis: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {
+            "success": False,
+            "error": error_msg,
+            "game_name": game_name,
+            "analysis_type": "error",
+            "timestamp": datetime.now().isoformat(),
+        }

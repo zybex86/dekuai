@@ -66,6 +66,8 @@ from agent_tools import (
     export_collection_to_csv,
     check_if_game_owned,
     get_collection_recommendations_filter,
+    # 🎮 PHASE 7.1.9: Collection-Aware Analysis import
+    analyze_game_with_collection_awareness,
 )
 
 import logging
@@ -583,9 +585,10 @@ class EnhancedCLI:
         return results
 
     def _step_search_game(self, game_name: str) -> Dict:
-        """Step 1: Search and scrape game data (unchanged)."""
+        """Step 1: Search and scrape game data with collection awareness."""
         try:
-            result = search_and_scrape_game(game_name)
+            # Use collection-aware analysis instead of standard search
+            result = analyze_game_with_collection_awareness(game_name)
             return {"success": True, "data": result}
         except Exception as e:
             return {"success": False, "error": str(e)}
@@ -669,6 +672,36 @@ class EnhancedCLI:
         """Display formatted analysis results."""
         self.print_header(f"📊 Analysis Results: {game_name}", "success")
 
+        # Check if this is an "already owned" result from collection-aware analysis
+        step_1_data = results.get("step_1", {}).get("data", {})
+        analysis_type = step_1_data.get("analysis_type")
+
+        if analysis_type == "already_owned":
+            # Special handling for already owned games
+            self._display_owned_game_results(step_1_data, game_name)
+            return
+
+        # Check for ownership context in standard analysis
+        ownership_context = step_1_data.get("ownership_context")
+        if ownership_context and ownership_context.get("already_owned", False):
+            print()
+            cprint("⚠️ NOTE: You already own this game!", "yellow", attrs=["bold"])
+            ownership_details = ownership_context.get("ownership_details", {})
+            status = ownership_details.get("status", "owned")
+            rating = ownership_details.get("user_rating")
+
+            status_emoji = {
+                "owned": "👑",
+                "wishlist": "💭",
+                "playing": "🎮",
+                "completed": "✅",
+            }.get(status, "📚")
+            print(f"   {status_emoji} Status: {status.title()}")
+            if rating:
+                print(f"   ⭐ Your Rating: {rating}/10")
+            print(f"   📝 Note: {ownership_context.get('analysis_note', '')}")
+            print()
+
         # Extract key information from results
         review_data = None
         review_result = None
@@ -719,6 +752,83 @@ class EnhancedCLI:
                 print(f"   {verdict}")
         else:
             self.print_status("No detailed review data available", "warning")
+
+    def _display_owned_game_results(self, owned_data: Dict, game_name: str):
+        """Display special results for already owned games."""
+        ownership_status = owned_data.get("ownership_status", {})
+        ownership_insights = owned_data.get("ownership_insights", {})
+        collection_context = owned_data.get("collection_context", {})
+        alternative_suggestions = owned_data.get("alternative_suggestions", {})
+
+        # Main ownership message
+        main_message = ownership_insights.get(
+            "main_message", "You already own this game!"
+        )
+        print()
+        cprint(main_message, "green", attrs=["bold"])
+
+        # Display ownership details
+        print()
+        self.print_section("📚 Collection Details", style="info")
+
+        status = ownership_status.get("status", "owned")
+        platform = ownership_status.get("platform", "Nintendo Switch")
+        date_added = ownership_status.get("date_added", "Unknown")
+        user_rating = ownership_status.get("user_rating")
+        hours_played = ownership_status.get("hours_played")
+        notes = ownership_status.get("notes", "")
+
+        status_emoji = {
+            "owned": "👑",
+            "wishlist": "💭",
+            "playing": "🎮",
+            "completed": "✅",
+            "dropped": "❌",
+        }.get(status, "📚")
+
+        print(f"   {status_emoji} Status: {status.title()}")
+        print(f"   🎮 Platform: {platform}")
+        print(f"   📅 Added: {date_added}")
+
+        if user_rating:
+            rating_emoji = (
+                "⭐" if user_rating >= 8 else "🌟" if user_rating >= 6 else "💫"
+            )
+            print(f"   {rating_emoji} Your Rating: {user_rating}/10")
+        else:
+            print("   ⭐ Your Rating: Not rated yet")
+
+        if hours_played:
+            print(f"   ⏱️ Hours Played: {hours_played}")
+
+        if notes:
+            print(f"   📝 Notes: {notes}")
+
+        # Display suggested actions
+        suggested_actions = ownership_insights.get("suggested_actions", [])
+        if suggested_actions:
+            print()
+            self.print_section("💡 Suggested Actions", style="highlight")
+            for action in suggested_actions:
+                print(f"   • {action}")
+
+        # Display alternative suggestions
+        alt_message = alternative_suggestions.get("message", "")
+        alt_suggestions = alternative_suggestions.get("suggestions", [])
+        if alt_message and alt_suggestions:
+            print()
+            self.print_section("🎯 Alternative Ideas", style="secondary")
+            print(f"   {alt_message}")
+            for suggestion in alt_suggestions:
+                print(f"   • {suggestion}")
+
+        # Display next steps
+        next_steps = owned_data.get("next_steps", [])
+        if next_steps:
+            print()
+            self.print_section("🚀 Next Steps", style="info")
+            for step in next_steps:
+                print(f"   • {step}")
 
     def interactive_mode(self):
         """Launch interactive CLI mode with Multi-User System integration."""
@@ -773,7 +883,7 @@ class EnhancedCLI:
             action = self.get_user_choice(
                 f"What would you like to do?{current_user_info}",
                 [
-                    "🎮 Analyze a specific game",
+                    "🎮 Analyze a specific game (collection-aware)",
                     "📂 Browse games by category",
                     "🎲 Get random game recommendations",
                     "🆚 Compare multiple games",

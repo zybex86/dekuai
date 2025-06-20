@@ -29,5 +29,7 @@
   "nova_hearts": "cache_nova_hearts.pkl",
   "100_in_1_game_collection": "cache_100_in_1_game_collection.pkl",
   "immortals_fenyx_rising": "cache_immortals_fenyx_rising.pkl",
-  "digimon_story_cyber_sleuth:_complete_edition": "cache_digimon_story_cyber_sleuth:_complete_edition.pkl"
+  "digimon_story_cyber_sleuth:_complete_edition": "cache_digimon_story_cyber_sleuth:_complete_edition.pkl",
+  "bastion": "cache_bastion.pkl",
+  "unknown_game": "cache_unknown_game.pkl"
 }
