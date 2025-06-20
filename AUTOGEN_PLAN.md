@@ -903,6 +903,44 @@ result = conversation_manager.analyze_game(user_query)
 18. **✓ Bug fixes** - Circular imports resolved, agent_tools.py cleaned up
 19. **✓ Comprehensive testing** - all components tested (50+ tests passed)
 
+### 🔄 IN PLANNING:
+20. **PHASE 7.1.5: User Collection Management** - Enhanced User Experience **🆕 PLANNED**
+
+#### **Point 7.1.5: User Collection Management & Personalization** 🆕 PLANNED
+- [ ] **Multi-User System** - User management and selection
+  - Username registration on first use
+  - User selection interface for multi-user environments  
+  - User profile switching with persistent storage
+  - Family/shared device support
+- [ ] **Game Collection Management** - Personal game library tracking
+  - "Do you own this game?" prompt after each analysis
+  - Personal game library storage (owned/wishlist/not_interested)
+  - Collection-based filtering in recommendations
+  - Owned games exclusion from recommendation lists
+- [ ] **User Rating System** - Enhanced personalization data
+  - Personal game rating system (1-10 scale)
+  - Rating collection after game analysis
+  - Rating-based preference learning for ML system
+  - Personal vs. critic score comparison analytics
+- [ ] **DekuDeals Collection Import** - Automated data collection
+  - DekuDeals profile URL input and parsing
+  - Automatic owned games extraction
+  - User ratings import from DekuDeals profile
+  - Collection synchronization options
+- [ ] **Enhanced Personalization Integration** - ML system enhancement
+  - Collection-aware recommendations (exclude owned games)
+  - Personal rating influence on ML scoring
+  - Genre preference learning from personal ratings
+  - "Games similar to your favorites" recommendations
+
+**PHASE 7.1.5 PLANNED BENEFITS:**
+🎯 **True personalization**: Personal game libraries + rating-based learning
+🎯 **Multi-user support**: Family-friendly with user switching
+🎯 **Collection-aware recommendations**: No more owned games in suggestions
+🎯 **DekuDeals integration**: Automatic collection import
+🎯 **Enhanced ML learning**: Personal ratings as additional training data
+🎯 **User experience improvement**: Seamless onboarding + personalized flow
+
 ### 🚧 CURRENT STATUS:
 **PHASE 7.1 ADVANCED ML FEATURES COMPLETED 100%** - Complete ML price prediction system! 🧠💰🚀
 - ✅ **Smart User Profiler**: 431-line system learning user preferences
@@ -917,26 +955,34 @@ result = conversation_manager.analyze_game(user_query)
 **✅ PHASE 6.3: Production Deployment COMPLETED** - Complete CI/CD pipeline + Docker infrastructure
 
 ### 🎯 NEXT TO DO (PHASE 7 - ADVANCED EXPANSION):
-1. **🔥 PRIORITY: PHASE 7.2: Collaborative Filtering & Advanced Analytics**
+1. **🔥 NEW PRIORITY: PHASE 7.1.5: User Collection Management** **🆕 HIGHLY RECOMMENDED**
+   - Multi-user system with username registration and user switching
+   - Personal game collection tracking (owned/wishlist/not_interested)
+   - User rating system with ML integration for enhanced personalization
+   - DekuDeals collection import with automatic profile parsing
+   - Collection-aware recommendations (exclude owned games)
+   - ⏱️ Estimated time: 6-8 hours
+
+2. **PHASE 7.2: Collaborative Filtering & Advanced Analytics**
    - Collaborative filtering recommendations (user similarity matching)
    - Advanced user behavior analytics with pattern clustering  
    - Real-time price alerts with personalized thresholds
    - Seasonal price pattern analysis with holiday detection
    - Cross-user recommendation engine with community insights
 
-2. **PHASE 7.3: Public API Development** (External Integration)
+3. **PHASE 7.3: Public API Development** (External Integration)
    - RESTful API with rate limiting and authentication
    - API documentation with OpenAPI/Swagger integration
    - Third-party integration capabilities
    - SDK development for external developers
 
-3. **PHASE 7.4: Web Interface Development** (User-Facing Application)
+4. **PHASE 7.4: Web Interface Development** (User-Facing Application)
    - Modern React/Vue.js web application
    - Real-time analysis dashboards with interactive charts
    - User account management with social features
    - Community integration with shared recommendations
 
-**Status: PHASE 7.1 COMPLETED! 🧠💰 ML Price Prediction operational - System predicts price drops with ML accuracy!** ✅
+**Status: PHASE 7.1 COMPLETED! 🧠💰 Next: User Collection Management for true personalization!** ✅
 
 ### 📊 CURRENT SYSTEM CAPABILITIES:
 ✅ **Data Collection**: `search_and_scrape_game()` fully functional  
@@ -982,7 +1028,15 @@ result = conversation_manager.analyze_game(user_query)
 
 ## 🎯 **HIGHEST PRIORITIES - RECOMMENDATIONS:**
 
-**OPTION A: Collaborative Filtering & Advanced Analytics (Phase 7.2)** ✨ PRIORITY
+**OPTION A: User Collection Management (Phase 7.1.5)** ✨ NEW PRIORITY **🆕 HIGHLY RECOMMENDED**
+- 👤 Multi-user system with username registration and user switching
+- 📚 Personal game collection tracking (owned/wishlist/not_interested)
+- ⭐ User rating system with ML integration for enhanced personalization
+- 🔗 DekuDeals collection import with automatic profile parsing
+- 🎯 Collection-aware recommendations (exclude owned games)
+- ⏱️ Estimated time: 6-8 hours
+
+**OPTION B: Collaborative Filtering & Advanced Analytics (Phase 7.2)**
 - 🤝 Collaborative filtering (user similarity matching)
 - 📊 Advanced user behavior analytics with pattern clustering
 - 🚨 Real-time price alerts with personalized thresholds
@@ -990,18 +1044,26 @@ result = conversation_manager.analyze_game(user_query)
 - 👥 Cross-user recommendation engine with community insights
 - ⏱️ Estimated time: 8-10 hours
 
-**OPTION B: Public API Development (Phase 7.3)**
+**OPTION C: Public API Development (Phase 7.3)**
 - 🔗 RESTful API with rate limiting and authentication
 - 📚 API documentation with OpenAPI/Swagger
 - 🔌 Third-party integration capabilities
 - 🛠️ SDK development for external developers
 - ⏱️ Estimated time: 8-10 hours
 
-**OPTION C: Web Interface Development (Phase 7.4)**
+**OPTION D: Web Interface Development (Phase 7.4)**
 - 🌐 Modern React/Vue.js web application
 - 📈 Real-time analysis dashboards with interactive charts
 - 👥 User account management with social features
 - 🎮 Community integration with shared recommendations
 - ⏱️ Estimated time: 12-15 hours
 
-**💡 RECOMMENDATION:** I suggest **OPTION A (Collaborative Filtering & Advanced Analytics)** - the system already has ML price prediction, now we can add collaborative filtering and advanced user analytics. 
+**💡 RECOMMENDATION:** I suggest **NEW PRIORITY: PHASE 7.1.5 (User Collection Management)** - before collaborative filtering, it's worth adding personal collection management so the system can exclude owned games from recommendations and better personalize based on user's personal ratings.
+
+**🔥 JUSTIFICATION FOR PHASE 7.1.5 PRIORITY:**
+- ✅ **Immediate user value**: Excluding owned games from recommendations
+- ✅ **Enhanced ML data**: Personal ratings as additional training data  
+- ✅ **Multi-user support**: Family-friendly system
+- ✅ **DekuDeals integration**: Automatic import without needing API
+- ✅ **Foundation for 7.2**: Personal data will be crucial for collaborative filtering
+- ✅ **Quick implementation**: 6-8 hours vs 8-10 for collaborative filtering 

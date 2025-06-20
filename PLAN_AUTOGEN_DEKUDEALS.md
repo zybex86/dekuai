@@ -766,6 +766,44 @@ result = conversation_manager.analyze_game(user_query)
 ### ✅ UKOŃCZONE KOMPLEKSOWO:
 17. **✓ FAZA 7.1: Advanced ML Features** - Price Drop Prediction Models **✅ UKOŃCZONA KOMPLEKSOWO**
 
+### 🔄 W TRAKCIE PLANOWANIA:
+18. **FAZA 7.1.5: User Collection Management** - Enhanced User Experience **🆕 ZAPLANOWANA**
+
+#### **Punkt 7.1.5: User Collection Management & Personalization** 🆕 ZAPLANOWANA
+- [ ] **Multi-User System** - User management and selection
+  - Username registration przy pierwszym użyciu
+  - User selection interface dla multi-user environments
+  - User profile switching z persistent storage
+  - Family/shared device support
+- [ ] **Game Collection Management** - Personal game library tracking
+  - "Czy posiadasz tę grę?" prompt po każdej analizie
+  - Personal game library storage (owned/wishlist/not_interested)
+  - Collection-based filtering w rekomendacjach
+  - Owned games exclusion z recommendation lists
+- [ ] **User Rating System** - Enhanced personalization data
+  - Personal game rating system (1-10 scale)
+  - Rating collection po analizie gry
+  - Rating-based preference learning dla ML system
+  - Personal vs. critic score comparison analytics
+- [ ] **DekuDeals Collection Import** - Automated data collection
+  - DekuDeals profile URL input i parsing
+  - Automatic owned games extraction
+  - User ratings import z DekuDeals profile
+  - Collection synchronization options
+- [ ] **Enhanced Personalization Integration** - ML system enhancement
+  - Collection-aware recommendations (exclude owned games)
+  - Personal rating influence na ML scoring
+  - Genre preference learning z personal ratings
+  - "Games similar to your favorites" recommendations
+
+**FAZA 7.1.5 PLANOWANE KORZYŚCI:**
+🎯 **True personalization**: Personal game libraries + rating-based learning
+🎯 **Multi-user support**: Family-friendly z user switching
+🎯 **Collection-aware recommendations**: No more owned games w suggestions
+🎯 **DekuDeals integration**: Automatic collection import
+🎯 **Enhanced ML learning**: Personal ratings jako additional training data
+🎯 **User experience improvement**: Seamless onboarding + personalized flow
+
 **FAZA 7.1 SZCZEGÓŁOWE PODSUMOWANIE SUKCESU:**
 🎯 **Complete ML price prediction system**: Linear regression + SQLite price history database
 🎯 **PricePredictionEngine (777 lines)**: Production-ready ML prediction engine z comprehensive analysis
@@ -786,26 +824,34 @@ result = conversation_manager.analyze_game(user_query)
 ✅ **Dependencies added**: numpy, scikit-learn, psutil dla ML functionality
 
 ### 🎯 NASTĘPNE DO ZROBIENIA (FAZA 7 - ADVANCED EXPANSION):
-1. **🔥 PRIORYTET: FAZA 7.2: Collaborative Filtering & Advanced Analytics**
+1. **🔥 NOWY PRIORYTET: FAZA 7.1.5: User Collection Management** **🆕 HIGHLY RECOMMENDED**
+   - Multi-user system z username registration i user switching
+   - Personal game collection tracking (owned/wishlist/not_interested)
+   - User rating system z ML integration dla enhanced personalization
+   - DekuDeals collection import z automatic profile parsing
+   - Collection-aware recommendations (exclude owned games)
+   - ⏱️ Szacowany czas: 6-8 godzin
+
+2. **FAZA 7.2: Collaborative Filtering & Advanced Analytics**
    - Collaborative filtering recommendations (user similarity matching)
    - Advanced user behavior analytics z pattern clustering  
    - Real-time price alerts z personalized thresholds
    - Seasonal price pattern analysis z holiday detection
    - Cross-user recommendation engine z community insights
 
-2. **FAZA 7.3: Public API Development** (External Integration)
+3. **FAZA 7.3: Public API Development** (External Integration)
    - RESTful API z rate limiting i authentication
    - API documentation z OpenAPI/Swagger integration
    - Third-party integration capabilities
    - SDK development dla external developers
 
-3. **FAZA 7.4: Web Interface Development** (User-Facing Application)
+4. **FAZA 7.4: Web Interface Development** (User-Facing Application)
    - Modern React/Vue.js web application
    - Real-time analysis dashboards z interactive charts
    - User account management z social features
    - Community integration z shared recommendations
 
-**Status: FAZA 7.1 COMPLETED! 🧠💰 ML Price Prediction operational - System predicts price drops with ML accuracy!** ✅
+**Status: FAZA 7.1 COMPLETED! 🧠💰 Next: User Collection Management for true personalization!** ✅
 
 ### 📊 CURRENT SYSTEM CAPABILITIES:
 ✅ **Data Collection**: `search_and_scrape_game()` w pełni funkcjonalne  
@@ -874,7 +920,15 @@ result = conversation_manager.analyze_game(user_query)
 - 🎮 Community integration z shared recommendations
 - ⏱️ Szacowany czas: 12-15 godzin
 
-**💡 REKOMENDACJA:** Sugeruję **OPCJA A (Collaborative Filtering & Advanced Analytics)** - system ma już ML price prediction, teraz możemy dodać collaborative filtering i zaawansowaną analitykę użytkowników.
+**💡 REKOMENDACJA:** Sugeruję **NOWY PRIORYTET: FAZA 7.1.5 (User Collection Management)** - przed collaborative filtering warto dodać personal collection management, żeby system mógł wykluczać posiadane gry z rekomendacji i lepiej personalizować na podstawie osobistych ocen użytkownika.
+
+**🔥 UZASADNIENIE PRIORYTETU FAZY 7.1.5:**
+- ✅ **Immediate user value**: Wykluczanie posiadanych gier z rekomendacji
+- ✅ **Enhanced ML data**: Personal ratings jako dodatkowe dane treningowe  
+- ✅ **Multi-user support**: Family-friendly system
+- ✅ **DekuDeals integration**: Automatic import bez konieczności API
+- ✅ **Foundation for 7.2**: Personal data będzie kluczowe dla collaborative filtering
+- ✅ **Quick implementation**: 6-8 godzin vs 8-10 dla collaborative filtering
 
 ---
 
