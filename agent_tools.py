@@ -4887,3 +4887,630 @@ def get_price_history_analysis(game_name: str, days_back: int = 365) -> Dict:
             "error": error_msg,
             "fallback": "Price history analysis temporarily unavailable",
         }
+
+
+# ====================================================================
+# PHASE 7.1.5: User Collection Management - Multi-User System
+# ====================================================================
+
+
+@register_for_llm(
+    description="Register a new user in the system - Input: username (str), role (str, optional), preferences (Dict, optional) - Output: Dict with registration result"
+)
+@register_for_execution()
+def register_new_user(
+    username: str, role: str = "admin", preferences: Optional[Dict] = None
+) -> Dict:
+    """
+    👤 PHASE 7.1.5: Register a new user with the multi-user system.
+
+    Features:
+    - Username registration with uniqueness validation
+    - Role-based access (admin, parent, child, guest)
+    - Custom user preferences
+    - Family-friendly multi-user support
+    - Persistent user profile storage
+
+    Args:
+        username: Desired username (must be unique)
+        role: User role - admin, parent, child, guest (default: admin)
+        preferences: User preferences dictionary (optional)
+
+    Returns:
+        Dict: Registration result with user profile data
+    """
+    try:
+        from utils.user_management import register_user
+
+        logger.info(f"👤 Registering new user: {username} with role: {role}")
+
+        # Validate inputs
+        if not username or len(username.strip()) < 2:
+            return {
+                "success": False,
+                "error": "Username must be at least 2 characters long",
+                "message": "Please provide a valid username",
+            }
+
+        valid_roles = ["admin", "parent", "child", "guest"]
+        if role.lower() not in valid_roles:
+            return {
+                "success": False,
+                "error": f"Invalid role: {role}",
+                "message": f"Role must be one of: {', '.join(valid_roles)}",
+                "valid_roles": valid_roles,
+            }
+
+        # Register user using utility function
+        success, message, user_data = register_user(username, role.lower(), preferences)
+
+        if success:
+            logger.info(f"✅ User registered successfully: {username}")
+            return {
+                "success": True,
+                "message": message,
+                "user_profile": user_data,
+                "next_steps": [
+                    "User can now switch to this profile",
+                    "Profile preferences can be customized",
+                    "Game analysis will be personalized for this user",
+                ],
+            }
+        else:
+            logger.warning(f"⚠️ User registration failed: {message}")
+            return {
+                "success": False,
+                "error": message,
+                "suggestion": "Try a different username or check role spelling",
+            }
+
+    except Exception as e:
+        error_msg = f"Error registering user: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {
+            "success": False,
+            "error": error_msg,
+            "fallback": "User registration temporarily unavailable",
+        }
+
+
+@register_for_llm(
+    description="Get current user information and session details - Input: None - Output: Dict with current user info"
+)
+@register_for_execution()
+def get_current_user_details() -> Dict:
+    """
+    👤 PHASE 7.1.5: Get comprehensive current user information.
+
+    Features:
+    - Current user profile and status
+    - Session duration and activity
+    - User preferences and settings
+    - Profile statistics and history
+    - Login status and suggestions
+
+    Returns:
+        Dict: Complete current user information
+    """
+    try:
+        from utils.user_management import get_current_user_info
+
+        logger.info("📋 Getting current user details...")
+
+        user_info = get_current_user_info()
+
+        if user_info.get("logged_in"):
+            # User is logged in - provide full details
+            profile_summary = {
+                "username": user_info["username"],
+                "role": user_info["role"],
+                "member_since": str(user_info["created_at"])[:10],  # Just date
+                "session_duration": user_info["session_duration"],
+                "total_games_analyzed": user_info["profile_stats"].get(
+                    "total_games_analyzed", 0
+                ),
+                "analysis_history_count": len(
+                    user_info["profile_stats"].get("analysis_history", [])
+                ),
+            }
+
+            # Generate personalized insights
+            insights = []
+            stats = user_info["profile_stats"]
+
+            if stats.get("total_games_analyzed", 0) > 0:
+                insights.append(
+                    f"🎮 Analyzed {stats['total_games_analyzed']} games total"
+                )
+
+            if stats.get("favorite_genres"):
+                top_genres = stats["favorite_genres"][:3]
+                insights.append(f"🏷️ Top genres: {', '.join(top_genres)}")
+
+            if stats.get("total_savings", 0) > 0:
+                insights.append(
+                    f"💰 Total savings tracked: ${stats['total_savings']:.2f}"
+                )
+
+            if user_info["role"] == "admin":
+                insights.append("🔑 Admin privileges - can manage other users")
+            elif user_info["role"] == "parent":
+                insights.append("👨‍👩‍👧‍👦 Parent account - can manage children")
+
+            logger.info(
+                f"✅ Current user: {user_info['username']} ({user_info['role']})"
+            )
+
+            return {
+                "success": True,
+                "logged_in": True,
+                "user_profile": profile_summary,
+                "full_details": user_info,
+                "insights": insights,
+                "available_actions": [
+                    "Analyze games with personalized recommendations",
+                    "Switch to different user profile",
+                    "Update user preferences",
+                    "View analysis history",
+                ],
+            }
+        else:
+            # No user logged in
+            logger.info("❓ No user currently logged in")
+            return {
+                "success": True,
+                "logged_in": False,
+                "message": user_info.get("message", "No user logged in"),
+                "suggestion": user_info.get(
+                    "suggestion", "Register a user or switch to existing profile"
+                ),
+                "available_actions": [
+                    "Register new user with register_new_user()",
+                    "Switch to existing user with switch_to_user()",
+                    "List all users with list_system_users()",
+                    "Create guest session with create_guest_access()",
+                ],
+            }
+
+    except Exception as e:
+        error_msg = f"Error getting current user details: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {
+            "success": False,
+            "error": error_msg,
+            "fallback": "User information temporarily unavailable",
+        }
+
+
+@register_for_llm(
+    description="Switch to a different user profile - Input: user_identifier (str) - Output: Dict with switch result"
+)
+@register_for_execution()
+def switch_to_user(user_identifier: str) -> Dict:
+    """
+    👤 PHASE 7.1.5: Switch to a different user profile.
+
+    Features:
+    - Switch by username or user ID
+    - Automatic session management
+    - Profile activation and validation
+    - Last active timestamp update
+    - Family-friendly user switching
+
+    Args:
+        user_identifier: Username or user ID to switch to
+
+    Returns:
+        Dict: Switch result with new user profile
+    """
+    try:
+        from utils.user_management import switch_user
+
+        logger.info(f"🔄 Switching to user: {user_identifier}")
+
+        # Validate input
+        if not user_identifier or not user_identifier.strip():
+            return {
+                "success": False,
+                "error": "User identifier cannot be empty",
+                "message": "Please provide a username or user ID",
+            }
+
+        # Attempt to switch user
+        success, message, user_data = switch_user(user_identifier.strip())
+
+        if success:
+            username = user_data["username"]
+            role = user_data["role"]
+            logger.info(f"✅ Successfully switched to user: {username} ({role})")
+
+            # Generate switch summary
+            switch_summary = {
+                "username": username,
+                "role": role,
+                "user_id": user_data["user_id"],
+                "last_active": str(user_data.get("last_active", ""))[
+                    :16
+                ],  # Date and time
+                "profile_stats": user_data["profile_data"],
+            }
+
+            # Role-specific welcome messages
+            welcome_messages = {
+                "admin": "🔑 Admin access activated - full system control available",
+                "parent": "👨‍👩‍👧‍👦 Parent profile active - can manage family accounts",
+                "child": "👶 Child profile active - parental controls applied",
+                "guest": "👤 Guest session active - temporary profile",
+            }
+
+            return {
+                "success": True,
+                "message": message,
+                "switched_to": switch_summary,
+                "welcome_message": welcome_messages.get(
+                    role, f"Welcome back, {username}!"
+                ),
+                "next_steps": [
+                    "Start analyzing games with personalized recommendations",
+                    "View your analysis history",
+                    "Update profile preferences if needed",
+                ],
+            }
+        else:
+            logger.warning(f"⚠️ User switch failed: {message}")
+            return {
+                "success": False,
+                "error": message,
+                "suggestions": [
+                    "Check username spelling",
+                    "List available users with list_system_users()",
+                    "Register new user if needed",
+                ],
+            }
+
+    except Exception as e:
+        error_msg = f"Error switching user: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {
+            "success": False,
+            "error": error_msg,
+            "fallback": "User switching temporarily unavailable",
+        }
+
+
+@register_for_llm(
+    description="List all registered users in the system - Input: None - Output: Dict with users list"
+)
+@register_for_execution()
+def list_system_users() -> Dict:
+    """
+    👤 PHASE 7.1.5: Get list of all registered users in the system.
+
+    Features:
+    - Complete user directory
+    - User roles and status
+    - Family organization view
+    - Registration timestamps
+    - Active/inactive status
+
+    Returns:
+        Dict: Comprehensive users list with family organization
+    """
+    try:
+        from utils.user_management import list_all_users, get_system_stats
+
+        logger.info("📋 Listing all system users...")
+
+        # Get all users
+        all_users = list_all_users()
+        system_stats = get_system_stats()
+
+        if not all_users:
+            logger.info("📭 No users found in system")
+            return {
+                "success": True,
+                "total_users": 0,
+                "users": [],
+                "message": "No users registered in the system yet",
+                "next_steps": [
+                    "Register first user with register_new_user()",
+                    "Create guest session with create_guest_access()",
+                ],
+            }
+
+        # Organize users by role for family view
+        users_by_role = {"admins": [], "parents": [], "children": [], "guests": []}
+
+        user_summaries = []
+        for user in all_users:
+            # Create user summary
+            summary = {
+                "username": user["username"],
+                "user_id": user["user_id"],
+                "role": user["role"],
+                "status": user["status"],
+                "created_date": str(user["created_at"])[:10],
+                "last_active": str(user["last_active"])[:10],
+                "games_analyzed": user["profile_data"].get("total_games_analyzed", 0),
+                "is_current": user["user_id"]
+                == system_stats["current_user"].get("user_id"),
+            }
+
+            user_summaries.append(summary)
+
+            # Organize by role
+            if user["role"] == "admin":
+                users_by_role["admins"].append(summary)
+            elif user["role"] == "parent":
+                users_by_role["parents"].append(summary)
+            elif user["role"] == "child":
+                users_by_role["children"].append(summary)
+            elif user["role"] == "guest":
+                users_by_role["guests"].append(summary)
+
+        # Generate insights
+        insights = []
+        stats = system_stats["user_breakdown"]
+
+        if stats["admins"] > 0:
+            insights.append(f"🔑 {stats['admins']} admin(s) - full system access")
+        if stats["parents"] > 0:
+            insights.append(
+                f"👨‍👩‍👧‍👦 {stats['parents']} parent(s) - family management"
+            )
+        if stats["children"] > 0:
+            insights.append(f"👶 {stats['children']} child account(s)")
+        if stats["guests"] > 0:
+            insights.append(f"👤 {stats['guests']} guest session(s)")
+
+        # Current user info
+        current_user = system_stats["current_user"]
+        if current_user["logged_in"]:
+            insights.append(
+                f"👋 Currently logged in: {current_user['username']} ({current_user['role']})"
+            )
+        else:
+            insights.append("❓ No user currently active")
+
+        logger.info(f"✅ Listed {len(all_users)} users successfully")
+
+        return {
+            "success": True,
+            "total_users": len(all_users),
+            "active_users": system_stats["active_users"],
+            "users": user_summaries,
+            "family_view": users_by_role,
+            "system_stats": {
+                "total_users": system_stats["total_users"],
+                "breakdown": stats,
+                "current_user": current_user,
+                "session_duration": system_stats["session_duration"],
+            },
+            "insights": insights,
+            "available_actions": [
+                "Switch to user with switch_to_user(username)",
+                "Register new user with register_new_user()",
+                "Get user details with get_current_user_details()",
+            ],
+        }
+
+    except Exception as e:
+        error_msg = f"Error listing users: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {
+            "success": False,
+            "error": error_msg,
+            "fallback": "User listing temporarily unavailable",
+        }
+
+
+@register_for_llm(
+    description="Create a temporary guest session - Input: None - Output: Dict with guest session details"
+)
+@register_for_execution()
+def create_guest_access() -> Dict:
+    """
+    👤 PHASE 7.1.5: Create a temporary guest session for quick access.
+
+    Features:
+    - Instant guest access without registration
+    - Temporary profile (not saved permanently)
+    - Basic functionality access
+    - Time-limited session
+    - No personal data storage
+
+    Returns:
+        Dict: Guest session details and limitations
+    """
+    try:
+        from utils.user_management import user_manager
+
+        logger.info("👤 Creating guest session...")
+
+        # Create guest session
+        success, message, guest_profile = user_manager.create_guest_session()
+
+        if success:
+            guest_username = guest_profile.username
+            guest_id = guest_profile.user_id
+            logger.info(f"✅ Guest session created: {guest_username}")
+
+            return {
+                "success": True,
+                "message": message,
+                "guest_profile": {
+                    "username": guest_username,
+                    "user_id": guest_id,
+                    "role": "guest",
+                    "status": "guest",
+                    "created_at": guest_profile.created_at.isoformat(),
+                    "session_type": "temporary",
+                },
+                "limitations": [
+                    "⏰ Temporary session - data not saved permanently",
+                    "🚫 Limited personalization features",
+                    "❌ No analysis history retention",
+                    "⚠️ Profile deleted on system restart",
+                ],
+                "available_features": [
+                    "✅ Game analysis and recommendations",
+                    "✅ Price comparison and value analysis",
+                    "✅ Basic opinion generation",
+                    "✅ Search and scraping functionality",
+                ],
+                "upgrade_options": [
+                    "Register permanent account with register_new_user()",
+                    "Switch to existing user with switch_to_user()",
+                ],
+            }
+        else:
+            logger.error(f"❌ Guest session creation failed: {message}")
+            return {
+                "success": False,
+                "error": message,
+                "alternative": "Try registering a permanent user account",
+            }
+
+    except Exception as e:
+        error_msg = f"Error creating guest session: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {
+            "success": False,
+            "error": error_msg,
+            "fallback": "Guest access temporarily unavailable",
+        }
+
+
+@register_for_llm(
+    description="Get comprehensive system user statistics and family overview - Input: None - Output: Dict with system stats"
+)
+@register_for_execution()
+def get_user_system_stats() -> Dict:
+    """
+    👤 PHASE 7.1.5: Get comprehensive user system statistics and overview.
+
+    Features:
+    - Total system statistics
+    - Family organization overview
+    - User activity analysis
+    - Session management info
+    - Storage and performance metrics
+
+    Returns:
+        Dict: Complete system user statistics
+    """
+    try:
+        from utils.user_management import get_system_stats
+
+        logger.info("📊 Getting user system statistics...")
+
+        stats = get_system_stats()
+
+        # Enhance with additional insights
+        user_breakdown = stats["user_breakdown"]
+        current_user = stats["current_user"]
+
+        # Generate system insights
+        system_insights = []
+
+        if stats["total_users"] == 0:
+            system_insights.append("📭 Fresh system - no users registered yet")
+        elif stats["total_users"] == 1:
+            system_insights.append("👤 Single user system")
+        else:
+            system_insights.append(
+                f"👥 Multi-user system with {stats['total_users']} registered users"
+            )
+
+        if user_breakdown["admins"] > 1:
+            system_insights.append(
+                f"🔑 {user_breakdown['admins']} administrators registered"
+            )
+
+        if user_breakdown["children"] > 0:
+            system_insights.append(
+                f"👶 Family-friendly setup with {user_breakdown['children']} child accounts"
+            )
+
+        if current_user["logged_in"]:
+            system_insights.append(
+                f"🟢 Active session: {current_user['username']} ({stats['session_duration']})"
+            )
+        else:
+            system_insights.append("🔴 No active user session")
+
+        # Session activity analysis
+        session_activity = {
+            "total_actions": stats["session_actions"],
+            "session_duration": stats["session_duration"],
+            "active_user": current_user if current_user["logged_in"] else None,
+        }
+
+        # System health indicators
+        health_indicators = {
+            "user_data_available": stats["total_users"] > 0,
+            "active_session": current_user["logged_in"],
+            "multi_user_ready": stats["total_users"] > 1,
+            "family_features": user_breakdown["parents"] > 0
+            or user_breakdown["children"] > 0,
+            "admin_available": user_breakdown["admins"] > 0,
+        }
+
+        health_score = sum(health_indicators.values()) / len(health_indicators) * 100
+
+        # Generate recommendations
+        recommendations = []
+
+        if stats["total_users"] == 0:
+            recommendations.append(
+                "📝 Register first user to begin personalized analysis"
+            )
+        elif not current_user["logged_in"]:
+            recommendations.append(
+                "🔄 Switch to user profile for personalized features"
+            )
+
+        if user_breakdown["admins"] == 0:
+            recommendations.append("🔑 Create admin account for system management")
+
+        if stats["total_users"] > 1 and not current_user["logged_in"]:
+            recommendations.append("👥 Select user profile for personalized experience")
+
+        logger.info(
+            f"✅ System stats: {stats['total_users']} users, {health_score:.1f}% system health"
+        )
+
+        return {
+            "success": True,
+            "system_overview": {
+                "total_users": stats["total_users"],
+                "active_users": stats["active_users"],
+                "user_breakdown": user_breakdown,
+                "system_health_score": round(health_score, 1),
+            },
+            "current_session": session_activity,
+            "storage_info": {
+                "storage_location": stats["storage_location"],
+                "data_persistence": "JSON files with automatic backups",
+                "session_tracking": "Active with action logging",
+            },
+            "health_indicators": health_indicators,
+            "system_insights": system_insights,
+            "recommendations": recommendations,
+            "available_actions": [
+                "Register new user: register_new_user(username, role)",
+                "Switch user: switch_to_user(username)",
+                "List users: list_system_users()",
+                "Create guest: create_guest_access()",
+                "Get user details: get_current_user_details()",
+            ],
+        }
+
+    except Exception as e:
+        error_msg = f"Error getting system stats: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {
+            "success": False,
+            "error": error_msg,
+            "fallback": "System statistics temporarily unavailable",
+        }
