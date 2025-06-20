@@ -107,7 +107,7 @@ jobs:
           echo "✅ Release artifacts prepared"
 
       - name: 📤 Upload release artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: production-release-${{ steps.version.outputs.version }}
           path: release-artifacts/
@@ -149,7 +149,7 @@ jobs:
           fetch-depth: 0
 
       - name: 📥 Download release artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: production-release-${{ needs.build-release.outputs.version }}
           path: release-artifacts/

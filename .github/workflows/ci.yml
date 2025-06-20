@@ -169,7 +169,7 @@ jobs:
           
       # Upload artifacts
       - name: 📤 Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: docker-image-${{ steps.version.outputs.short-sha }}
           path: autogen-dekudeals-${{ steps.version.outputs.short-sha }}.tar.gz
@@ -189,7 +189,7 @@ jobs:
 
       # Download Docker image
       - name: 📥 Download Docker image
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: docker-image-${{ needs.build-and-test.outputs.short-sha }}
 
