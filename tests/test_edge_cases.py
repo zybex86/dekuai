@@ -293,9 +293,13 @@ class TestSystemLimits:
 
         # Should handle requests even if no user or invalid user
         if current_user:
-            username = getattr(
-                current_user, "username", current_user.get("username", "default")
-            )
+            # Handle both UserProfile objects and dictionaries
+            if hasattr(current_user, "username"):
+                username = current_user.username
+            elif isinstance(current_user, dict):
+                username = current_user.get("username", "default")
+            else:
+                username = "default"
 
             # Test switching to same user (should be idempotent)
             result1 = user_manager.switch_user(username)
@@ -324,9 +328,13 @@ class TestSystemLimits:
         current_user = user_manager.get_current_user()
 
         if current_user:
-            username = getattr(
-                current_user, "username", current_user.get("username", "default")
-            )
+            # Handle both UserProfile objects and dictionaries
+            if hasattr(current_user, "username"):
+                username = current_user.username
+            elif isinstance(current_user, dict):
+                username = current_user.get("username", "default")
+            else:
+                username = "default"
 
             # Test accessing collection for user
             try:

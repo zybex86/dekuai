@@ -344,6 +344,10 @@ test: pytest-install
 	@echo "🧪 Running all tests..."
 	pytest tests/ -v --tb=short
 
+test-api-key: pytest-install ## Test and validate OPENAI_API_KEY setup
+	@echo "🔑 Testing API key setup..."
+	pytest tests/test_api_validation.py -v -s
+
 test-unit: pytest-install
 	@echo "🔬 Running unit tests..."
 	pytest tests/ -v -m "unit" --tb=short

@@ -152,9 +152,13 @@ class TestComponentPerformance:
         current_user = user_manager.get_current_user()
 
         if current_user:
-            username = getattr(
-                current_user, "username", current_user.get("username", "default")
-            )
+            # Handle both UserProfile objects and dictionaries
+            if hasattr(current_user, "username"):
+                username = current_user.username
+            elif isinstance(current_user, dict):
+                username = current_user.get("username", "default")
+            else:
+                username = "default"
 
             # Test user switching performance
             performance_tracker.start("user_switch")
@@ -205,9 +209,13 @@ class TestMemoryPerformance:
         current_user = user_manager.get_current_user()
 
         if current_user:
-            username = getattr(
-                current_user, "username", current_user.get("username", "default")
-            )
+            # Handle both UserProfile objects and dictionaries
+            if hasattr(current_user, "username"):
+                username = current_user.username
+            elif isinstance(current_user, dict):
+                username = current_user.get("username", "default")
+            else:
+                username = "default"
 
             # Perform multiple operations
             performance_tracker.start("memory_test")
@@ -325,9 +333,13 @@ class TestSystemPerformance:
 
         # Test collection access response (if possible)
         if current_user:
-            username = getattr(
-                current_user, "username", current_user.get("username", "default")
-            )
+            # Handle both UserProfile objects and dictionaries
+            if hasattr(current_user, "username"):
+                username = current_user.username
+            elif isinstance(current_user, dict):
+                username = current_user.get("username", "default")
+            else:
+                username = "default"
 
             performance_tracker.start("collection_response")
             try:
