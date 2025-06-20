@@ -324,6 +324,33 @@ def calculate_comprehensive_value_analysis(game_data: Dict[str, Any]) -> Dict[st
 
         age_factor = calculate_age_factor(release_dates)
 
+        # Oblicz discount factor (na podstawie MSRP)
+        discount_factor = 0
+        if current_price and msrp and msrp > 0:
+            discount_percent = ((msrp - current_price) / msrp) * 100
+            if discount_percent >= 70:
+                discount_factor = 3.0  # Massive discount (70%+)
+            elif discount_percent >= 50:
+                discount_factor = 2.5  # Deep discount (50-70%)
+            elif discount_percent >= 30:
+                discount_factor = 1.5  # Good discount (30-50%)
+            elif discount_percent >= 10:
+                discount_factor = 0.5  # Some discount (10-30%)
+
+        # Oblicz timing factor (na podstawie all-time low)
+        timing_factor = 0
+        lowest_price = game_data.get("lowest_historical_price")
+        if current_price and lowest_price:
+            lowest_parsed = extract_price(str(lowest_price))
+            if (
+                lowest_parsed and current_price <= lowest_parsed * 1.05
+            ):  # Within 5% of all-time low
+                timing_factor = 2.5  # Excellent timing
+            elif lowest_parsed and current_price <= lowest_parsed * 1.15:  # Within 15%
+                timing_factor = 1.5  # Good timing
+            elif lowest_parsed and current_price <= lowest_parsed * 1.35:  # Within 35%
+                timing_factor = 0.5  # Fair timing
+
         # Skomponuj final score
         base_score = genre_analysis.get("final_value_score", 0)
         position_score = market_analysis.get("position_score", 5.0)
@@ -335,22 +362,29 @@ def calculate_comprehensive_value_analysis(game_data: Dict[str, Any]) -> Dict[st
             + (age_factor * 10) * 0.2  # 20% - age factor
         )
 
-        # Rekomendacja na podstawie comprehensive score
+        # Rekomendacja na podstawie comprehensive score z discount i timing boost
         recommendation = _generate_advanced_recommendation(
-            comprehensive_score, market_analysis
+            comprehensive_score, market_analysis, discount_factor, timing_factor
         )
 
         return {
             "success": True,
             "comprehensive_score": round(comprehensive_score, 2),
+            "boosted_score": round(
+                comprehensive_score + discount_factor + timing_factor, 2
+            ),
             "genre_analysis": genre_analysis,
             "market_analysis": market_analysis,
             "age_factor": round(age_factor, 2),
+            "discount_factor": round(discount_factor, 2),
+            "timing_factor": round(timing_factor, 2),
             "advanced_recommendation": recommendation,
             "value_breakdown": {
                 "genre_contribution": round(base_score * 0.4, 2),
                 "market_contribution": round(position_score * 0.4, 2),
                 "age_contribution": round((age_factor * 10) * 0.2, 2),
+                "discount_boost": round(discount_factor, 2),
+                "timing_boost": round(timing_factor, 2),
             },
             "analysis_summary": _generate_comprehensive_summary(
                 comprehensive_score, market_analysis, genre_analysis, age_factor
@@ -363,21 +397,36 @@ def calculate_comprehensive_value_analysis(game_data: Dict[str, Any]) -> Dict[st
 
 
 def _generate_advanced_recommendation(
-    comprehensive_score: float, market_analysis: Dict[str, Any]
+    comprehensive_score: float,
+    market_analysis: Dict[str, Any],
+    discount_factor: float = 0,
+    timing_factor: float = 0,
 ) -> str:
-    """Generuje zaawansowaną rekomendację na podstawie comprehensive score."""
+    """Generuje zaawansowaną rekomendację na podstawie comprehensive score z uwzględnieniem discount i timing."""
     market_position = market_analysis.get("market_position", "Unknown")
 
-    # Uwzględnij zarówno score jak i market position
-    if comprehensive_score >= 8.0 and "Gem" in market_position:
+    # Boost score na podstawie discount i timing
+    boosted_score = comprehensive_score + discount_factor + timing_factor
+
+    # Special case: Massive discount (50%+) at all-time low should override market position
+    if (
+        discount_factor >= 2.0 and timing_factor >= 2.0
+    ):  # 50%+ discount at excellent timing
+        if boosted_score >= 8.0:
+            return "INSTANT BUY - Massive Discount!"
+        elif boosted_score >= 6.5:
+            return "STRONG BUY"
+
+    # Hidden gems with great discounts
+    if boosted_score >= 8.0 and "Gem" in market_position:
         return "INSTANT BUY - Hidden Gem!"
-    elif comprehensive_score >= 7.5:
+    elif boosted_score >= 7.5:
         return "STRONG BUY"
-    elif comprehensive_score >= 6.5:
+    elif boosted_score >= 6.5:
         return "BUY"
-    elif comprehensive_score >= 5.5:
+    elif boosted_score >= 5.5:
         return "CONSIDER"
-    elif comprehensive_score >= 4.0:
+    elif boosted_score >= 4.0:
         return "WAIT FOR SALE"
     else:
         return "SKIP"
