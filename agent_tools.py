@@ -6731,3 +6731,134 @@ def remove_game_from_collection(title: str) -> Dict:
             "action": "remove_game_from_collection",
             "game": title,
         }
+
+
+@register_for_llm(
+    description="Import games from DekuDeals collection URL to current user's collection - Input: collection_url (str), import_status (str, optional) - Output: Dict with import results and statistics"
+)
+@register_for_execution()
+def import_dekudeals_collection(
+    collection_url: str, import_status: str = "owned"
+) -> Dict:
+    """Import games from DekuDeals collection URL to current user's collection."""
+    try:
+        logger.info(f"🌐 Starting DekuDeals collection import: {collection_url}")
+
+        # Validate collection URL
+        if not collection_url or "dekudeals.com/collection/" not in collection_url:
+            error_msg = "Invalid DekuDeals collection URL format. Expected: https://www.dekudeals.com/collection/{id}"
+            logger.error(f"❌ {error_msg}")
+            return {
+                "success": False,
+                "error": error_msg,
+                "collection_url": collection_url,
+                "timestamp": datetime.now().isoformat(),
+            }
+
+        # Import the scraping function
+        try:
+            from deku_tools import scrape_dekudeals_collection
+        except ImportError:
+            error_msg = "DekuDeals scraping functionality not available"
+            logger.error(f"❌ {error_msg}")
+            return {
+                "success": False,
+                "error": error_msg,
+                "collection_url": collection_url,
+                "timestamp": datetime.now().isoformat(),
+            }
+
+        # Parse the collection
+        scraping_result = scrape_dekudeals_collection(collection_url)
+
+        if not scraping_result.get("success", False):
+            error_msg = f"Failed to parse DekuDeals collection: {scraping_result.get('error', 'Unknown error')}"
+            logger.error(f"❌ {error_msg}")
+            return {
+                "success": False,
+                "error": error_msg,
+                "collection_url": collection_url,
+                "timestamp": datetime.now().isoformat(),
+            }
+
+        games_list = scraping_result.get("games", [])
+        games_found = scraping_result.get("game_count", 0)
+
+        if not games_list:
+            error_msg = "No games found in the DekuDeals collection"
+            logger.error(f"❌ {error_msg}")
+            return {
+                "success": False,
+                "error": error_msg,
+                "collection_url": collection_url,
+                "timestamp": datetime.now().isoformat(),
+            }
+
+        # Import games to collection
+        imported_count = 0
+        skipped_count = 0
+        failed_count = 0
+
+        for i, game_title in enumerate(games_list, 1):
+            try:
+                add_result = add_game_to_collection(
+                    title=game_title,
+                    status=import_status,
+                    notes=f"Imported from DekuDeals collection: {collection_url}",
+                )
+
+                if add_result.get("success", False):
+                    imported_count += 1
+                    logger.info(f"✅ {i:2d}/{games_found}: {game_title} imported")
+                else:
+                    error = add_result.get("error", "Unknown error")
+                    if "already exists" in error.lower():
+                        skipped_count += 1
+                        logger.info(
+                            f"⏭️ {i:2d}/{games_found}: {game_title} (already in collection)"
+                        )
+                    else:
+                        failed_count += 1
+                        logger.warning(
+                            f"❌ {i:2d}/{games_found}: {game_title} - {error}"
+                        )
+
+            except Exception as e:
+                failed_count += 1
+                logger.error(
+                    f"❌ {i:2d}/{games_found}: {game_title} - Exception: {str(e)}"
+                )
+
+        # Create result
+        result = {
+            "success": True,
+            "collection_url": collection_url,
+            "import_summary": {
+                "games_found": games_found,
+                "games_imported": imported_count,
+                "games_skipped": skipped_count,
+                "games_failed": failed_count,
+                "import_status": import_status,
+                "success_rate": (
+                    round((imported_count / games_found) * 100, 1)
+                    if games_found > 0
+                    else 0
+                ),
+            },
+            "timestamp": datetime.now().isoformat(),
+        }
+
+        logger.info(
+            f"✅ DekuDeals import completed: {imported_count}/{games_found} games imported"
+        )
+        return result
+
+    except Exception as e:
+        error_msg = f"Error importing DekuDeals collection: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {
+            "success": False,
+            "error": error_msg,
+            "collection_url": collection_url,
+            "timestamp": datetime.now().isoformat(),
+        }

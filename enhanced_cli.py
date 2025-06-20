@@ -3397,11 +3397,8 @@ class EnhancedCLI:
             return False
 
     def _import_dekudeals_url(self) -> bool:
-        """Import games from DekuDeals collection URL (experimental)."""
-        self.print_status(
-            "⚠️ This feature is experimental and may not work reliably", "warning"
-        )
-        self.print_status("For best results, use the manual game list method", "info")
+        """Import games from DekuDeals collection URL."""
+        self.print_status("🌐 Importing from DekuDeals collection URL", "info")
         print()
 
         # Get collection URL
@@ -3421,16 +3418,127 @@ class EnhancedCLI:
             )
             return False
 
-        self.print_status("🔄 Attempting to parse collection URL...", "loading")
+        self.print_status("🔄 Parsing collection from URL...", "loading")
 
-        # For now, redirect to manual method with instructions
-        self.print_status("❌ Automatic URL parsing is not yet implemented", "error")
-        self.print_status("Please use the manual method instead:", "info")
-        self.print_status("   1. Open your DekuDeals collection in browser", "info")
-        self.print_status("   2. Copy game titles from the page", "info")
-        self.print_status("   3. Use 'Manual game list' import option", "info")
+        try:
+            # Import the scraping function
+            from deku_tools import scrape_dekudeals_collection
 
-        return False
+            # Parse the collection
+            result = scrape_dekudeals_collection(collection_url)
+
+            if not result["success"]:
+                self.print_status(
+                    f"❌ Failed to parse collection: {result['error']}", "error"
+                )
+                return False
+
+            games_list = result["games"]
+            game_count = result["game_count"]
+
+            if not games_list:
+                self.print_status("❌ No games found in collection", "error")
+                return False
+
+            self.print_status(f"✅ Found {game_count} games in collection!", "success")
+
+            # Ask for import status
+            import_status = self.get_user_choice(
+                "Import these games as:",
+                ["👑 Owned games", "💭 Wishlist games", "🎮 Playing games"],
+            )
+
+            if not import_status:
+                return False
+
+            # Map choice to status
+            status_mapping = {
+                "Owned games": "owned",
+                "Wishlist games": "wishlist",
+                "Playing games": "playing",
+            }
+
+            selected_status = None
+            for key, value in status_mapping.items():
+                if key in import_status:
+                    selected_status = value
+                    break
+
+            if not selected_status:
+                selected_status = "owned"
+
+            # Show preview and confirm
+            print()
+            cprint("   📋 Games to import:", "cyan", attrs=["bold"])
+            for i, title in enumerate(games_list[:15], 1):
+                cprint(f"      {i:2d}. {title}", "white")
+
+            if game_count > 15:
+                remaining = game_count - 15
+                cprint(f"      ... and {remaining} more games", "yellow")
+
+            confirm = self.get_user_choice(
+                f"Import {game_count} games as '{selected_status}'?",
+                ["✅ Yes, import now", "🔙 Cancel import"],
+            )
+
+            if not confirm or "Cancel" in confirm:
+                self.print_status("Import cancelled", "info")
+                return False
+
+            # Import games
+            self.print_status(f"🔄 Importing {game_count} games...", "loading")
+
+            imported_count = 0
+            skipped_count = 0
+            failed_count = 0
+
+            for i, title in enumerate(games_list, 1):
+                try:
+                    result = add_game_to_collection(
+                        title=title,
+                        status=selected_status,
+                        notes=f"Imported from DekuDeals collection: {collection_url}",
+                    )
+
+                    if result.get("success", False):
+                        imported_count += 1
+                        print(f"✅ {i:2d}/{game_count}: {title}")
+                    else:
+                        error = result.get("error", "Unknown error")
+                        if "already exists" in error:
+                            skipped_count += 1
+                            print(
+                                f"⏭️ {i:2d}/{game_count}: {title} (already in collection)"
+                            )
+                        else:
+                            failed_count += 1
+                            print(f"❌ {i:2d}/{game_count}: {title} - {error}")
+
+                except Exception as e:
+                    failed_count += 1
+                    print(f"❌ {i:2d}/{game_count}: {title} - Error: {str(e)}")
+
+            # Summary
+            print()
+            self.print_status(f"✅ Import completed!", "success")
+            self.print_status(f"   📦 Imported: {imported_count} games", "info")
+            if skipped_count > 0:
+                self.print_status(
+                    f"   ⏭️ Skipped (already owned): {skipped_count} games", "info"
+                )
+            if failed_count > 0:
+                self.print_status(f"   ❌ Failed: {failed_count} games", "warning")
+
+            return imported_count > 0
+
+        except ImportError:
+            self.print_status("❌ DekuDeals parsing not available", "error")
+            self.print_status("Please install required dependencies", "info")
+            return False
+        except Exception as e:
+            self.print_status(f"❌ Import error: {str(e)}", "error")
+            return False
 
 
 def main():

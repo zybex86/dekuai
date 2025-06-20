@@ -27,3 +27,5 @@ analytics_data
 analytics_data/*
 user_profiles
 user_profiles/*
+game_collections/*
+game_collections

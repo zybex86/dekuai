@@ -1,9 +1,10 @@
 import requests
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from typing import Optional, Dict, List
 import json
 import re  # Dodaj import modułu re dla wyrażeń regularnych
 from datetime import datetime
+from urllib.parse import quote
 
 BASE_URL = "https://www.dekudeals.com"
 
@@ -87,7 +88,7 @@ def search_deku_deals(query: str) -> Optional[str]:
     Wyszukuje grę na DekuDeals.com i zwraca URL do jej strony produktu.
     Zwraca None, jeśli gra nie została znaleziona w pierwszych wynikach.
     """
-    search_url = f"{BASE_URL}/search?q={requests.utils.quote(query)}"
+    search_url = f"{BASE_URL}/search?q={quote(query)}"
     print(f"Szukam gry '{query}' na: {search_url}")
 
     try:
@@ -99,8 +100,12 @@ def search_deku_deals(query: str) -> Optional[str]:
         # Poprawiony selektor na podstawie Twojego odkrycia
         first_result_link = soup.find("a", class_="main-link")
 
-        if first_result_link and first_result_link.has_attr("href"):
-            game_path = first_result_link["href"]
+        if (
+            first_result_link
+            and isinstance(first_result_link, Tag)
+            and first_result_link.get("href")
+        ):
+            game_path = first_result_link.get("href")
             full_game_url = f"{BASE_URL}{game_path}"
             print(f"Znaleziono potencjalny URL dla '{query}': {full_game_url}")
             return full_game_url
@@ -310,10 +315,208 @@ def scrape_game_details(game_url: str) -> Optional[Dict]:
         return None
 
 
+def scrape_dekudeals_collection(collection_url: str) -> Dict[str, any]:
+    """
+    Scrapuje kolekcję gier z DekuDeals i zwraca listę nazw gier.
+
+    Args:
+        collection_url (str): URL do kolekcji DekuDeals (np. https://www.dekudeals.com/collection/xxx)
+
+    Returns:
+        Dict zawierający:
+        - success (bool): Czy operacja się powiodła
+        - games (List[str]): Lista nazw gier
+        - game_count (int): Liczba znalezionych gier
+        - error (str): Błąd jeśli wystąpił
+    """
+    try:
+        print(f"Parsuje kolekcję DekuDeals: {collection_url}")
+
+        # Walidacja URL
+        if not collection_url or "dekudeals.com/collection/" not in collection_url:
+            return {
+                "success": False,
+                "error": "Nieprawidłowy URL kolekcji DekuDeals",
+                "games": [],
+                "game_count": 0,
+            }
+
+        # Pobierz stronę kolekcji
+        response = requests.get(collection_url)
+        response.raise_for_status()
+
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        # Lista do przechowywania nazw gier
+        game_titles = []
+
+        # Znajdź wszystkie gry w kolekcji
+        # Na podstawie struktury strony, szukamy elementów które zawierają nazwy gier
+        # Możliwe selektory dla gier w kolekcji
+        game_selectors = [
+            "h3",  # Główne nagłówki gier
+            ".game-title",  # Ewentualne klasy z tytułami
+            "[data-game-title]",  # Elementy z atrybutami tytułów
+            "a[href*='/items/']",  # Linki do stron gier
+        ]
+
+        # Próbujemy różne selektory
+        for selector in game_selectors:
+            elements = soup.select(selector)
+            if elements:
+                print(
+                    f"Znaleziono {len(elements)} elementów używając selektora: {selector}"
+                )
+
+                for element in elements:
+                    if isinstance(element, Tag):
+                        # Wyciągnij tekst z elementu
+                        title_text = element.get_text(strip=True)
+
+                        # Sprawdź czy to wygląda jak tytuł gry (nie jest pusty, nie zawiera tylko cyfr)
+                        if (
+                            title_text
+                            and len(title_text) > 2
+                            and not title_text.isdigit()
+                        ):
+                            # Czyść tytuł z niepotrzebnych elementów
+                            cleaned_title = clean_game_title(title_text)
+                            if cleaned_title and cleaned_title not in game_titles:
+                                game_titles.append(cleaned_title)
+
+                # Jeśli znaleźliśmy gry, przerywamy pętlę
+                if game_titles:
+                    break
+
+        # Jeśli nie znaleźliśmy gier standardowymi metodami, spróbuj alternatywnych
+        if not game_titles:
+            print("Próbuję alternatywnych metod parsowania...")
+
+            # Szukaj w całym tekście strony tytułów gier
+            # Możemy szukać wzorców tekstowych charakterystycznych dla gier
+            all_text = soup.get_text()
+
+            # Podziel tekst na linie i szukaj potencjalnych tytułów gier
+            lines = all_text.split("\n")
+            for line in lines:
+                line = line.strip()
+                # Sprawdź czy linia wygląda jak tytuł gry
+                if (
+                    line
+                    and len(line) > 3
+                    and len(line) < 100
+                    and not line.isdigit()
+                    and not line.startswith("$")
+                    and not line.lower().startswith("rating")
+                    and not line.lower().startswith("format")
+                    and not line.lower().startswith("platform")
+                ):
+
+                    # Dodatkowe filtrowanie dla typowych tytułów gier
+                    if any(
+                        keyword in line.lower()
+                        for keyword in [
+                            "edition",
+                            "collection",
+                            "ultimate",
+                            "deluxe",
+                            "remastered",
+                            ":",
+                        ]
+                    ):
+                        cleaned_title = clean_game_title(line)
+                        if cleaned_title and cleaned_title not in game_titles:
+                            game_titles.append(cleaned_title)
+
+        # Usuń duplikaty zachowując kolejność
+        unique_titles = []
+        seen = set()
+        for title in game_titles:
+            if title not in seen:
+                unique_titles.append(title)
+                seen.add(title)
+
+        print(f"Znaleziono {len(unique_titles)} unikalnych gier w kolekcji")
+
+        return {
+            "success": True,
+            "games": unique_titles,
+            "game_count": len(unique_titles),
+            "collection_url": collection_url,
+        }
+
+    except requests.exceptions.RequestException as e:
+        error_msg = f"Błąd sieciowy podczas pobierania kolekcji: {str(e)}"
+        print(error_msg)
+        return {"success": False, "error": error_msg, "games": [], "game_count": 0}
+    except Exception as e:
+        error_msg = f"Błąd podczas parsowania kolekcji: {str(e)}"
+        print(error_msg)
+        return {"success": False, "error": error_msg, "games": [], "game_count": 0}
+
+
+def clean_game_title(title: str) -> str:
+    """
+    Czyści tytuł gry z niepotrzebnych elementów.
+
+    Args:
+        title (str): Surowy tytuł gry
+
+    Returns:
+        str: Oczyszczony tytuł gry
+    """
+    if not title:
+        return ""
+
+    # Usuń białe znaki z początku i końca
+    cleaned = title.strip()
+
+    # Usuń typowe słowa/frazy które nie są częścią tytułu
+    unwanted_patterns = [
+        r"\s*Rating\s*",
+        r"\s*Format\s*",
+        r"\s*Platform\s*",
+        r"\s*Digital\s*",
+        r"\s*Switch\s*$",
+        r"\s*Add to\s*",
+        r"\s*Hide\s*",
+        r"^\s*🔔\s*",
+        r"\s*\d+\s*items?\s*$",
+    ]
+
+    for pattern in unwanted_patterns:
+        cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE)
+
+    # Usuń nadmiarowe białe znaki
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+
+    # Sprawdź czy po czyszczeniu coś zostało
+    if len(cleaned) < 2:
+        return ""
+
+    return cleaned
+
+
 # --- Zaktualizowany blok testowy w __main__ ---
 if __name__ == "__main__":
     print("Testowanie funkcji search_deku_deals i scrape_game_details...")
 
+    # Test nowej funkcji parsowania kolekcji
+    print("\n=== TESTOWANIE PARSOWANIA KOLEKCJI DEKUDEALS ===")
+    collection_url = "https://www.dekudeals.com/collection/nbb76ddx3t"
+    print(f"Testuję parsowanie kolekcji: {collection_url}")
+
+    collection_result = scrape_dekudeals_collection(collection_url)
+    if collection_result["success"]:
+        print(f"✅ Sukces! Znaleziono {collection_result['game_count']} gier:")
+        for i, game in enumerate(collection_result["games"][:10], 1):
+            print(f"  {i:2d}. {game}")
+        if collection_result["game_count"] > 10:
+            print(f"     ... i {collection_result['game_count'] - 10} więcej gier")
+    else:
+        print(f"❌ Błąd: {collection_result['error']}")
+
+    print("\n=== TESTOWANIE WYSZUKIWANIA POJEDYNCZYCH GIER ===")
     test_games = [
         "The Legend of Zelda: Tears of the Kingdom",
         "Hollow Knight",
