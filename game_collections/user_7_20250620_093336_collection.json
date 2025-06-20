@@ -1,0 +1,163 @@
+{
+  "games": {
+    "hollow_knight": {
+      "title": "Hollow Knight",
+      "status": "owned",
+      "platform": "Nintendo Switch",
+      "date_added": "2025-06-20T11:19:55.544337",
+      "user_rating": 9.5,
+      "hours_played": null,
+      "purchase_price": null,
+      "current_price": null,
+      "notes": "Amazing metroidvania!",
+      "tags": [],
+      "import_source": "manual",
+      "steam_id": null,
+      "dekudeals_url": null,
+      "last_updated": "2025-06-20T11:19:55.544340"
+    },
+    "hades": {
+      "title": "Hades",
+      "status": "owned",
+      "platform": "Nintendo Switch",
+      "date_added": "2025-06-20T11:19:55.544655",
+      "user_rating": 9.0,
+      "hours_played": null,
+      "purchase_price": null,
+      "current_price": null,
+      "notes": "Bought it! Absolutely fantastic game!",
+      "tags": [],
+      "import_source": "manual",
+      "steam_id": null,
+      "dekudeals_url": null,
+      "last_updated": "2025-06-20T11:21:31.264901"
+    },
+    "the_legend_of_zelda_breath_of_the_wild": {
+      "title": "The Legend of Zelda: Breath of the Wild",
+      "status": "owned",
+      "platform": "Nintendo Switch",
+      "date_added": "2025-06-20T11:19:55.547566",
+      "user_rating": null,
+      "hours_played": 120,
+      "purchase_price": null,
+      "current_price": null,
+      "notes": "Open world masterpiece",
+      "tags": [
+        "adventure;open-world"
+      ],
+      "import_source": "csv",
+      "steam_id": null,
+      "dekudeals_url": null,
+      "last_updated": "2025-06-20T11:19:55.547567"
+    },
+    "super_mario_odyssey": {
+      "title": "Super Mario Odyssey",
+      "status": "completed",
+      "platform": "Nintendo Switch",
+      "date_added": "2025-06-20T11:19:55.547574",
+      "user_rating": null,
+      "hours_played": 65,
+      "purchase_price": null,
+      "current_price": null,
+      "notes": "Great 3D platformer",
+      "tags": [
+        "platformer;mario"
+      ],
+      "import_source": "csv",
+      "steam_id": null,
+      "dekudeals_url": null,
+      "last_updated": "2025-06-20T11:19:55.547575"
+    },
+    "animal_crossing_new_horizons": {
+      "title": "Animal Crossing: New Horizons",
+      "status": "playing",
+      "platform": "Nintendo Switch",
+      "date_added": "2025-06-20T11:19:55.547581",
+      "user_rating": null,
+      "hours_played": 200,
+      "purchase_price": null,
+      "current_price": null,
+      "notes": "Relaxing life sim",
+      "tags": [
+        "simulation;relaxing"
+      ],
+      "import_source": "csv",
+      "steam_id": null,
+      "dekudeals_url": null,
+      "last_updated": "2025-06-20T11:19:55.547582"
+    },
+    "fire_emblem_three_houses": {
+      "title": "Fire Emblem: Three Houses",
+      "status": "wishlist",
+      "platform": "Nintendo Switch",
+      "date_added": "2025-06-20T11:19:55.547590",
+      "user_rating": null,
+      "hours_played": null,
+      "purchase_price": null,
+      "current_price": null,
+      "notes": "Strategic RPG, want to try",
+      "tags": [
+        "strategy;rpg"
+      ],
+      "import_source": "csv",
+      "steam_id": null,
+      "dekudeals_url": null,
+      "last_updated": "2025-06-20T11:19:55.547591"
+    },
+    "user1_exclusive_game": {
+      "title": "User1 Exclusive Game",
+      "status": "owned",
+      "platform": "Nintendo Switch",
+      "date_added": "2025-06-20T11:21:31.272572",
+      "user_rating": 8.0,
+      "hours_played": null,
+      "purchase_price": null,
+      "current_price": null,
+      "notes": "",
+      "tags": [],
+      "import_source": "manual",
+      "steam_id": null,
+      "dekudeals_url": null,
+      "last_updated": "2025-06-20T11:21:31.272573"
+    },
+    "user2_exclusive_game": {
+      "title": "User2 Exclusive Game",
+      "status": "owned",
+      "platform": "Nintendo Switch",
+      "date_added": "2025-06-20T11:21:31.274253",
+      "user_rating": 7.5,
+      "hours_played": null,
+      "purchase_price": null,
+      "current_price": null,
+      "notes": "",
+      "tags": [],
+      "import_source": "manual",
+      "steam_id": null,
+      "dekudeals_url": null,
+      "last_updated": "2025-06-20T11:21:31.274255"
+    }
+  },
+  "stats": {
+    "total_games": 8,
+    "owned_games": 5,
+    "wishlist_games": 1,
+    "completed_games": 1,
+    "total_value": 0.0,
+    "average_rating": 8.5,
+    "total_hours": 385,
+    "favorite_genres": [],
+    "platforms": {
+      "Nintendo Switch": 8
+    },
+    "import_sources": {
+      "manual": 4,
+      "csv": 4
+    },
+    "last_updated": "2025-06-20T11:21:31.274275"
+  },
+  "metadata": {
+    "user_id": "user_7_20250620_093336",
+    "last_saved": "2025-06-20T11:21:31.274508",
+    "version": "1.0.0"
+  }
+}

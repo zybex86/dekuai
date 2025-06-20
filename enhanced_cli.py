@@ -56,6 +56,16 @@ from agent_tools import (
     list_system_users,
     create_guest_access,
     get_user_system_stats,
+    # 🎮 PHASE 7.1.6: Game Collection Management imports
+    add_game_to_collection,
+    update_game_in_collection,
+    remove_game_from_collection,
+    get_user_game_collection,
+    import_steam_library,
+    import_collection_from_csv,
+    export_collection_to_csv,
+    check_if_game_owned,
+    get_collection_recommendations_filter,
 )
 
 import logging
@@ -773,6 +783,7 @@ class EnhancedCLI:
                     "📊 View batch operations status",
                     "📋 View available categories",
                     "👨‍👩‍👧‍👦 User Management",
+                    "🎮📚 Game Collection Management",
                     "🚪 Exit interactive mode",
                 ],
             )
@@ -820,10 +831,1037 @@ class EnhancedCLI:
                 # Refresh user status after management operations
                 user_status = self.check_user_login_status()
 
+            elif "Game Collection Management" in action:
+                # Check if user is logged in for personalized collections
+                if not user_status.get("logged_in", False):
+                    need_user = self.get_user_choice(
+                        "Game Collection Management requires user login for personalized libraries.",
+                        ["👤 Login or register user first", "🔙 Back to main menu"],
+                    )
+
+                    if "Login or register" in need_user:
+                        while self.user_management_menu():
+                            pass
+                        user_status = self.check_user_login_status()
+                    continue
+
+                # Enter game collection management workflow
+                while self.game_collection_menu():
+                    pass  # Keep showing collection management until user goes back
+
             elif "Exit" in action:
                 break
 
         self.print_status("Interactive mode ended", "info")
+
+    # 🎮📚 PHASE 7.1.6: Game Collection Management Methods
+
+    def game_collection_menu(self) -> bool:
+        """Display game collection management menu and handle operations."""
+        self.print_header("🎮📚 Game Collection Management", "highlight")
+
+        # Show current user collection stats
+        try:
+            collection_data = get_user_game_collection(limit=5)
+            if collection_data.get("success", False):
+                stats = collection_data.get("statistics", {})
+                total_games = stats.get("total_games", 0)
+                owned_games = stats.get("owned_games", 0)
+                wishlist_games = stats.get("wishlist_games", 0)
+                average_rating = stats.get("average_rating", 0)
+
+                self.print_status(
+                    f"📚 Your Collection: {total_games} games ({owned_games} owned, {wishlist_games} wishlist)",
+                    "info",
+                )
+                if average_rating > 0:
+                    self.print_status(
+                        f"⭐ Average Rating: {average_rating:.1f}/10", "info"
+                    )
+        except:
+            pass
+
+        action = self.get_user_choice(
+            "Collection Management Options:",
+            [
+                "➕ Add game to collection",
+                "📝 Update game in collection",
+                "❌ Remove game from collection",
+                "📋 View my game collection",
+                "🔍 Check if game is owned",
+                "🔗 Import Steam library",
+                "📁 Import from CSV file",
+                "💾 Export collection to CSV",
+                "🎯 Get recommendation filter",
+                "🌐 Import DekuDeals collection",
+                "🔙 Back to main menu",
+            ],
+        )
+
+        if not action:
+            return False
+
+        if "Add game to collection" in action:
+            return self.add_game_to_collection_interactive()
+
+        elif "Update game in collection" in action:
+            return self.update_game_in_collection_interactive()
+
+        elif "Remove game from collection" in action:
+            return self.remove_game_from_collection_interactive()
+
+        elif "View my game collection" in action:
+            self.view_game_collection_interactive()
+            return True
+
+        elif "Check if game is owned" in action:
+            self.check_game_ownership_interactive()
+            return True
+
+        elif "Import Steam library" in action:
+            return self.import_steam_library_interactive()
+
+        elif "Import from CSV file" in action:
+            return self.import_csv_collection_interactive()
+
+        elif "Export collection to CSV" in action:
+            return self.export_csv_collection_interactive()
+
+        elif "Get recommendation filter" in action:
+            self.view_recommendation_filter_interactive()
+            return True
+
+        elif "Import DekuDeals collection" in action:
+            return self.import_dekudeals_collection_interactive()
+
+        elif "Back to main menu" in action:
+            return False
+
+        return True
+
+    def add_game_to_collection_interactive(self) -> bool:
+        """Interactive game addition to collection."""
+        self.print_section("➕ Add Game to Collection", "highlight")
+
+        # Get game title
+        title = input(colored("🎮 Enter game title: ", "cyan", attrs=["bold"])).strip()
+        if not title:
+            self.print_status("Game title cannot be empty", "error")
+            return False
+
+        # Get game status
+        status = self.get_user_choice(
+            "Select game status:",
+            [
+                "📦 Owned (I own this game)",
+                "❤️ Wishlist (I want this game)",
+                "👎 Not Interested (Don't recommend)",
+                "✅ Completed (Finished playing)",
+                "🎮 Playing (Currently playing)",
+                "⏸️ Dropped (Stopped playing)",
+            ],
+        )
+
+        if not status:
+            return False
+
+        # Extract status value
+        status_map = {
+            "Owned": "owned",
+            "Wishlist": "wishlist",
+            "Not Interested": "not_interested",
+            "Completed": "completed",
+            "Playing": "playing",
+            "Dropped": "dropped",
+        }
+
+        status_value = next((v for k, v in status_map.items() if k in status), "owned")
+
+        # Get optional rating
+        rating = None
+        if status_value in ["owned", "completed", "playing", "dropped"]:
+            rating_input = input(
+                colored(
+                    "⭐ Enter rating (1-10, or press Enter to skip): ",
+                    "yellow",
+                    attrs=["bold"],
+                )
+            ).strip()
+
+            if rating_input:
+                try:
+                    rating = float(rating_input)
+                    if not (1 <= rating <= 10):
+                        self.print_status("Rating must be between 1 and 10", "warning")
+                        rating = None
+                except ValueError:
+                    self.print_status("Invalid rating format", "warning")
+                    rating = None
+
+        # Get optional notes
+        notes = input(
+            colored("📝 Enter notes (optional): ", "white", attrs=["bold"])
+        ).strip()
+
+        try:
+            result = add_game_to_collection(
+                title=title,
+                status=status_value,
+                user_rating=rating,  # type: ignore
+                notes=notes,
+            )
+
+            if result.get("success", False):
+                self.print_status(f"✅ Added '{title}' to your collection!", "success")
+
+                # Show collection stats
+                stats = result.get("collection_stats", {})
+                total_games = stats.get("total_games", 0)
+                owned_games = stats.get("owned_games", 0)
+
+                self.print_status(
+                    f"📚 Updated collection: {total_games} total games ({owned_games} owned)",
+                    "info",
+                )
+                return True
+            else:
+                error_msg = result.get("error", "Unknown error")
+                self.print_status(f"❌ Failed to add game: {error_msg}", "error")
+
+                # Show suggestion if provided
+                suggestion = result.get("suggestion", "")
+                if suggestion:
+                    self.print_status(f"💡 Suggestion: {suggestion}", "info")
+
+                return False
+
+        except Exception as e:
+            self.print_status(f"❌ Addition error: {str(e)}", "error")
+            return False
+
+    def update_game_in_collection_interactive(self) -> bool:
+        """Interactive game update in collection."""
+        self.print_section("📝 Update Game in Collection", "highlight")
+
+        # Get game title
+        title = input(
+            colored("🎮 Enter game title to update: ", "cyan", attrs=["bold"])
+        ).strip()
+        if not title:
+            self.print_status("Game title cannot be empty", "error")
+            return False
+
+        # Check if game exists
+        try:
+            ownership_check = check_if_game_owned(title)
+            if not ownership_check.get("owned", False):
+                self.print_status(f"❌ '{title}' not found in your collection", "error")
+                self.print_status(
+                    "💡 Use 'Add game to collection' to add new games", "info"
+                )
+                return False
+
+            # Show current game details
+            game_details = ownership_check.get("game_details", {})
+            current_status = game_details.get("status", "unknown")
+            current_rating = game_details.get("user_rating")
+            current_notes = game_details.get("notes", "")
+
+            self.print_status(f"📋 Current status: {current_status}", "info")
+            if current_rating:
+                self.print_status(f"⭐ Current rating: {current_rating}/10", "info")
+            if current_notes:
+                self.print_status(f"📝 Current notes: {current_notes}", "info")
+
+        except Exception as e:
+            self.print_status(f"❌ Error checking game: {str(e)}", "error")
+            return False
+
+        # Get what to update
+        update_choice = self.get_user_choice(
+            "What would you like to update?",
+            [
+                "📊 Game status",
+                "⭐ Rating",
+                "📝 Notes",
+                "🕒 Hours played",
+                "🏷️ All details",
+                "🔙 Cancel update",
+            ],
+        )
+
+        if not update_choice or "Cancel" in update_choice:
+            return False
+
+        updates = {}
+
+        try:
+            if "Game status" in update_choice or "All details" in update_choice:
+                status = self.get_user_choice(
+                    "Select new game status:",
+                    [
+                        "📦 Owned",
+                        "❤️ Wishlist",
+                        "👎 Not Interested",
+                        "✅ Completed",
+                        "🎮 Playing",
+                        "⏸️ Dropped",
+                    ],
+                )
+                if status:
+                    status_map = {
+                        "Owned": "owned",
+                        "Wishlist": "wishlist",
+                        "Not Interested": "not_interested",
+                        "Completed": "completed",
+                        "Playing": "playing",
+                        "Dropped": "dropped",
+                    }
+                    updates["status"] = next(
+                        (v for k, v in status_map.items() if k in status), "owned"
+                    )
+
+            if "Rating" in update_choice or "All details" in update_choice:
+                rating_input = input(
+                    colored(
+                        "⭐ Enter new rating (1-10, or press Enter to skip): ",
+                        "yellow",
+                        attrs=["bold"],
+                    )
+                ).strip()
+
+                if rating_input:
+                    try:
+                        rating = float(rating_input)
+                        if 1 <= rating <= 10:
+                            updates["user_rating"] = rating
+                        else:
+                            self.print_status(
+                                "Rating must be between 1 and 10", "warning"
+                            )
+                    except ValueError:
+                        self.print_status("Invalid rating format", "warning")
+
+            if "Notes" in update_choice or "All details" in update_choice:
+                notes = input(
+                    colored(
+                        "📝 Enter new notes (or press Enter to skip): ",
+                        "white",
+                        attrs=["bold"],
+                    )
+                ).strip()
+                if notes:
+                    updates["notes"] = notes
+
+            if "Hours played" in update_choice or "All details" in update_choice:
+                hours_input = input(
+                    colored(
+                        "🕒 Enter hours played (or press Enter to skip): ",
+                        "blue",
+                        attrs=["bold"],
+                    )
+                ).strip()
+
+                if hours_input:
+                    try:
+                        hours = float(hours_input)
+                        if hours >= 0:
+                            updates["hours_played"] = hours
+                        else:
+                            self.print_status("Hours must be non-negative", "warning")
+                    except ValueError:
+                        self.print_status("Invalid hours format", "warning")
+
+            if not updates:
+                self.print_status("No updates provided", "warning")
+                return False
+
+            # Perform update
+            result = update_game_in_collection(title, **updates)
+
+            if result.get("success", False):
+                self.print_status(
+                    f"✅ Updated '{title}' in your collection!", "success"
+                )
+
+                # Show updated details
+                updated_game = result.get("updated_game", {})
+                for field, value in updated_game.items():
+                    if field in updates:
+                        self.print_status(f"   {field}: {value}", "info")
+
+                return True
+            else:
+                error_msg = result.get("error", "Unknown error")
+                self.print_status(f"❌ Update failed: {error_msg}", "error")
+                return False
+
+        except Exception as e:
+            self.print_status(f"❌ Update error: {str(e)}", "error")
+            return False
+
+    def remove_game_from_collection_interactive(self) -> bool:
+        """Interactive game removal from collection."""
+        self.print_section("❌ Remove Game from Collection", "highlight")
+
+        # Get game title
+        title = input(
+            colored("🎮 Enter game title to remove: ", "cyan", attrs=["bold"])
+        ).strip()
+        if not title:
+            self.print_status("Game title cannot be empty", "error")
+            return False
+
+        # Check if game exists and show details
+        try:
+            ownership_check = check_if_game_owned(title)
+            if not ownership_check.get("owned", False):
+                self.print_status(f"❌ '{title}' not found in your collection", "error")
+                return False
+
+            # Show game details before removal
+            game_details = ownership_check.get("game_details", {})
+            status = game_details.get("status", "unknown")
+            rating = game_details.get("user_rating")
+            notes = game_details.get("notes", "")
+
+            self.print_status(f"📋 Game to remove: {title}", "warning")
+            self.print_status(f"   Status: {status}", "info")
+            if rating:
+                self.print_status(f"   Rating: {rating}/10", "info")
+            if notes:
+                self.print_status(f"   Notes: {notes}", "info")
+
+        except Exception as e:
+            self.print_status(f"❌ Error checking game: {str(e)}", "error")
+            return False
+
+        # Confirm removal
+        confirm = self.get_user_choice(
+            f"Are you sure you want to remove '{title}' from your collection?",
+            [
+                "✅ Yes, remove it",
+                "🔙 No, keep it",
+            ],
+        )
+
+        if not confirm or "No, keep it" in confirm:
+            self.print_status("Removal cancelled", "info")
+            return False
+
+        try:
+            result = remove_game_from_collection(title)
+
+            if result.get("success", False):
+                self.print_status(
+                    f"✅ Removed '{title}' from your collection!", "success"
+                )
+
+                # Show updated collection stats
+                stats = result.get("collection_stats", {})
+                total_games = stats.get("total_games", 0)
+                owned_games = stats.get("owned_games", 0)
+
+                self.print_status(
+                    f"📚 Updated collection: {total_games} total games ({owned_games} owned)",
+                    "info",
+                )
+                return True
+            else:
+                error_msg = result.get("error", "Unknown error")
+                self.print_status(f"❌ Removal failed: {error_msg}", "error")
+                return False
+
+        except Exception as e:
+            self.print_status(f"❌ Removal error: {str(e)}", "error")
+            return False
+
+    def view_game_collection_interactive(self):
+        """Display user's game collection with filtering options."""
+        self.print_section("📋 Your Game Collection", "highlight")
+
+        # Get filter options
+        filter_choice = self.get_user_choice(
+            "Collection view options:",
+            [
+                "📚 All games",
+                "📦 Owned games only",
+                "❤️ Wishlist only",
+                "✅ Completed games",
+                "🎮 Currently playing",
+                "⏸️ Dropped games",
+                "👎 Not interested",
+            ],
+        )
+
+        if not filter_choice:
+            return
+
+        # Extract filter value
+        filter_map = {
+            "All games": None,
+            "Owned games only": "owned",
+            "Wishlist only": "wishlist",
+            "Completed games": "completed",
+            "Currently playing": "playing",
+            "Dropped games": "dropped",
+            "Not interested": "not_interested",
+        }
+
+        status_filter = next(
+            (v for k, v in filter_map.items() if k in filter_choice), None
+        )
+
+        try:
+            result = get_user_game_collection(status_filter=status_filter, limit=50)  # type: ignore
+
+            if result.get("success", False):
+                collection = result.get("collection", {})
+                games = collection.get("games", [])
+                stats = result.get("statistics", {})
+                user_context = result.get("user_context", {})
+                insights = result.get("insights", {})
+
+                # Display header
+                username = user_context.get("username", "Unknown")
+                filter_text = f" ({filter_choice})" if status_filter else ""
+
+                self.print_status(f"📚 {username}'s Collection{filter_text}", "success")
+
+                # Display statistics
+                total_games = stats.get("total_games", 0)
+                owned_games = stats.get("owned_games", 0)
+                wishlist_games = stats.get("wishlist_games", 0)
+                average_rating = stats.get("average_rating", 0)
+                total_value = stats.get("total_value", 0)
+                total_hours = stats.get("total_hours", 0)
+
+                print()
+                cprint("   📊 Collection Statistics:", "cyan", attrs=["bold"])
+                cprint(f"      📚 Total Games: {total_games}", "white")
+                cprint(f"      📦 Owned: {owned_games}", "white")
+                cprint(f"      ❤️ Wishlist: {wishlist_games}", "white")
+                if average_rating > 0:
+                    cprint(f"      ⭐ Average Rating: {average_rating:.1f}/10", "white")
+                if total_value > 0:
+                    cprint(f"      💰 Total Value: ${total_value:.2f}", "white")
+                if total_hours > 0:
+                    cprint(f"      🕒 Total Hours: {total_hours:.1f}", "white")
+
+                # Display insights
+                most_played_platform = insights.get("most_played_platform", "None")
+                completion_rate = insights.get("completion_rate", 0)
+                avg_hours_game = insights.get("average_hours_per_game", 0)
+
+                if most_played_platform != "None":
+                    cprint(
+                        f"      🎮 Favorite Platform: {most_played_platform}", "white"
+                    )
+                if completion_rate > 0:
+                    cprint(f"      ✅ Completion Rate: {completion_rate:.1f}%", "white")
+                if avg_hours_game > 0:
+                    cprint(f"      ⏱️ Avg Hours/Game: {avg_hours_game:.1f}", "white")
+
+                # Display games
+                if games:
+                    print()
+                    cprint("   🎮 Games:", "cyan", attrs=["bold"])
+
+                    for i, game in enumerate(games[:20], 1):  # Show max 20 games
+                        title = game.get("title", "Unknown")
+                        status = game.get("status", "unknown")
+                        platform = game.get("platform", "Unknown")
+                        rating = game.get("user_rating")
+                        hours = game.get("hours_played")
+
+                        # Status emoji
+                        status_emoji = {
+                            "owned": "📦",
+                            "wishlist": "❤️",
+                            "completed": "✅",
+                            "playing": "🎮",
+                            "dropped": "⏸️",
+                            "not_interested": "👎",
+                        }.get(status, "❓")
+
+                        # Build game line
+                        game_line = f"      {i:2d}. {status_emoji} {title}"
+                        if platform != "Unknown":
+                            game_line += f" ({platform})"
+
+                        cprint(game_line, "white")
+
+                        # Add rating and hours if available
+                        details = []
+                        if rating:
+                            details.append(f"⭐{rating}/10")
+                        if hours and hours > 0:
+                            details.append(f"🕒{hours}h")
+
+                        if details:
+                            cprint(f"          {' | '.join(details)}", "yellow")
+
+                    if len(games) > 20:
+                        remaining = len(games) - 20
+                        cprint(f"      ... and {remaining} more games", "yellow")
+                else:
+                    cprint("      No games found in this collection", "yellow")
+
+            else:
+                error_msg = result.get("error", "Unknown error")
+                self.print_status(f"❌ Failed to get collection: {error_msg}", "error")
+
+        except Exception as e:
+            self.print_status(f"❌ Collection view error: {str(e)}", "error")
+
+    def check_game_ownership_interactive(self):
+        """Interactive game ownership checking."""
+        self.print_section("🔍 Check Game Ownership", "highlight")
+
+        # Get game title
+        title = input(
+            colored("🎮 Enter game title to check: ", "cyan", attrs=["bold"])
+        ).strip()
+        if not title:
+            self.print_status("Game title cannot be empty", "error")
+            return
+
+        try:
+            result = check_if_game_owned(title)
+
+            if result.get("success", False):
+                owned = result.get("owned", False)
+
+                if owned:
+                    self.print_status(
+                        f"✅ You own '{title}' in your collection!", "success"
+                    )
+
+                    # Show game details
+                    game_details = result.get("game_details", {})
+                    status = game_details.get("status", "unknown")
+                    platform = game_details.get("platform", "Unknown")
+                    rating = game_details.get("user_rating")
+                    hours = game_details.get("hours_played")
+                    date_added = game_details.get("date_added", "Unknown")
+                    notes = game_details.get("notes", "")
+
+                    print()
+                    cprint("   📋 Game Details:", "cyan", attrs=["bold"])
+                    cprint(f"      📊 Status: {status}", "white")
+                    cprint(f"      🎮 Platform: {platform}", "white")
+                    if rating:
+                        cprint(f"      ⭐ Your Rating: {rating}/10", "white")
+                    if hours and hours > 0:
+                        cprint(f"      🕒 Hours Played: {hours}", "white")
+                    cprint(f"      📅 Added: {date_added}", "white")
+                    if notes:
+                        cprint(f"      📝 Notes: {notes}", "white")
+                else:
+                    self.print_status(
+                        f"❌ '{title}' not found in your collection", "warning"
+                    )
+                    suggestion = result.get("suggestion", "")
+                    if suggestion:
+                        self.print_status(f"💡 {suggestion}", "info")
+
+            else:
+                error_msg = result.get("error", "Unknown error")
+                self.print_status(f"❌ Ownership check failed: {error_msg}", "error")
+
+        except Exception as e:
+            self.print_status(f"❌ Check error: {str(e)}", "error")
+
+    def import_steam_library_interactive(self) -> bool:
+        """Interactive Steam library import."""
+        self.print_section("🔗 Import Steam Library", "highlight")
+
+        self.print_status("To import your Steam library, you need:", "info")
+        self.print_status("   1. Your Steam ID (17-digit number)", "info")
+        self.print_status(
+            "   2. Steam Web API Key (get from: https://steamcommunity.com/dev/apikey)",
+            "info",
+        )
+        print()
+
+        # Get Steam ID
+        steam_id = input(
+            colored("🆔 Enter your Steam ID: ", "cyan", attrs=["bold"])
+        ).strip()
+        if not steam_id:
+            self.print_status("Steam ID cannot be empty", "error")
+            return False
+
+        # Get API Key
+        api_key = input(
+            colored("🔑 Enter your Steam API Key: ", "yellow", attrs=["bold"])
+        ).strip()
+        if not api_key:
+            self.print_status("API Key cannot be empty", "error")
+            return False
+
+        # Confirm import
+        confirm = self.get_user_choice(
+            "Ready to import your Steam library?",
+            [
+                "✅ Yes, import now",
+                "🔙 Cancel import",
+            ],
+        )
+
+        if not confirm or "Cancel" in confirm:
+            self.print_status("Import cancelled", "info")
+            return False
+
+        # Show progress
+        self.print_status("🔗 Importing Steam library...", "loading")
+
+        try:
+            result = import_steam_library(steam_id, api_key)
+
+            if result.get("success", False):
+                import_results = result.get("import_results", {})
+                games_imported = import_results.get("games_imported", 0)
+                import_date = import_results.get("import_date", "Unknown")
+                recent_games = import_results.get("recent_games", [])
+
+                self.print_status(
+                    f"✅ Successfully imported {games_imported} games from Steam!",
+                    "success",
+                )
+                self.print_status(f"📅 Import completed: {import_date}", "info")
+
+                # Show collection changes
+                changes = result.get("collection_changes", {})
+                games_added = changes.get("games_added", 0)
+                total_after = changes.get("after", {}).get("total_games", 0)
+
+                self.print_status(
+                    f"📚 Collection updated: {games_added} new games added (total: {total_after})",
+                    "info",
+                )
+
+                # Show recent imports
+                if recent_games:
+                    print()
+                    cprint("   🎮 Recently Imported Games:", "cyan", attrs=["bold"])
+                    for game in recent_games[:5]:
+                        title = game.get("title", "Unknown")
+                        hours = game.get("hours_played", 0)
+                        cprint(f"      • {title} ({hours} hours)", "white")
+
+                    if len(recent_games) > 5:
+                        remaining = len(recent_games) - 5
+                        cprint(f"      ... and {remaining} more games", "yellow")
+
+                # Show next steps
+                next_steps = result.get("next_steps", [])
+                if next_steps:
+                    print()
+                    cprint("   💡 Next Steps:", "yellow", attrs=["bold"])
+                    for step in next_steps:
+                        cprint(f"      • {step}", "white")
+
+                return True
+            else:
+                error_msg = result.get("error", "Unknown error")
+                self.print_status(f"❌ Steam import failed: {error_msg}", "error")
+
+                # Show provided inputs for debugging
+                provided_steam_id = result.get("steam_id", "")
+                if provided_steam_id:
+                    self.print_status(
+                        f"   Steam ID provided: {provided_steam_id}", "info"
+                    )
+
+                return False
+
+        except Exception as e:
+            self.print_status(f"❌ Import error: {str(e)}", "error")
+            return False
+
+    def import_csv_collection_interactive(self) -> bool:
+        """Interactive CSV collection import."""
+        self.print_section("📁 Import Collection from CSV", "highlight")
+
+        self.print_status("CSV file should contain these columns:", "info")
+        self.print_status(
+            "   title, status, platform, user_rating, hours_played, notes, tags", "info"
+        )
+        print()
+        self.print_status("Example row:", "info")
+        self.print_status(
+            "   Hollow Knight,owned,Nintendo Switch,9.5,47,Amazing metroidvania,indie;metroidvania",
+            "white",
+        )
+        print()
+
+        # Get CSV file path
+        csv_path = input(
+            colored("📁 Enter CSV file path: ", "cyan", attrs=["bold"])
+        ).strip()
+        if not csv_path:
+            self.print_status("File path cannot be empty", "error")
+            return False
+
+        # Confirm import
+        confirm = self.get_user_choice(
+            f"Ready to import from '{csv_path}'?",
+            [
+                "✅ Yes, import now",
+                "🔙 Cancel import",
+            ],
+        )
+
+        if not confirm or "Cancel" in confirm:
+            self.print_status("Import cancelled", "info")
+            return False
+
+        # Show progress
+        self.print_status("📁 Importing from CSV file...", "loading")
+
+        try:
+            result = import_collection_from_csv(csv_path)
+
+            if result.get("success", False):
+                import_results = result.get("import_results", {})
+                games_imported = import_results.get("games_imported", 0)
+                import_date = import_results.get("import_date", "Unknown")
+
+                self.print_status(
+                    f"✅ Successfully imported {games_imported} games from CSV!",
+                    "success",
+                )
+                self.print_status(f"📅 Import completed: {import_date}", "info")
+
+                # Show collection changes
+                changes = result.get("collection_changes", {})
+                games_added = changes.get("games_added", 0)
+                total_after = changes.get("after", {}).get("total_games", 0)
+
+                self.print_status(
+                    f"📚 Collection updated: {games_added} new games added (total: {total_after})",
+                    "info",
+                )
+
+                # Show CSV format example
+                csv_example = result.get("csv_format_example", {})
+                headers = csv_example.get("headers", [])
+                if headers:
+                    print()
+                    cprint("   📋 CSV Format Reference:", "yellow", attrs=["bold"])
+                    cprint(f"      Headers: {', '.join(headers)}", "white")
+
+                return True
+            else:
+                error_msg = result.get("error", "Unknown error")
+                self.print_status(f"❌ CSV import failed: {error_msg}", "error")
+
+                csv_file = result.get("csv_file", "")
+                if csv_file:
+                    self.print_status(f"   File: {csv_file}", "info")
+
+                return False
+
+        except Exception as e:
+            self.print_status(f"❌ Import error: {str(e)}", "error")
+            return False
+
+    def export_csv_collection_interactive(self) -> bool:
+        """Interactive CSV collection export."""
+        self.print_section("💾 Export Collection to CSV", "highlight")
+
+        # Get export file path
+        csv_path = input(
+            colored("💾 Enter CSV file path to save: ", "cyan", attrs=["bold"])
+        ).strip()
+        if not csv_path:
+            self.print_status("File path cannot be empty", "error")
+            return False
+
+        # Ensure .csv extension
+        if not csv_path.endswith(".csv"):
+            csv_path += ".csv"
+
+        # Get filter options
+        filter_choice = self.get_user_choice(
+            "Export options:",
+            [
+                "📚 Export all games",
+                "📦 Export owned games only",
+                "❤️ Export wishlist only",
+                "✅ Export completed games only",
+                "🎮 Export currently playing only",
+            ],
+        )
+
+        if not filter_choice:
+            return False
+
+        # Extract filter value
+        filter_map = {
+            "Export all games": None,
+            "Export owned games only": "owned",
+            "Export wishlist only": "wishlist",
+            "Export completed games only": "completed",
+            "Export currently playing only": "playing",
+        }
+
+        status_filter = next(
+            (v for k, v in filter_map.items() if k in filter_choice), None
+        )
+
+        # Confirm export
+        filter_text = (
+            f" ({filter_choice.replace('Export ', '').replace(' only', '')})"
+            if status_filter
+            else ""
+        )
+        confirm = self.get_user_choice(
+            f"Ready to export{filter_text} to '{csv_path}'?",
+            [
+                "✅ Yes, export now",
+                "🔙 Cancel export",
+            ],
+        )
+
+        if not confirm or "Cancel" in confirm:
+            self.print_status("Export cancelled", "info")
+            return False
+
+        # Show progress
+        self.print_status("💾 Exporting collection to CSV...", "loading")
+
+        try:
+            result = export_collection_to_csv(csv_path, status_filter)  # type: ignore
+
+            if result.get("success", False):
+                export_results = result.get("export_results", {})
+                games_exported = export_results.get("games_exported", 0)
+                export_date = export_results.get("export_date", "Unknown")
+                csv_file = export_results.get("csv_file", csv_path)
+
+                self.print_status(
+                    f"✅ Successfully exported {games_exported} games to CSV!",
+                    "success",
+                )
+                self.print_status(f"📁 File saved: {csv_file}", "info")
+                self.print_status(f"📅 Export completed: {export_date}", "info")
+
+                # Show file info
+                file_info = result.get("file_info", {})
+                format_type = file_info.get("format", "CSV")
+                encoding = file_info.get("encoding", "UTF-8")
+                columns = file_info.get("columns", [])
+
+                print()
+                cprint("   📋 File Information:", "cyan", attrs=["bold"])
+                cprint(f"      Format: {format_type}", "white")
+                cprint(f"      Encoding: {encoding}", "white")
+                if columns:
+                    cprint(
+                        f"      Columns: {', '.join(columns[:5])}{'...' if len(columns) > 5 else ''}",
+                        "white",
+                    )
+
+                return True
+            else:
+                error_msg = result.get("error", "Unknown error")
+                self.print_status(f"❌ CSV export failed: {error_msg}", "error")
+
+                csv_file = result.get("csv_file", "")
+                if csv_file:
+                    self.print_status(f"   File: {csv_file}", "info")
+
+                return False
+
+        except Exception as e:
+            self.print_status(f"❌ Export error: {str(e)}", "error")
+            return False
+
+    def view_recommendation_filter_interactive(self):
+        """Display recommendation filtering information."""
+        self.print_section("🎯 Recommendation Filter", "highlight")
+
+        try:
+            result = get_collection_recommendations_filter()
+
+            if result.get("success", False):
+                filter_data = result.get("filter_data", {})
+                exclude_games = filter_data.get("exclude_from_recommendations", [])
+                total_owned = filter_data.get("total_owned_games", 0)
+                filtering_active = filter_data.get("filtering_active", False)
+
+                collection_context = result.get("collection_context", {})
+                total_games = collection_context.get("total_games", 0)
+                owned_games = collection_context.get("owned_games", 0)
+                completion_rate = collection_context.get("completion_rate", 0)
+
+                # Display filter status
+                if filtering_active:
+                    self.print_status(
+                        f"🎯 Recommendation filtering is ACTIVE", "success"
+                    )
+                    self.print_status(
+                        f"📦 {total_owned} owned games will be excluded from recommendations",
+                        "info",
+                    )
+                else:
+                    self.print_status(
+                        "🎯 Recommendation filtering is INACTIVE (no owned games)",
+                        "warning",
+                    )
+
+                # Display collection context
+                print()
+                cprint("   📊 Collection Context:", "cyan", attrs=["bold"])
+                cprint(f"      📚 Total Games: {total_games}", "white")
+                cprint(f"      📦 Owned Games: {owned_games}", "white")
+                if completion_rate > 0:
+                    cprint(f"      ✅ Completion Rate: {completion_rate:.1f}%", "white")
+
+                # Show sample excluded games
+                if exclude_games:
+                    print()
+                    cprint(
+                        "   🚫 Games Excluded from Recommendations:",
+                        "yellow",
+                        attrs=["bold"],
+                    )
+
+                    for i, game in enumerate(exclude_games[:10], 1):
+                        title = game.get("title", "Unknown")
+                        rating = game.get("user_rating")
+
+                        game_line = f"      {i:2d}. {title}"
+                        if rating:
+                            game_line += f" (⭐{rating}/10)"
+
+                        cprint(game_line, "white")
+
+                    if len(exclude_games) > 10:
+                        remaining = len(exclude_games) - 10
+                        cprint(f"      ... and {remaining} more games", "yellow")
+
+                # Show usage info
+                usage_info = result.get("usage_info", {})
+                purpose = usage_info.get("purpose", "")
+                benefit = usage_info.get("benefit", "")
+
+                if purpose or benefit:
+                    print()
+                    cprint("   💡 Filter Benefits:", "green", attrs=["bold"])
+                    if purpose:
+                        cprint(f"      🎯 Purpose: {purpose}", "white")
+                    if benefit:
+                        cprint(f"      ✨ Benefit: {benefit}", "white")
+
+            else:
+                error_msg = result.get("error", "Unknown error")
+                self.print_status(f"❌ Failed to get filter info: {error_msg}", "error")
+
+        except Exception as e:
+            self.print_status(f"❌ Filter error: {str(e)}", "error")
 
     # 👨‍👩‍👧‍👦 PHASE 7.1.5: Multi-User System Methods
 
@@ -2078,6 +3116,321 @@ class EnhancedCLI:
         except Exception as e:
             progress.close()
             self.print_status(f"Error in batch random analysis: {str(e)}", "error")
+
+        """Interactive DekuDeals collection import."""
+        self.print_section("🌐 Import DekuDeals Collection", "highlight")
+
+        self.print_status("To import your DekuDeals collection, you need:", "info")
+        self.print_status("   1. Your DekuDeals collection URL", "info")
+        print()
+
+        # Get DekuDeals collection URL
+        collection_url = input(
+            colored("🔗 Enter DekuDeals collection URL: ", "cyan", attrs=["bold"])
+        ).strip()
+        if not collection_url:
+            self.print_status("DekuDeals collection URL cannot be empty", "error")
+            return False
+
+        # Confirm import
+        confirm = self.get_user_choice(
+            "Ready to import your DekuDeals collection?",
+            [
+                "✅ Yes, import now",
+                "🔙 Cancel import",
+            ],
+        )
+
+        if not confirm or "Cancel" in confirm:
+            self.print_status("Import cancelled", "info")
+            return False
+
+        # Show progress
+        self.print_status("🔗 Importing DekuDeals collection...", "loading")
+
+        try:
+
+            if result.get("success", False):
+                import_results = result.get("import_results", {})
+                games_imported = import_results.get("games_imported", 0)
+                import_date = import_results.get("import_date", "Unknown")
+                recent_games = import_results.get("recent_games", [])
+
+                self.print_status(
+                    f"✅ Successfully imported {games_imported} games from DekuDeals!",
+                    "success",
+                )
+                self.print_status(f"📅 Import completed: {import_date}", "info")
+
+                # Show collection changes
+                changes = result.get("collection_changes", {})
+                games_added = changes.get("games_added", 0)
+                total_after = changes.get("after", {}).get("total_games", 0)
+
+                self.print_status(
+                    f"📚 Collection updated: {games_added} new games added (total: {total_after})",
+                    "info",
+                )
+
+                # Show recent imports
+                if recent_games:
+                    print()
+                    cprint("   🎮 Recently Imported Games:", "cyan", attrs=["bold"])
+                    for game in recent_games[:5]:
+                        title = game.get("title", "Unknown")
+                        hours = game.get("hours_played", 0)
+                        cprint(f"      • {title} ({hours} hours)", "white")
+
+                    if len(recent_games) > 5:
+                        remaining = len(recent_games) - 5
+                        cprint(f"      ... and {remaining} more games", "yellow")
+
+                # Show next steps
+                next_steps = result.get("next_steps", [])
+                if next_steps:
+                    print()
+                    cprint("   💡 Next Steps:", "yellow", attrs=["bold"])
+                    for step in next_steps:
+                        cprint(f"      • {step}", "white")
+
+                return True
+            else:
+                error_msg = result.get("error", "Unknown error")
+                self.print_status(f"❌ DekuDeals import failed: {error_msg}", "error")
+
+                # Show provided inputs for debugging
+                provided_collection_url = result.get("collection_url", "")
+                if provided_collection_url:
+                    self.print_status(
+                        f"   DekuDeals collection URL provided: {provided_collection_url}",
+                        "info",
+                    )
+
+                return False
+
+        except Exception as e:
+            self.print_status(f"❌ Import error: {str(e)}", "error")
+            return False
+
+    def import_dekudeals_collection_interactive(self) -> bool:
+        """Interactive DekuDeals collection import using manual game list input."""
+        self.print_section("🌐 Import DekuDeals Collection", "highlight")
+
+        self.print_status("To import from DekuDeals, you can:", "info")
+        self.print_status("   1. Visit your DekuDeals collection page", "info")
+        self.print_status("   2. Copy game titles from your collection", "info")
+        self.print_status("   3. Paste them here (one per line)", "info")
+        print()
+
+        method = self.get_user_choice(
+            "Choose import method:",
+            [
+                "📝 Manual game list (paste titles)",
+                "🌐 Collection URL (experimental)",
+                "🔙 Cancel import",
+            ],
+        )
+
+        if not method or "Cancel" in method:
+            return False
+
+        if "Manual game list" in method:
+            return self._import_dekudeals_manual_list()
+        elif "Collection URL" in method:
+            return self._import_dekudeals_url()
+
+        return False
+
+    def _import_dekudeals_manual_list(self) -> bool:
+        """Import games from manually pasted list."""
+        self.print_status(
+            "Enter game titles (one per line, empty line to finish):", "info"
+        )
+        print()
+
+        games_list = []
+        line_count = 0
+
+        while True:
+            line_count += 1
+            try:
+                game_title = input(f"{line_count:2d}. ").strip()
+
+                if not game_title:  # Empty line - finish input
+                    break
+
+                games_list.append(game_title)
+
+                if len(games_list) >= 50:  # Practical limit
+                    self.print_status("Maximum 50 games reached", "warning")
+                    break
+
+            except KeyboardInterrupt:
+                print()
+                self.print_status("Import cancelled by user", "info")
+                return False
+
+        if not games_list:
+            self.print_status("No games entered", "warning")
+            return False
+
+        # Get import status
+        status = self.get_user_choice(
+            f"Import {len(games_list)} games as:",
+            [
+                "❤️ Wishlist (want to buy)",
+                "📦 Owned (already own)",
+                "✅ Completed (finished)",
+                "🎮 Playing (currently playing)",
+            ],
+        )
+
+        if not status:
+            return False
+
+        # Extract status value
+        status_map = {
+            "Wishlist": "wishlist",
+            "Owned": "owned",
+            "Completed": "completed",
+            "Playing": "playing",
+        }
+
+        import_status = next(
+            (v for k, v in status_map.items() if k in status), "wishlist"
+        )
+
+        # Confirm import
+        confirm = self.get_user_choice(
+            f"Import {len(games_list)} games as '{import_status}'?",
+            [
+                "✅ Yes, import now",
+                "📋 Show games first",
+                "🔙 Cancel import",
+            ],
+        )
+
+        if "Show games first" in confirm:
+            print()
+            cprint("   📋 Games to import:", "cyan", attrs=["bold"])
+            for i, title in enumerate(games_list[:20], 1):
+                cprint(f"      {i:2d}. {title}", "white")
+
+            if len(games_list) > 20:
+                remaining = len(games_list) - 20
+                cprint(f"      ... and {remaining} more games", "yellow")
+
+            confirm = self.get_user_choice(
+                "Proceed with import?",
+                ["✅ Yes, import now", "🔙 Cancel import"],
+            )
+
+        if not confirm or "Cancel" in confirm:
+            self.print_status("Import cancelled", "info")
+            return False
+
+        # Import games
+        self.print_status(f"🔄 Importing {len(games_list)} games...", "loading")
+
+        imported_count = 0
+        skipped_count = 0
+        failed_count = 0
+
+        try:
+            for i, title in enumerate(games_list, 1):
+                try:
+                    result = add_game_to_collection(
+                        title=title,
+                        status=import_status,
+                        notes=f"Imported from DekuDeals collection",
+                    )
+
+                    if result.get("success", False):
+                        imported_count += 1
+                        print(f"✅ {i:2d}/{len(games_list)}: {title}")
+                    else:
+                        error = result.get("error", "Unknown error")
+                        if "already exists" in error:
+                            skipped_count += 1
+                            print(
+                                f"⏭️ {i:2d}/{len(games_list)}: {title} (already in collection)"
+                            )
+                        else:
+                            failed_count += 1
+                            print(f"❌ {i:2d}/{len(games_list)}: {title} - {error}")
+
+                except Exception as e:
+                    failed_count += 1
+                    print(f"❌ {i:2d}/{len(games_list)}: {title} - Error: {str(e)}")
+
+            # Summary
+            print()
+            self.print_status(f"✅ Import completed!", "success")
+            self.print_status(f"   📦 Imported: {imported_count} games", "info")
+            if skipped_count > 0:
+                self.print_status(
+                    f"   ⏭️ Skipped (already owned): {skipped_count} games", "info"
+                )
+            if failed_count > 0:
+                self.print_status(f"   ❌ Failed: {failed_count} games", "warning")
+
+            # Show updated collection stats
+            if imported_count > 0:
+                try:
+                    collection_result = get_user_game_collection(limit=1)
+                    if collection_result.get("success", False):
+                        stats = collection_result.get("statistics", {})
+                        total_games = stats.get("total_games", 0)
+                        status_games = stats.get(f"{import_status}_games", 0)
+
+                        self.print_status(
+                            f"📚 Collection updated: {total_games} total games ({status_games} {import_status})",
+                            "info",
+                        )
+                except:
+                    pass
+
+            return imported_count > 0
+
+        except Exception as e:
+            self.print_status(f"❌ Import error: {str(e)}", "error")
+            return False
+
+    def _import_dekudeals_url(self) -> bool:
+        """Import games from DekuDeals collection URL (experimental)."""
+        self.print_status(
+            "⚠️ This feature is experimental and may not work reliably", "warning"
+        )
+        self.print_status("For best results, use the manual game list method", "info")
+        print()
+
+        # Get collection URL
+        collection_url = input(
+            colored("🔗 Enter DekuDeals collection URL: ", "cyan", attrs=["bold"])
+        ).strip()
+
+        if not collection_url:
+            self.print_status("URL cannot be empty", "error")
+            return False
+
+        # Basic URL validation
+        if "dekudeals.com/collection/" not in collection_url:
+            self.print_status("Invalid DekuDeals collection URL format", "error")
+            self.print_status(
+                "Expected format: https://www.dekudeals.com/collection/{id}", "info"
+            )
+            return False
+
+        self.print_status("🔄 Attempting to parse collection URL...", "loading")
+
+        # For now, redirect to manual method with instructions
+        self.print_status("❌ Automatic URL parsing is not yet implemented", "error")
+        self.print_status("Please use the manual method instead:", "info")
+        self.print_status("   1. Open your DekuDeals collection in browser", "info")
+        self.print_status("   2. Copy game titles from the page", "info")
+        self.print_status("   3. Use 'Manual game list' import option", "info")
+
+        return False
 
 
 def main():

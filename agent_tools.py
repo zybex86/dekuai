@@ -5626,3 +5626,1108 @@ def get_user_ml_profiles_integration() -> Dict:
                 "personalization": "❌ Unavailable",
             },
         }
+
+
+@register_for_llm(
+    description="Import games from Steam library to current user's collection - Input: steam_id (str), api_key (str) - Output: Dict with import results"
+)
+@register_for_execution()
+def import_steam_library(steam_id: str, api_key: str) -> Dict:
+    """
+    Import games from Steam library to current user's collection.
+
+    Automatically imports owned Steam games with playtime data.
+    Integrates with Multi-User system for personalized imports.
+
+    Args:
+        steam_id (str): Steam user ID (17-digit number)
+        api_key (str): Steam Web API key
+
+    Returns:
+        Dict with import results, statistics, and imported games info
+    """
+    try:
+        from utils.game_collection_manager import get_game_collection_manager
+        from utils.user_management import get_current_user_info
+
+        # Get current user info
+        user_info = get_current_user_info()
+        current_user = user_info.get("current_user", {})
+        username = current_user.get("username", "Unknown User")
+
+        # Get collection manager
+        collection_manager = get_game_collection_manager()
+
+        # Validate inputs
+        if not steam_id or not steam_id.isdigit() or len(steam_id) != 17:
+            return {
+                "success": False,
+                "error": "Invalid Steam ID. Must be a 17-digit number",
+                "example": "76561198000000000",
+                "provided": steam_id,
+            }
+
+        if not api_key or len(api_key) < 20:
+            return {
+                "success": False,
+                "error": "Invalid Steam API key. Get one from https://steamcommunity.com/dev/apikey",
+                "provided_length": len(api_key) if api_key else 0,
+            }
+
+        # Get collection stats before import
+        stats_before = collection_manager.get_collection_stats()
+
+        # Import from Steam
+        success, message, imported_count = collection_manager.import_from_steam(
+            steam_id, api_key
+        )
+
+        if not success:
+            return {
+                "success": False,
+                "error": message,
+                "steam_id": steam_id,
+                "user": username,
+            }
+
+        # Get updated stats
+        stats_after = collection_manager.get_collection_stats()
+
+        # Get newly imported games (Steam platform)
+        imported_games = []
+        for game in collection_manager.get_collection():
+            if game.import_source.value == "steam":
+                imported_games.append(
+                    {
+                        "title": game.title,
+                        "hours_played": game.hours_played,
+                        "steam_id": game.steam_id,
+                        "date_added": game.date_added.strftime("%Y-%m-%d"),
+                    }
+                )
+
+        # Limit to recent imports for display
+        recent_imports = imported_games[-min(10, len(imported_games)) :]
+
+        return {
+            "success": True,
+            "message": f"✅ {message} for {username}",
+            "import_results": {
+                "games_imported": imported_count,
+                "steam_id": steam_id,
+                "import_date": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "recent_games": recent_imports,
+            },
+            "collection_changes": {
+                "before": {
+                    "total_games": stats_before.total_games,
+                    "owned_games": stats_before.owned_games,
+                },
+                "after": {
+                    "total_games": stats_after.total_games,
+                    "owned_games": stats_after.owned_games,
+                },
+                "games_added": stats_after.total_games - stats_before.total_games,
+            },
+            "user_context": {
+                "username": username,
+                "user_id": current_user.get("user_id", "unknown"),
+            },
+            "next_steps": [
+                "Review imported games in your collection",
+                "Add personal ratings for your favorite games",
+                "Update game statuses (completed, playing, etc.)",
+                "Add personal notes and tags",
+            ],
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Steam import error: {str(e)}",
+            "action": "import_steam_library",
+            "steam_id": steam_id,
+        }
+
+
+def import_collection_from_csv(csv_file_path: str) -> Dict:
+    """
+    Import games from CSV file to current user's collection.
+
+    Supports bulk import of game libraries from CSV files.
+    Expected CSV format: title, status, platform, user_rating, hours_played, notes, tags
+
+    Args:
+        csv_file_path (str): Path to CSV file with game collection data
+
+    Returns:
+        Dict with import results and statistics
+    """
+    try:
+        from utils.game_collection_manager import get_game_collection_manager
+        from utils.user_management import get_current_user_info
+
+        # Get current user info
+        user_info = get_current_user_info()
+        current_user = user_info.get("current_user", {})
+        username = current_user.get("username", "Unknown User")
+
+        # Get collection manager
+        collection_manager = get_game_collection_manager()
+
+        # Validate file path
+        if not csv_file_path or not csv_file_path.endswith(".csv"):
+            return {
+                "success": False,
+                "error": "Invalid CSV file path. Must end with .csv",
+                "provided": csv_file_path,
+            }
+
+        # Get collection stats before import
+        stats_before = collection_manager.get_collection_stats()
+
+        # Import from CSV
+        success, message, imported_count = collection_manager.import_from_csv(
+            csv_file_path
+        )
+
+        if not success:
+            return {
+                "success": False,
+                "error": message,
+                "csv_file": csv_file_path,
+                "user": username,
+            }
+
+        # Get updated stats
+        stats_after = collection_manager.get_collection_stats()
+
+        return {
+            "success": True,
+            "message": f"✅ {message} for {username}",
+            "import_results": {
+                "games_imported": imported_count,
+                "csv_file": csv_file_path,
+                "import_date": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            },
+            "collection_changes": {
+                "before": {
+                    "total_games": stats_before.total_games,
+                    "owned_games": stats_before.owned_games,
+                },
+                "after": {
+                    "total_games": stats_after.total_games,
+                    "owned_games": stats_after.owned_games,
+                },
+                "games_added": stats_after.total_games - stats_before.total_games,
+            },
+            "user_context": {
+                "username": username,
+                "user_id": current_user.get("user_id", "unknown"),
+            },
+            "csv_format_example": {
+                "headers": [
+                    "title",
+                    "status",
+                    "platform",
+                    "user_rating",
+                    "hours_played",
+                    "notes",
+                    "tags",
+                ],
+                "example_row": [
+                    "Hollow Knight",
+                    "owned",
+                    "Nintendo Switch",
+                    "9.5",
+                    "47",
+                    "Amazing metroidvania",
+                    "indie,metroidvania",
+                ],
+            },
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"CSV import error: {str(e)}",
+            "action": "import_collection_from_csv",
+            "csv_file": csv_file_path,
+        }
+
+
+def export_collection_to_csv(csv_file_path: str, status_filter: str = None) -> Dict:
+    """
+    Export current user's game collection to CSV file.
+
+    Creates backup of personal game library in CSV format.
+
+    Args:
+        csv_file_path (str): Path where CSV file will be saved
+        status_filter (str, optional): Export only games with specific status
+
+    Returns:
+        Dict with export results and file info
+    """
+    try:
+        from utils.game_collection_manager import (
+            get_game_collection_manager,
+            GameStatus,
+        )
+        from utils.user_management import get_current_user_info
+
+        # Get current user info
+        user_info = get_current_user_info()
+        current_user = user_info.get("current_user", {})
+        username = current_user.get("username", "Unknown User")
+
+        # Get collection manager
+        collection_manager = get_game_collection_manager()
+
+        # Validate file path
+        if not csv_file_path or not csv_file_path.endswith(".csv"):
+            return {
+                "success": False,
+                "error": "Invalid CSV file path. Must end with .csv",
+                "provided": csv_file_path,
+            }
+
+        # Parse status filter
+        status_enum = None
+        if status_filter:
+            try:
+                status_enum = GameStatus(status_filter.lower())
+            except ValueError:
+                return {
+                    "success": False,
+                    "error": f"Invalid status filter '{status_filter}'",
+                    "valid_statuses": [
+                        "owned",
+                        "wishlist",
+                        "not_interested",
+                        "completed",
+                        "playing",
+                        "dropped",
+                    ],
+                }
+
+        # Export to CSV
+        success, message = collection_manager.export_to_csv(csv_file_path, status_enum)
+
+        if not success:
+            return {
+                "success": False,
+                "error": message,
+                "csv_file": csv_file_path,
+                "user": username,
+            }
+
+        # Get collection stats
+        stats = collection_manager.get_collection_stats()
+        games_exported = len(collection_manager.get_collection(status_enum))
+
+        return {
+            "success": True,
+            "message": f"✅ {message} for {username}",
+            "export_results": {
+                "games_exported": games_exported,
+                "csv_file": csv_file_path,
+                "export_date": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "status_filter": status_filter,
+            },
+            "collection_stats": {
+                "total_games": stats.total_games,
+                "owned_games": stats.owned_games,
+                "wishlist_games": stats.wishlist_games,
+                "average_rating": stats.average_rating,
+            },
+            "user_context": {
+                "username": username,
+                "user_id": current_user.get("user_id", "unknown"),
+            },
+            "file_info": {
+                "format": "CSV",
+                "encoding": "UTF-8",
+                "columns": [
+                    "title",
+                    "status",
+                    "platform",
+                    "user_rating",
+                    "hours_played",
+                    "purchase_price",
+                    "current_price",
+                    "notes",
+                    "tags",
+                    "date_added",
+                    "import_source",
+                ],
+            },
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"CSV export error: {str(e)}",
+            "action": "export_collection_to_csv",
+            "csv_file": csv_file_path,
+        }
+
+
+def check_if_game_owned(title: str) -> Dict:
+    """
+    Check if current user owns a specific game in their collection.
+
+    Quick lookup to determine game ownership status for recommendation filtering.
+
+    Args:
+        title (str): Game title to check
+
+    Returns:
+        Dict with ownership status and game details if found
+    """
+    try:
+        from utils.game_collection_manager import get_game_collection_manager
+        from utils.user_management import get_current_user_info
+
+        # Get current user info
+        user_info = get_current_user_info()
+        current_user = user_info.get("current_user", {})
+        username = current_user.get("username", "Unknown User")
+
+        # Get collection manager
+        collection_manager = get_game_collection_manager()
+
+        # Check if game exists in collection
+        game = collection_manager.get_game(title)
+
+        if game:
+            return {
+                "success": True,
+                "owned": True,
+                "game_found": True,
+                "game_details": {
+                    "title": game.title,
+                    "status": game.status.value,
+                    "platform": game.platform,
+                    "user_rating": game.user_rating,
+                    "hours_played": game.hours_played,
+                    "date_added": game.date_added.strftime("%Y-%m-%d"),
+                    "notes": game.notes,
+                },
+                "user_context": {
+                    "username": username,
+                    "user_id": current_user.get("user_id", "unknown"),
+                },
+            }
+        else:
+            return {
+                "success": True,
+                "owned": False,
+                "game_found": False,
+                "message": f"'{title}' not found in {username}'s collection",
+                "suggestion": "This game could be added to your collection or recommended for purchase",
+                "user_context": {
+                    "username": username,
+                    "user_id": current_user.get("user_id", "unknown"),
+                },
+            }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Ownership check error: {str(e)}",
+            "action": "check_if_game_owned",
+            "game": title,
+        }
+
+
+def get_collection_recommendations_filter() -> Dict:
+    """
+    Get list of owned games to exclude from recommendations.
+
+    Provides collection-aware recommendation filtering to avoid suggesting owned games.
+
+    Returns:
+        Dict with owned games list and filtering info
+    """
+    try:
+        from utils.game_collection_manager import (
+            get_game_collection_manager,
+            GameStatus,
+        )
+        from utils.user_management import get_current_user_info
+
+        # Get current user info
+        user_info = get_current_user_info()
+        current_user = user_info.get("current_user", {})
+        username = current_user.get("username", "Unknown User")
+
+        # Get collection manager
+        collection_manager = get_game_collection_manager()
+
+        # Get owned games
+        owned_games = collection_manager.get_collection(GameStatus.OWNED)
+
+        # Get games that should be excluded from recommendations
+        exclude_from_recommendations = []
+        for game in owned_games:
+            exclude_from_recommendations.append(
+                {
+                    "title": game.title,
+                    "status": game.status.value,
+                    "user_rating": game.user_rating,
+                    "normalized_title": collection_manager._normalize_title(game.title),
+                }
+            )
+
+        # Get collection stats
+        stats = collection_manager.get_collection_stats()
+
+        return {
+            "success": True,
+            "message": f"Generated recommendation filter for {username}",
+            "filter_data": {
+                "exclude_from_recommendations": exclude_from_recommendations,
+                "total_owned_games": len(owned_games),
+                "filtering_active": len(owned_games) > 0,
+            },
+            "collection_context": {
+                "total_games": stats.total_games,
+                "owned_games": stats.owned_games,
+                "wishlist_games": stats.wishlist_games,
+                "completion_rate": (
+                    round((stats.completed_games / stats.total_games * 100), 1)
+                    if stats.total_games > 0
+                    else 0
+                ),
+            },
+            "user_context": {
+                "username": username,
+                "user_id": current_user.get("user_id", "unknown"),
+            },
+            "usage_info": {
+                "purpose": "Filter out owned games from recommendations",
+                "integration": "Use with recommendation engine to avoid suggesting owned games",
+                "benefit": "Personalized recommendations excluding user's existing library",
+            },
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Filter generation error: {str(e)}",
+            "action": "get_collection_recommendations_filter",
+        }
+
+
+@register_for_llm(
+    description="Add a game to current user's personal collection - Input: title (str), status (str, optional), user_rating (float, optional), notes (str, optional) - Output: Dict with success status"
+)
+@register_for_execution()
+def add_game_to_collection(
+    title: str, status: str = "owned", user_rating: float = None, notes: str = ""
+) -> Dict:
+    """
+    Add a game to current user's personal collection.
+
+    Allows users to build their personal game library with ownership status tracking.
+    Integrates with Multi-User system for personalized collections.
+
+    Args:
+        title (str): Game title to add to collection
+        status (str): Game status - "owned", "wishlist", "not_interested", "completed", "playing", "dropped"
+        user_rating (float, optional): Personal rating 1-10 scale
+        notes (str, optional): Personal notes about the game
+
+    Returns:
+        Dict with success status, message, and collection info
+    """
+    try:
+        from utils.game_collection_manager import (
+            get_game_collection_manager,
+            GameStatus,
+        )
+        from utils.user_management import get_current_user_info
+
+        # Get current user info
+        user_info = get_current_user_info()
+        current_user = user_info.get("current_user", {})
+        username = current_user.get("username", "Unknown User")
+
+        # Get collection manager
+        collection_manager = get_game_collection_manager()
+
+        # Validate status
+        try:
+            game_status = GameStatus(status.lower())
+        except ValueError:
+            return {
+                "success": False,
+                "error": f"Invalid status '{status}'. Valid options: owned, wishlist, not_interested, completed, playing, dropped",
+                "valid_statuses": [
+                    "owned",
+                    "wishlist",
+                    "not_interested",
+                    "completed",
+                    "playing",
+                    "dropped",
+                ],
+            }
+
+        # Validate rating if provided
+        if user_rating is not None:
+            if not isinstance(user_rating, (int, float)) or not (
+                1 <= user_rating <= 10
+            ):
+                return {
+                    "success": False,
+                    "error": "User rating must be a number between 1 and 10",
+                    "provided_rating": user_rating,
+                }
+
+        # Check if game already exists
+        existing_game = collection_manager.get_game(title)
+        if existing_game:
+            return {
+                "success": False,
+                "error": f"Game '{title}' already exists in {username}'s collection",
+                "existing_status": existing_game.status.value,
+                "existing_rating": existing_game.user_rating,
+                "suggestion": f"Use update_game_in_collection() to modify existing entry",
+            }
+
+        # Add game to collection
+        success = collection_manager.add_game(
+            title=title, status=game_status, user_rating=user_rating, notes=notes
+        )
+
+        if not success:
+            return {
+                "success": False,
+                "error": f"Failed to add '{title}' to collection",
+                "user": username,
+            }
+
+        # Get updated stats
+        stats = collection_manager.get_collection_stats()
+
+        return {
+            "success": True,
+            "message": f"✅ Added '{title}' to {username}'s collection",
+            "game_details": {
+                "title": title,
+                "status": status,
+                "user_rating": user_rating,
+                "notes": notes,
+                "date_added": "now",
+            },
+            "collection_stats": {
+                "total_games": stats.total_games,
+                "owned_games": stats.owned_games,
+                "wishlist_games": stats.wishlist_games,
+                "completed_games": stats.completed_games,
+                "average_rating": stats.average_rating,
+            },
+            "user_context": {
+                "username": username,
+                "user_id": current_user.get("user_id", "unknown"),
+            },
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Collection management error: {str(e)}",
+            "action": "add_game_to_collection",
+            "game": title,
+        }
+
+
+@register_for_llm(
+    description="Update an existing game in current user's collection - Input: title (str), **updates - Output: Dict with success status and updated game info"
+)
+@register_for_execution()
+def update_game_in_collection(title: str, **updates) -> Dict:
+    """
+    Update an existing game in current user's collection.
+
+    Allows modification of game status, rating, notes, and other properties.
+
+    Args:
+        title (str): Game title to update
+        **updates: Fields to update (status, user_rating, notes, hours_played, etc.)
+
+    Returns:
+        Dict with success status, message, and updated game info
+    """
+    try:
+        from utils.game_collection_manager import (
+            get_game_collection_manager,
+            GameStatus,
+        )
+        from utils.user_management import get_current_user_info
+
+        # Get current user info
+        user_info = get_current_user_info()
+        current_user = user_info.get("current_user", {})
+        username = current_user.get("username", "Unknown User")
+
+        # Get collection manager
+        collection_manager = get_game_collection_manager()
+
+        # Check if game exists
+        existing_game = collection_manager.get_game(title)
+        if not existing_game:
+            return {
+                "success": False,
+                "error": f"Game '{title}' not found in {username}'s collection",
+                "suggestion": "Use add_game_to_collection() to add new games",
+                "user": username,
+            }
+
+        # Validate updates
+        if "status" in updates:
+            try:
+                GameStatus(updates["status"].lower())
+            except ValueError:
+                return {
+                    "success": False,
+                    "error": f"Invalid status '{updates['status']}'. Valid options: owned, wishlist, not_interested, completed, playing, dropped",
+                }
+
+        if "user_rating" in updates and updates["user_rating"] is not None:
+            rating = updates["user_rating"]
+            if not isinstance(rating, (int, float)) or not (1 <= rating <= 10):
+                return {
+                    "success": False,
+                    "error": "User rating must be a number between 1 and 10",
+                    "provided_rating": rating,
+                }
+
+        # Store original values for comparison
+        original_status = existing_game.status.value
+        original_rating = existing_game.user_rating
+
+        # Update game
+        success = collection_manager.update_game(title, **updates)
+
+        if not success:
+            return {
+                "success": False,
+                "error": f"Failed to update '{title}' in collection",
+                "user": username,
+            }
+
+        # Get updated game
+        updated_game = collection_manager.get_game(title)
+
+        # Get updated stats
+        stats = collection_manager.get_collection_stats()
+
+        return {
+            "success": True,
+            "message": f"✅ Updated '{title}' in {username}'s collection",
+            "changes": {
+                "title": title,
+                "updates_applied": updates,
+                "before": {"status": original_status, "user_rating": original_rating},
+                "after": {
+                    "status": updated_game.status.value,
+                    "user_rating": updated_game.user_rating,
+                    "notes": updated_game.notes,
+                    "last_updated": updated_game.last_updated.isoformat(),
+                },
+            },
+            "collection_stats": {
+                "total_games": stats.total_games,
+                "owned_games": stats.owned_games,
+                "average_rating": stats.average_rating,
+            },
+            "user_context": {
+                "username": username,
+                "user_id": current_user.get("user_id", "unknown"),
+            },
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Collection update error: {str(e)}",
+            "action": "update_game_in_collection",
+            "game": title,
+        }
+
+
+@register_for_llm(
+    description="Remove a game from current user's collection - Input: title (str) - Output: Dict with success status"
+)
+@register_for_execution()
+def remove_game_from_collection(title: str) -> Dict:
+    """
+    Remove a game from current user's collection.
+
+    Permanently deletes game entry from personal library.
+
+    Args:
+        title (str): Game title to remove from collection
+
+    Returns:
+        Dict with success status and collection stats
+    """
+    try:
+        from utils.game_collection_manager import get_game_collection_manager
+        from utils.user_management import get_current_user_info
+
+        # Get current user info
+        user_info = get_current_user_info()
+        current_user = user_info.get("current_user", {})
+        username = current_user.get("username", "Unknown User")
+
+        # Get collection manager
+        collection_manager = get_game_collection_manager()
+
+        # Check if game exists
+        existing_game = collection_manager.get_game(title)
+        if not existing_game:
+            return {
+                "success": False,
+                "error": f"Game '{title}' not found in {username}'s collection",
+                "user": username,
+            }
+
+        # Store game details before removal
+        game_details = {
+            "title": existing_game.title,
+            "status": existing_game.status.value,
+            "user_rating": existing_game.user_rating,
+            "date_added": existing_game.date_added.isoformat(),
+        }
+
+        # Remove game
+        success = collection_manager.remove_game(title)
+
+        if not success:
+            return {
+                "success": False,
+                "error": f"Failed to remove '{title}' from collection",
+                "user": username,
+            }
+
+        # Get updated stats
+        stats = collection_manager.get_collection_stats()
+
+        return {
+            "success": True,
+            "message": f"✅ Removed '{title}' from {username}'s collection",
+            "removed_game": game_details,
+            "collection_stats": {
+                "total_games": stats.total_games,
+                "owned_games": stats.owned_games,
+                "wishlist_games": stats.wishlist_games,
+                "average_rating": stats.average_rating,
+            },
+            "user_context": {
+                "username": username,
+                "user_id": current_user.get("user_id", "unknown"),
+            },
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Collection removal error: {str(e)}",
+            "action": "remove_game_from_collection",
+            "game": title,
+        }
+
+
+@register_for_llm(
+    description="Get current user's game collection with optional filtering - Input: status_filter (str, optional), limit (int, optional) - Output: Dict with collection and statistics"
+)
+@register_for_execution()
+def get_user_game_collection(status_filter: str = None, limit: int = 50) -> Dict:
+    """
+    Get current user's game collection with optional filtering.
+
+    Retrieves personal game library with comprehensive details and statistics.
+
+    Args:
+        status_filter (str, optional): Filter by status - "owned", "wishlist", "completed", etc.
+        limit (int): Maximum number of games to return (default: 50)
+
+    Returns:
+        Dict with collection games, statistics, and user info
+    """
+    try:
+        from utils.game_collection_manager import (
+            get_game_collection_manager,
+            GameStatus,
+        )
+        from utils.user_management import get_current_user_info
+
+        # Get current user info
+        user_info = get_current_user_info()
+        current_user = user_info.get("current_user", {})
+        username = current_user.get("username", "Unknown User")
+
+        # Get collection manager
+        collection_manager = get_game_collection_manager()
+
+        # Parse status filter
+        status_enum = None
+        if status_filter:
+            try:
+                status_enum = GameStatus(status_filter.lower())
+            except ValueError:
+                return {
+                    "success": False,
+                    "error": f"Invalid status filter '{status_filter}'",
+                    "valid_statuses": [
+                        "owned",
+                        "wishlist",
+                        "not_interested",
+                        "completed",
+                        "playing",
+                        "dropped",
+                    ],
+                }
+
+        # Get collection
+        games = collection_manager.get_collection(status_enum)
+
+        # Apply limit
+        if len(games) > limit:
+            games = games[:limit]
+            truncated = True
+        else:
+            truncated = False
+
+        # Format games data
+        games_data = []
+        for game in games:
+            games_data.append(
+                {
+                    "title": game.title,
+                    "status": game.status.value,
+                    "platform": game.platform,
+                    "user_rating": game.user_rating,
+                    "hours_played": game.hours_played,
+                    "purchase_price": game.purchase_price,
+                    "current_price": game.current_price,
+                    "notes": game.notes,
+                    "tags": game.tags,
+                    "import_source": game.import_source.value,
+                    "date_added": game.date_added.strftime("%Y-%m-%d"),
+                    "last_updated": game.last_updated.strftime("%Y-%m-%d"),
+                }
+            )
+
+        # Get collection statistics
+        stats = collection_manager.get_collection_stats()
+
+        return {
+            "success": True,
+            "message": f"Retrieved {len(games_data)} games from {username}'s collection",
+            "collection": {
+                "games": games_data,
+                "total_returned": len(games_data),
+                "truncated": truncated,
+                "filter_applied": status_filter,
+            },
+            "statistics": {
+                "total_games": stats.total_games,
+                "owned_games": stats.owned_games,
+                "wishlist_games": stats.wishlist_games,
+                "completed_games": stats.completed_games,
+                "total_value": round(stats.total_value, 2),
+                "average_rating": stats.average_rating,
+                "total_hours": stats.total_hours,
+                "platforms": stats.platforms,
+                "import_sources": stats.import_sources,
+                "last_updated": stats.last_updated.strftime("%Y-%m-%d %H:%M"),
+            },
+            "user_context": {
+                "username": username,
+                "user_id": current_user.get("user_id", "unknown"),
+                "role": current_user.get("role", "unknown"),
+            },
+            "insights": {
+                "most_played_platform": (
+                    max(stats.platforms.items(), key=lambda x: x[1])[0]
+                    if stats.platforms
+                    else "None"
+                ),
+                "completion_rate": (
+                    round((stats.completed_games / stats.total_games * 100), 1)
+                    if stats.total_games > 0
+                    else 0
+                ),
+                "average_hours_per_game": (
+                    round(stats.total_hours / stats.owned_games, 1)
+                    if stats.owned_games > 0
+                    else 0
+                ),
+            },
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Collection retrieval error: {str(e)}",
+            "action": "get_user_game_collection",
+        }
+
+
+@register_for_llm(
+    description="Check if current user owns a specific game - Input: title (str) - Output: Dict with ownership status"
+)
+@register_for_execution()
+def check_if_game_owned(title: str) -> Dict:
+    """
+    Check if current user owns a specific game in their collection.
+
+    Quick lookup to determine game ownership status for recommendation filtering.
+
+    Args:
+        title (str): Game title to check
+
+    Returns:
+        Dict with ownership status and game details if found
+    """
+    try:
+        from utils.game_collection_manager import get_game_collection_manager
+        from utils.user_management import get_current_user_info
+
+        # Get current user info
+        user_info = get_current_user_info()
+        current_user = user_info.get("current_user", {})
+        username = current_user.get("username", "Unknown User")
+
+        # Get collection manager
+        collection_manager = get_game_collection_manager()
+
+        # Check if game exists in collection
+        game = collection_manager.get_game(title)
+
+        if game:
+            return {
+                "success": True,
+                "owned": True,
+                "game_found": True,
+                "game_details": {
+                    "title": game.title,
+                    "status": game.status.value,
+                    "platform": game.platform,
+                    "user_rating": game.user_rating,
+                    "hours_played": game.hours_played,
+                    "date_added": game.date_added.strftime("%Y-%m-%d"),
+                    "notes": game.notes,
+                },
+                "user_context": {
+                    "username": username,
+                    "user_id": current_user.get("user_id", "unknown"),
+                },
+            }
+        else:
+            return {
+                "success": True,
+                "owned": False,
+                "game_found": False,
+                "message": f"'{title}' not found in {username}'s collection",
+                "suggestion": "This game could be added to your collection or recommended for purchase",
+                "user_context": {
+                    "username": username,
+                    "user_id": current_user.get("user_id", "unknown"),
+                },
+            }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Ownership check error: {str(e)}",
+            "action": "check_if_game_owned",
+            "game": title,
+        }
+
+
+@register_for_llm(
+    description="Remove a game from current user's collection - Input: title (str) - Output: Dict with success status"
+)
+@register_for_execution()
+def remove_game_from_collection(title: str) -> Dict:
+    """
+    Remove a game from current user's collection.
+
+    Permanently deletes game entry from personal library.
+
+    Args:
+        title (str): Game title to remove from collection
+
+    Returns:
+        Dict with success status and collection stats
+    """
+    try:
+        from utils.game_collection_manager import get_game_collection_manager
+        from utils.user_management import get_current_user_info
+
+        # Get current user info
+        user_info = get_current_user_info()
+        current_user = user_info.get("current_user", {})
+        username = current_user.get("username", "Unknown User")
+
+        # Get collection manager
+        collection_manager = get_game_collection_manager()
+
+        # Check if game exists
+        existing_game = collection_manager.get_game(title)
+        if not existing_game:
+            return {
+                "success": False,
+                "error": f"Game '{title}' not found in {username}'s collection",
+                "user": username,
+            }
+
+        # Store game details before removal
+        game_details = {
+            "title": existing_game.title,
+            "status": existing_game.status.value,
+            "user_rating": existing_game.user_rating,
+            "date_added": existing_game.date_added.isoformat(),
+        }
+
+        # Remove game
+        success = collection_manager.remove_game(title)
+
+        if not success:
+            return {
+                "success": False,
+                "error": f"Failed to remove '{title}' from collection",
+                "user": username,
+            }
+
+        # Get updated stats
+        stats = collection_manager.get_collection_stats()
+
+        return {
+            "success": True,
+            "message": f"✅ Removed '{title}' from {username}'s collection",
+            "removed_game": game_details,
+            "collection_stats": {
+                "total_games": stats.total_games,
+                "owned_games": stats.owned_games,
+                "wishlist_games": stats.wishlist_games,
+                "average_rating": stats.average_rating,
+            },
+            "user_context": {
+                "username": username,
+                "user_id": current_user.get("user_id", "unknown"),
+            },
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Collection removal error: {str(e)}",
+            "action": "remove_game_from_collection",
+            "game": title,
+        }
