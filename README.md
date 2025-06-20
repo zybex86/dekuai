@@ -4,6 +4,12 @@
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![AutoGen](https://img.shields.io/badge/Framework-AutoGen-green.svg)](https://github.com/microsoft/autogen)
 
+## ATTENTION 
+
+What you see below and in this repository is a multiagent created 95% using AI. The code was read through and tested by a human with minimal changes done by hand.
+
+## Info
+
 An intelligent multi-agent system using AutoGen to analyze games from DekuDeals.com and generate comprehensive purchase recommendations with **enterprise-level quality control**.
 
 ## 📋 Project Overview
