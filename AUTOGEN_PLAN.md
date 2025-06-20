@@ -586,6 +586,17 @@ autogen-dekudeals/
   - **Result**: 100% functional user switching + family view display in interactive mode
   - **Testing**: Verified TestKid → zybex86 → Gwiazdka2016 switching in real-time
   - **ML Integration**: Confirmed per-user ML profiling during user switches
+- [x] **🚨 CRITICAL PRICE ANALYSIS BUG FIXED**: Advanced Value Algorithm incorrectly recommended "WAIT FOR SALE" for ALL TIME LOW ✅
+  - **Problem**: 80% discount (179.9→35.98 PLN) + ALL TIME LOW = "WAIT FOR SALE" instead of "INSTANT BUY"
+  - **Cause**: Advanced algorithm ignored discount_factor and timing_factor in recommendation logic
+  - **Solution**: Added intelligent discount/timing analysis in `utils/advanced_value_algorithms.py`
+    * `discount_factor`: 0-3.0 based on % discount vs MSRP (70%+ = 3.0, 50%+ = 2.0, 30%+ = 1.0)
+    * `timing_factor`: 0-2.5 based on all-time low status (≤5% ATL = 2.5, ≤15% = 1.5, ≤35% = 0.5)
+    * `boosted_score = comprehensive_score + discount_factor + timing_factor`
+  - **Result BEFORE**: "Immortals Fenyx Rising" → "WAIT FOR SALE" (5.35 score, INCORRECT)
+  - **Result AFTER**: "Immortals Fenyx Rising" → "INSTANT BUY - Massive Discount!" (CORRECT)
+  - **Impact**: Massive discount + all-time low detection for accurate recommendations
+  - **Testing**: ✅ 80% discount recognition + ALL TIME LOW timing + proper recommendation generation
 
 **📊 PRODUCTION CAPABILITIES SUMMARY:**
 - **Enterprise-level batch processing** with intelligent session management
