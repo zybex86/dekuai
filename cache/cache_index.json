@@ -27,5 +27,6 @@
   "overcooked_special_edition": "cache_overcooked_special_edition.pkl",
   "superhot": "cache_superhot.pkl",
   "nova_hearts": "cache_nova_hearts.pkl",
-  "100_in_1_game_collection": "cache_100_in_1_game_collection.pkl"
+  "100_in_1_game_collection": "cache_100_in_1_game_collection.pkl",
+  "immortals_fenyx_rising": "cache_immortals_fenyx_rising.pkl"
 }
