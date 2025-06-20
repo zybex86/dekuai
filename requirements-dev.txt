@@ -35,3 +35,10 @@ tqdm==4.67.1
 typing-inspection==0.4.1
 typing_extensions==4.14.0
 urllib3==2.4.0
+
+# Testing framework
+pytest==8.3.4
+pytest-asyncio==0.24.0
+pytest-mock==3.14.0
+pytest-cov==6.0.0
+pytest-xdist==3.6.0
