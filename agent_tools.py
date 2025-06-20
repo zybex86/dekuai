@@ -5238,14 +5238,27 @@ def list_system_users() -> Dict:
 
             user_summaries.append(summary)
 
-            # Organize by role
-            if user["role"] == "admin":
+            # Organize by role - handle both enum and string formats
+            role_value = user["role"]
+            if hasattr(role_value, "value"):
+                # It's an enum, get the value
+                role_str = role_value.value
+            elif isinstance(role_value, str):
+                # It's already a string, but might be "UserRole.ADMIN" format
+                if role_value.startswith("UserRole."):
+                    role_str = role_value.split(".")[-1].lower()
+                else:
+                    role_str = role_value.lower()
+            else:
+                role_str = str(role_value).lower()
+
+            if role_str == "admin":
                 users_by_role["admins"].append(summary)
-            elif user["role"] == "parent":
+            elif role_str == "parent":
                 users_by_role["parents"].append(summary)
-            elif user["role"] == "child":
+            elif role_str == "child":
                 users_by_role["children"].append(summary)
-            elif user["role"] == "guest":
+            elif role_str == "guest":
                 users_by_role["guests"].append(summary)
 
         # Generate insights
@@ -5513,4 +5526,103 @@ def get_user_system_stats() -> Dict:
             "success": False,
             "error": error_msg,
             "fallback": "System statistics temporarily unavailable",
+        }
+
+
+def get_user_ml_profiles_integration() -> Dict:
+    """
+    Get Multi-User + ML integration status and user profiles.
+    Shows how ML profiles are connected to Multi-User system.
+
+    Returns detailed information about:
+    - Current user's ML profile
+    - All users with their ML learning status
+    - Integration statistics and health
+    """
+    try:
+        from utils.smart_user_profiler import get_smart_user_profiler
+        from utils.user_management import get_current_user_info, get_system_stats
+
+        # Get Smart User Profiler instance
+        profiler = get_smart_user_profiler()
+
+        # Get current user info
+        current_user = get_current_user_info()
+
+        # Get profiles summary with integration
+        integration_summary = profiler.get_user_profiles_summary()
+
+        # Get current user's ML profile if logged in
+        current_ml_profile = None
+        if current_user.get("logged_in"):
+            current_ml_profile = profiler.get_smart_user_profile()
+
+        # Get system stats
+        system_stats = get_system_stats()
+
+        result = {
+            "integration_status": "✅ ACTIVE - Multi-User + ML Integrated",
+            "current_user": {
+                "logged_in": current_user.get("logged_in", False),
+                "username": current_user.get("username", "None"),
+                "user_id": current_user.get("user_id", "None"),
+                "role": current_user.get("role", "None"),
+                "has_ml_profile": current_ml_profile is not None,
+                "ml_interactions": (
+                    current_ml_profile.total_interactions if current_ml_profile else 0
+                ),
+                "ml_confidence": (
+                    current_ml_profile.confidence_level
+                    if current_ml_profile
+                    else "none"
+                ),
+            },
+            "system_overview": {
+                "total_registered_users": system_stats.get("total_users", 0),
+                "total_ml_profiles": integration_summary.get("total_ml_profiles", 0),
+                "integration_coverage": f"{integration_summary.get('total_ml_profiles', 0)}/{system_stats.get('total_users', 0)} users have ML profiles",
+            },
+            "user_profiles_breakdown": integration_summary.get("profiles", {}),
+            "integration_health": {
+                "multi_user_system": "✅ Active",
+                "smart_profiler": "✅ Active",
+                "data_sync": "✅ Real-time",
+                "personalization": "✅ Per-user ML profiles",
+            },
+            "benefits": [
+                "🎯 Personalized game recommendations per user",
+                "👨‍👩‍👧‍👦 Family-friendly user separation",
+                "🧠 Individual ML learning for each user",
+                "🔄 Automatic profile switching",
+                "📊 Per-user analytics and preferences",
+            ],
+        }
+
+        # Add current user's detailed ML profile if available
+        if current_ml_profile:
+            adjustments = profiler.get_personalized_recommendation_adjustments()
+            result["current_user"]["ml_profile_details"] = {
+                "detected_patterns": [
+                    p.pattern.value for p in current_ml_profile.detected_preferences
+                ],
+                "favorite_genres": current_ml_profile.favorite_genres[:5],
+                "recommendation_adjustments": adjustments.get("adjustments"),
+                "last_updated": current_ml_profile.last_updated.isoformat(),
+            }
+
+        return result
+
+    except Exception as e:
+        return {
+            "integration_status": "❌ ERROR",
+            "error": f"Failed to get ML integration info: {str(e)}",
+            "current_user": {"logged_in": False},
+            "system_overview": {},
+            "user_profiles_breakdown": {},
+            "integration_health": {
+                "multi_user_system": "❓ Unknown",
+                "smart_profiler": "❌ Error",
+                "data_sync": "❌ Failed",
+                "personalization": "❌ Unavailable",
+            },
         }

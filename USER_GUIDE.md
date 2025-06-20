@@ -396,6 +396,195 @@ technical_review = adapt_review_for_context(
 
 ---
 
+## 👨‍👩‍👧‍👦 **NOWOŚĆ: Multi-User System - System dla Całej Rodziny**
+
+### **Główne Funkcjonalności:**
+
+**✅ Zarządzanie Użytkownikami:**
+- Rejestracja użytkowników z różnymi rolami (Admin, Parent, Child, Guest)
+- Przełączanie między użytkownikami w locie
+- Persistent storage - użytkownicy zachowywani między sesjami
+- Guest mode dla szybkiego testowania
+
+**✅ Family-Friendly Features:**
+- **Admin**: Pełny dostęp do systemu, może zarządzać innymi użytkownikami
+- **Parent**: Może zarządzać kontami dzieci, ustawiać limity budżetu
+- **Child**: Kontrola rodzicielska, dostosowane rekomendacje
+- **Guest**: Tymczasowy dostęp bez zapisywania danych
+
+**✅ Personalizacja dla Każdego:**
+- Każdy użytkownik ma własny profil preferencji
+- Historia analiz gier dla każdego członka rodziny
+- Dostosowane rekomendacje na podstawie wieku i roli
+- Śledzenie statystyk użytkowania per użytkownik
+
+### **Jak Korzystać z Multi-User System:**
+
+#### **Metoda 1: Kompleksowy Test System (Polecana)**
+```bash
+# Uruchom pełny test multi-user system:
+python examples/test_user_management.py
+```
+
+**Co przetestujesz:**
+- ✅ Rejestrację użytkowników z różnymi rolami
+- ✅ Przełączanie między użytkownikami
+- ✅ Persistent sessions (zachowywanie użytkownika między restartami)
+- ✅ Guest sessions dla szybkiego dostępu
+- ✅ Family organization i statystyki systemu
+- ✅ AutoGen tools integration
+
+#### **Metoda 2: Ręczne Zarządzanie Użytkownikami**
+```python
+from agent_tools import (
+    register_new_user,
+    get_current_user_details,
+    switch_to_user,
+    list_system_users,
+    create_guest_access,
+    get_user_system_stats
+)
+
+# Rejestracja rodziny
+admin_result = register_new_user("GameMaster", "admin")
+parent_result = register_new_user("Dad", "parent") 
+child_result = register_new_user("Kid1", "child")
+
+# Sprawdź aktualnego użytkownika
+current_user = get_current_user_details()
+print(f"Zalogowany: {current_user['user_profile']['username']}")
+
+# Przełącz na konto dziecka
+switch_result = switch_to_user("Kid1")
+print(f"Przełączono na: {switch_result['switched_to']['username']}")
+
+# Lista wszystkich użytkowników
+all_users = list_system_users()
+print(f"Rodzina ma {all_users['total_users']} członków")
+
+# Stwórz sesję gościa dla znajomych
+guest = create_guest_access()
+print(f"Gość: {guest['guest_profile']['username']}")
+
+# Statystyki systemu
+stats = get_user_system_stats()
+print(f"Zdrowie systemu: {stats['system_overview']['system_health_score']}%")
+```
+
+#### **Metoda 3: Family Gaming Scenarios**
+
+**Scenariusz A: Analiza Gry dla Dziecka**
+```python
+# Przełącz na konto dziecka
+switch_to_user("Kid1")
+
+# Analizuj grę - system automatycznie dostosuje rekomendacje
+python simple_demo.py
+# Wpisz: "Super Mario Odyssey"
+
+# System zastosuje:
+# - Child-friendly language
+# - Parental guidance ratings
+# - Age-appropriate content warnings
+# - Budget considerations dla dzieci
+```
+
+**Scenariusz B: Porównanie Gier dla Rodzica**
+```python
+# Przełącz na konto rodzica
+switch_to_user("Dad")
+
+# Analizuj gry dla całej rodziny
+python simple_demo.py
+# Wpisz: "Mario Kart 8"
+
+# System zastosuje:
+# - Family multiplayer considerations
+# - Long-term value analysis
+# - Educational value assessment
+# - Cost per hour dla family gaming
+```
+
+**Scenariusz C: Guest Access dla Znajomych**
+```python
+# Szybki dostęp dla gości bez rejestracji
+guest_session = create_guest_access()
+
+# Gość może używać systemu bez wpływu na family profiles
+# Brak zapisywania historii, tymczasowe preferencje
+```
+
+### **Przykłady Output z Multi-User System:**
+
+#### **Family System Overview:**
+```json
+{
+  "success": true,
+  "total_users": 4,
+  "family_view": {
+    "admins": [{"username": "GameMaster", "games_analyzed": 15}],
+    "parents": [{"username": "Dad", "games_analyzed": 8}],
+    "children": [{"username": "Kid1", "games_analyzed": 3}],
+    "guests": [{"username": "Guest_143022", "session_type": "temporary"}]
+  },
+  "current_session": {
+    "active_user": {
+      "username": "Kid1", 
+      "role": "child",
+      "session_duration": "12m"
+    }
+  },
+  "system_insights": [
+    "👤 Single user system", 
+    "🟢 Active session: Kid1 (12m)",
+    "👶 Family-friendly setup with 1 child accounts"
+  ]
+}
+```
+
+#### **User Switch Success:**
+```json
+{
+  "success": true,
+  "message": "Switched to user: Dad",
+  "switched_to": {
+    "username": "Dad",
+    "role": "parent", 
+    "last_active": "2024-06-20 08:45",
+    "profile_stats": {
+      "total_games_analyzed": 8,
+      "favorite_genres": ["action", "family"],
+      "analysis_history": [...]
+    }
+  },
+  "welcome_message": "👨‍👩‍👧‍👦 Parent profile active - can manage family accounts",
+  "next_steps": [
+    "Start analyzing games with personalized recommendations",
+    "View your analysis history", 
+    "Update profile preferences if needed"
+  ]
+}
+```
+
+### **Storage i Persistent Data:**
+
+**Lokalizacja Danych:**
+```
+user_profiles/
+├── users.json           # Profile wszystkich użytkowników
+├── current_user.json    # Aktualnie zalogowany użytkownik  
+└── session.json         # Historia sesji i działań
+```
+
+**Jak Działają Persistent Sessions:**
+- ✅ **Automatic saving**: Każda zmiana użytkownika zapisywana natychmiast
+- ✅ **Restart persistence**: Po restarcie systemu ostatni użytkownik automatycznie aktywny
+- ✅ **Session logging**: Wszystkie działania logowane z timestampami
+- ✅ **Profile preservation**: Profile użytkowników zachowywane między sesjami
+- ✅ **Guest cleanup**: Tymczasowe sesje gości usuwane po restarcie
+
+---
+
 ## 📊 Jak Interpretować Wyniki?
 
 ### Skala Ocen Systemu

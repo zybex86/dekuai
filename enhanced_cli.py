@@ -49,6 +49,13 @@ from agent_tools import (
     scrape_dekudeals_category,
     get_random_game_sample,
     get_games_from_popular_categories,
+    # 👨‍👩‍👧‍👦 PHASE 7.1.5: Multi-User System imports
+    register_new_user,
+    get_current_user_details,
+    switch_to_user,
+    list_system_users,
+    create_guest_access,
+    get_user_system_stats,
 )
 
 import logging
@@ -282,7 +289,7 @@ class EnhancedCLI:
             ("🎲 --random <num>", "Get random game sample for analysis"),
             ("🆚 --compare <games>", "Compare multiple games side by side"),
             ("📋 --list-categories", "Show all available game categories"),
-            ("🎪 --interactive", "Launch interactive mode"),
+            ("🎪 --interactive", "Launch interactive mode with Multi-User System"),
             ("🎬 --demo", "Run full system demonstration"),
         ]
 
@@ -327,8 +334,24 @@ class EnhancedCLI:
             cprint(f"   {example}", "white")
 
         print()
+        self.print_section(
+            "👨‍👩‍👧‍👦 Multi-User System (NEW - Phase 7.1.5)", style="highlight"
+        )
+
+        multi_user_features = [
+            ("👑 Admin Users", "Full system access and user management"),
+            ("👨‍👩‍👧‍👦 Parent Users", "Family management and child controls"),
+            ("👶 Child Users", "Age-appropriate with parental controls"),
+            ("👤 Guest Sessions", "Temporary access without saving data"),
+        ]
+
+        for feature, desc in multi_user_features:
+            cprint(f"   {feature:<20}", "magenta", attrs=["bold"], end="")
+            print(f" {desc}")
+
+        print()
         cprint(
-            "💾 Advanced Features: Multi-level caching, persistent storage, concurrent processing",
+            "💾 Advanced Features: Multi-level caching, persistent storage, concurrent processing, Multi-User System",
             "yellow",
             attrs=["bold"],
         )
@@ -688,13 +711,57 @@ class EnhancedCLI:
             self.print_status("No detailed review data available", "warning")
 
     def interactive_mode(self):
-        """Launch interactive CLI mode."""
+        """Launch interactive CLI mode with Multi-User System integration."""
         self.print_header("🎪 Interactive Mode", "highlight")
+
+        # 👨‍👩‍👧‍👦 PHASE 7.1.5: Check user login status first
+        user_status = self.check_user_login_status()
+
+        # If no user logged in, offer user management first
+        if not user_status.get("logged_in", False):
+            print()
+            self.print_status(
+                "🚀 Multi-User System is available for personalized gaming experience!",
+                "highlight",
+            )
+
+            first_time = self.get_user_choice(
+                "Would you like to set up user management?",
+                [
+                    "👨‍👩‍👧‍👦 Yes, set up users for personalized experience",
+                    "🎮 No, continue as anonymous user",
+                ],
+            )
+
+            if "Yes, set up users" in first_time:
+                # Enter user management workflow
+                while self.user_management_menu():
+                    pass  # Keep showing user management until user goes back
+
+                # Check again after user management
+                user_status = self.check_user_login_status()
 
         while True:
             print()
+
+            # Show current user in prompt if logged in
+            current_user_info = ""
+            if user_status.get("logged_in", False):
+                user_profile = user_status.get("user_profile", {})
+                username = user_profile.get("username", "Unknown")
+                role = user_profile.get("role", "unknown")
+
+                role_emoji = {
+                    "admin": "👑",
+                    "parent": "👨‍👩‍👧‍👦",
+                    "child": "👶",
+                    "guest": "👤",
+                }.get(role, "👤")
+
+                current_user_info = f" (👤 {username} {role_emoji})"
+
             action = self.get_user_choice(
-                "What would you like to do?",
+                f"What would you like to do?{current_user_info}",
                 [
                     "🎮 Analyze a specific game",
                     "📂 Browse games by category",
@@ -705,6 +772,7 @@ class EnhancedCLI:
                     "🎲 Batch analyze random games",
                     "📊 View batch operations status",
                     "📋 View available categories",
+                    "👨‍👩‍👧‍👦 User Management",
                     "🚪 Exit interactive mode",
                 ],
             )
@@ -744,10 +812,390 @@ class EnhancedCLI:
             elif "categories" in action:
                 self.show_categories()
 
+            elif "User Management" in action:
+                # Enter user management workflow
+                while self.user_management_menu():
+                    pass  # Keep showing user management until user goes back
+
+                # Refresh user status after management operations
+                user_status = self.check_user_login_status()
+
             elif "Exit" in action:
                 break
 
         self.print_status("Interactive mode ended", "info")
+
+    # 👨‍👩‍👧‍👦 PHASE 7.1.5: Multi-User System Methods
+
+    def check_user_login_status(self) -> Dict:
+        """Check current user login status and display welcome info."""
+        try:
+            current_user = get_current_user_details()
+
+            if current_user.get("success", False) and current_user.get(
+                "logged_in", False
+            ):
+                user_profile = current_user.get("user_profile", {})
+                username = user_profile.get("username", "Unknown")
+                role = user_profile.get("role", "unknown")
+                session_duration = user_profile.get("session_duration", "Unknown")
+
+                # Role-specific emoji
+                role_emoji = {
+                    "admin": "👑",
+                    "parent": "👨‍👩‍👧‍👦",
+                    "child": "👶",
+                    "guest": "👤",
+                }.get(role, "👤")
+
+                self.print_status(
+                    f"Welcome back, {username}! {role_emoji} ({role.title()} - {session_duration})",
+                    "success",
+                )
+                return current_user
+            else:
+                self.print_status(
+                    "👤 No user logged in - Multi-User System available", "info"
+                )
+                return {"logged_in": False}
+
+        except Exception as e:
+            self.print_status(f"Error checking user status: {str(e)}", "warning")
+            return {"logged_in": False, "error": str(e)}
+
+    def user_management_menu(self) -> bool:
+        """Display user management menu and handle user operations."""
+        self.print_header("👨‍👩‍👧‍👦 Multi-User System", "highlight")
+
+        # Show current system stats
+        try:
+            stats = get_user_system_stats()
+            if stats.get("success", False):
+                overview = stats.get("system_overview", {})
+                total_users = overview.get("total_users", 0)
+                health_score = overview.get("system_health_score", 0)
+
+                self.print_status(
+                    f"👥 Family System: {total_users} users, {health_score}% health",
+                    "info",
+                )
+        except:
+            pass
+
+        action = self.get_user_choice(
+            "User Management Options:",
+            [
+                "👤 Register new user",
+                "🔄 Switch to different user",
+                "👥 View all family members",
+                "🧳 Create guest session",
+                "📊 View system statistics",
+                "🔙 Back to main menu",
+            ],
+        )
+
+        if not action:
+            return False
+
+        if "Register new user" in action:
+            return self.register_user_interactive()
+
+        elif "Switch to different user" in action:
+            return self.switch_user_interactive()
+
+        elif "View all family members" in action:
+            self.view_family_members()
+            return True
+
+        elif "Create guest session" in action:
+            return self.create_guest_session_interactive()
+
+        elif "View system statistics" in action:
+            self.view_system_statistics()
+            return True
+
+        elif "Back to main menu" in action:
+            return False
+
+        return True
+
+    def register_user_interactive(self) -> bool:
+        """Interactive user registration."""
+        self.print_section("👤 New User Registration", "highlight")
+
+        # Get username
+        username = input(colored("👤 Enter username: ", "cyan", attrs=["bold"])).strip()
+        if not username:
+            self.print_status("Username cannot be empty", "error")
+            return False
+
+        # Get role
+        role = self.get_user_choice(
+            "Select user role:",
+            [
+                "👑 Admin (Full system access)",
+                "👨‍👩‍👧‍👦 Parent (Family management)",
+                "👶 Child (Parental controls)",
+                "👤 Guest (Temporary access)",
+            ],
+        )
+
+        if not role:
+            return False
+
+        # Extract role name
+        role_map = {
+            "Admin": "admin",
+            "Parent": "parent",
+            "Child": "child",
+            "Guest": "guest",
+        }
+
+        role_name = next((v for k, v in role_map.items() if k in role), "guest")
+
+        try:
+            result = register_new_user(username, role_name)
+
+            if result.get("success", False):
+                user_profile = result.get("user_profile", {})
+                user_id = user_profile.get("user_id", "Unknown")
+
+                self.print_status(
+                    f"✅ User '{username}' registered successfully!", "success"
+                )
+                self.print_status(f"   📊 Role: {role_name.title()}", "info")
+                self.print_status(f"   🆔 ID: {user_id}", "info")
+
+                # Auto-login to new user
+                auto_login = self.get_user_choice(
+                    f"Switch to '{username}' now?", ["Yes", "No"]
+                )
+
+                if "Yes" in auto_login:
+                    switch_result = switch_to_user(username)
+                    if switch_result.get("success", False):
+                        self.print_status(f"🔄 Switched to {username}", "success")
+
+                return True
+            else:
+                error_msg = result.get("message", "Unknown error")
+                self.print_status(f"❌ Registration failed: {error_msg}", "error")
+                return False
+
+        except Exception as e:
+            self.print_status(f"❌ Registration error: {str(e)}", "error")
+            return False
+
+    def switch_user_interactive(self) -> bool:
+        """Interactive user switching."""
+        self.print_section("🔄 Switch User", "highlight")
+
+        # Get list of users
+        try:
+            users_result = list_system_users()
+            if not users_result.get("success", False):
+                self.print_status("Failed to get user list", "error")
+                return False
+
+            family_view = users_result.get("family_view", {})
+            total_users = users_result.get("total_users", 0)
+
+            if total_users == 0:
+                self.print_status(
+                    "No users registered. Please register a user first.", "warning"
+                )
+                return False
+
+            # Build user list for selection
+            user_options = []
+            for role_group, users in family_view.items():
+                if users:  # If this role group has users
+                    role_emoji = {
+                        "admins": "👑",
+                        "parents": "👨‍👩‍👧‍👦",
+                        "children": "👶",
+                        "guests": "👤",
+                    }.get(role_group, "👤")
+
+                    for user in users:
+                        username = user.get("username", "Unknown")
+                        games_analyzed = user.get("games_analyzed", 0)
+                        user_options.append(
+                            f"{role_emoji} {username} ({role_group[:-1]} - {games_analyzed} games)"
+                        )
+
+            if not user_options:
+                self.print_status("No active users available", "warning")
+                return False
+
+            user_choice = self.get_user_choice(
+                "Select user to switch to:", user_options + ["🔙 Back to menu"]
+            )
+
+            if not user_choice or "Back to menu" in user_choice:
+                return False
+
+            # Extract username from choice
+            username = user_choice.split(" ")[1]  # Get username after emoji
+
+            # Switch user
+            switch_result = switch_to_user(username)
+
+            if switch_result.get("success", False):
+                switched_to = switch_result.get("switched_to", {})
+                role = switched_to.get("role", "unknown")
+                welcome_msg = switch_result.get("welcome_message", "")
+
+                self.print_status(
+                    f"🔄 Successfully switched to {username} ({role})", "success"
+                )
+                if welcome_msg:
+                    self.print_status(f"   {welcome_msg}", "info")
+                return True
+            else:
+                error_msg = switch_result.get("message", "Unknown error")
+                self.print_status(f"❌ Switch failed: {error_msg}", "error")
+                return False
+
+        except Exception as e:
+            self.print_status(f"❌ Switch error: {str(e)}", "error")
+            return False
+
+    def view_family_members(self):
+        """Display all family members with their stats."""
+        self.print_section("👥 Family Members", "highlight")
+
+        try:
+            users_result = list_system_users()
+            if not users_result.get("success", False):
+                self.print_status("Failed to get family list", "error")
+                return
+
+            family_view = users_result.get("family_view", {})
+            total_users = users_result.get("total_users", 0)
+
+            if total_users == 0:
+                self.print_status("No family members registered yet", "info")
+                return
+
+            self.print_status(f"👨‍👩‍👧‍👦 Family has {total_users} members:", "info")
+            print()
+
+            for role_group, users in family_view.items():
+                if users:
+                    role_emoji = {
+                        "admins": "👑",
+                        "parents": "👨‍👩‍👧‍👦",
+                        "children": "👶",
+                        "guests": "👤",
+                    }.get(role_group, "👤")
+
+                    cprint(
+                        f"   {role_emoji} {role_group.title()}:", "cyan", attrs=["bold"]
+                    )
+
+                    for user in users:
+                        username = user.get("username", "Unknown")
+                        games_analyzed = user.get("games_analyzed", 0)
+                        cprint(
+                            f"      • {username} ({games_analyzed} games analyzed)",
+                            "white",
+                        )
+
+            print()
+
+        except Exception as e:
+            self.print_status(f"❌ Error viewing family: {str(e)}", "error")
+
+    def create_guest_session_interactive(self) -> bool:
+        """Create interactive guest session."""
+        self.print_section("🧳 Guest Session", "highlight")
+
+        try:
+            guest_result = create_guest_access()
+
+            if guest_result.get("success", False):
+                guest_profile = guest_result.get("guest_profile", {})
+                guest_username = guest_profile.get("username", "Unknown")
+                session_type = guest_profile.get("session_type", "temporary")
+
+                self.print_status(
+                    f"🧳 Guest session created: {guest_username}", "success"
+                )
+                self.print_status(f"   ⏰ Type: {session_type}", "info")
+                self.print_status("   📝 Note: Guest data will not be saved", "warning")
+
+                return True
+            else:
+                error_msg = guest_result.get("message", "Unknown error")
+                self.print_status(f"❌ Guest session failed: {error_msg}", "error")
+                return False
+
+        except Exception as e:
+            self.print_status(f"❌ Guest session error: {str(e)}", "error")
+            return False
+
+    def view_system_statistics(self):
+        """Display comprehensive system statistics."""
+        self.print_section("📊 System Statistics", "highlight")
+
+        try:
+            stats = get_user_system_stats()
+
+            if stats.get("success", False):
+                overview = stats.get("system_overview", {})
+                current_user = stats.get("current_user", {})
+
+                # System overview
+                total_users = overview.get("total_users", 0)
+                active_users = overview.get("active_users", 0)
+                health_score = overview.get("system_health_score", 0)
+                user_breakdown = overview.get("user_breakdown", {})
+
+                self.print_status(
+                    f"👥 Total Users: {total_users} ({active_users} active)", "info"
+                )
+                self.print_status(
+                    f"💚 System Health: {health_score}%",
+                    "success" if health_score >= 80 else "warning",
+                )
+
+                print()
+                cprint("   👨‍👩‍👧‍👦 Family Breakdown:", "cyan", attrs=["bold"])
+                for role, count in user_breakdown.items():
+                    if count > 0:
+                        role_emoji = {
+                            "admins": "👑",
+                            "parents": "👨‍👩‍👧‍👦",
+                            "children": "👶",
+                            "guests": "👤",
+                        }.get(role, "👤")
+                        cprint(f"      {role_emoji} {role.title()}: {count}", "white")
+
+                # Current user info
+                print()
+                if current_user.get("logged_in", False):
+                    username = current_user.get("username", "Unknown")
+                    role = current_user.get("role", "unknown")
+                    session_duration = current_user.get("session_duration", "Unknown")
+
+                    self.print_status(
+                        f"🔵 Active User: {username} ({role}) - {session_duration}",
+                        "info",
+                    )
+                else:
+                    self.print_status("🔴 No user currently logged in", "warning")
+
+                # Storage info
+                storage_location = overview.get("storage_location", "Unknown")
+                if storage_location:
+                    self.print_status(f"💾 Data stored in: {storage_location}", "info")
+
+            else:
+                self.print_status("Failed to get system statistics", "error")
+
+        except Exception as e:
+            self.print_status(f"❌ Statistics error: {str(e)}", "error")
 
     def batch_analyze_interactive(self):
         """Interactive batch analysis of multiple games."""

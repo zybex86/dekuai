@@ -14,9 +14,13 @@ from pathlib import Path
 from collections import defaultdict, Counter
 from dataclasses import dataclass, field
 from enum import Enum
+import uuid
 
 from utils.recommendation_engine import UserPreference, UserProfile
 from utils.usage_analytics import get_usage_analytics, EventType, UserSegment
+
+# Import Multi-User system integration
+from .user_management import UserManager
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +82,30 @@ class DynamicUserProfile:
     profile_stability: float = 0.0  # how stable the profile is
 
 
+def _get_current_multi_user_id() -> str:
+    """Get current user ID from Multi-User system, fallback to analytics if not available"""
+    try:
+        # Try to get from Multi-User system first
+        user_manager = UserManager()
+        current_user = user_manager.get_current_user()
+        if current_user:
+            return current_user.user_id
+    except Exception as e:
+        logging.debug(f"Could not get Multi-User system current user: {e}")
+
+    # Fallback to analytics system
+    try:
+        from .usage_analytics import get_usage_analytics
+
+        analytics = get_usage_analytics()
+        return analytics.current_user_id
+    except Exception as e:
+        logging.debug(f"Could not get analytics user ID: {e}")
+
+    # Last resort: generate a basic user ID
+    return f"user_{uuid.uuid4().hex[:8]}"
+
+
 class SmartUserProfiler:
     """
     Intelligent user profiling system that learns from interactions
@@ -107,13 +135,13 @@ class SmartUserProfiler:
         self.confidence_threshold = 0.6
         self.pattern_detection_window_days = 365  # Analizuj całą historię (1 rok)
 
-        # Initialize analytics integration
-        self.analytics = get_usage_analytics()
+        # Initialize Multi-User system integration
+        self.user_manager = UserManager()
 
         # Load existing data
         self._load_existing_data()
 
-        logger.info("✅ Smart User Profiler initialized")
+        logger.info("✅ Smart User Profiler initialized with Multi-User integration")
 
     def _load_existing_data(self):
         """Load existing user profiles and interactions"""
@@ -212,15 +240,34 @@ class SmartUserProfiler:
 
         self.interaction_history.append(interaction)
 
-        # Update user profile
-        current_user_id = self.analytics.current_user_id
+        # Get current user ID from Multi-User system
+        current_user_id = _get_current_multi_user_id()
+
+        # Add current user context to interaction
+        try:
+            current_user = self.user_manager.get_current_user()
+            if current_user:
+                interaction.session_context.update(
+                    {
+                        "multi_user_system": {
+                            "user_id": current_user.user_id,
+                            "username": current_user.username,
+                            "role": current_user.role.value,
+                        }
+                    }
+                )
+        except Exception as e:
+            logger.debug(f"Could not add Multi-User context: {e}")
+
         self._update_user_profile_from_interaction(current_user_id, interaction)
 
         # Save periodically
         if len(self.interaction_history) % 5 == 0:  # Save every 5 interactions
             self._save_data()
 
-        logger.debug(f"Recorded interaction: {game_name} ({interaction_type})")
+        logger.debug(
+            f"Recorded interaction: {game_name} ({interaction_type}) for user {current_user_id}"
+        )
         return interaction.timestamp.isoformat()
 
     def _update_user_profile_from_interaction(
@@ -584,7 +631,7 @@ class SmartUserProfiler:
         """Get the smart user profile for a user"""
 
         if not user_id:
-            user_id = self.analytics.current_user_id
+            user_id = _get_current_multi_user_id()
 
         return self.user_profiles.get(user_id)
 
@@ -593,9 +640,16 @@ class SmartUserProfiler:
     ) -> Dict[str, Any]:
         """Get recommendation adjustments based on learned user preferences"""
 
+        if not user_id:
+            user_id = _get_current_multi_user_id()
+
         profile = self.get_smart_user_profile(user_id)
         if not profile or profile.confidence_level == "low":
-            return {"adjustments": None, "reason": "insufficient_data"}
+            return {
+                "adjustments": None,
+                "reason": "insufficient_data",
+                "user_id": user_id,
+            }
 
         adjustments = {
             "weight_adjustments": {},
@@ -636,7 +690,64 @@ class SmartUserProfiler:
             "adjustments": adjustments,
             "confidence": profile.confidence_level,
             "based_on_interactions": profile.total_interactions,
+            "user_id": user_id,
+            "multi_user_integrated": True,
         }
+
+    def get_user_profiles_summary(self) -> Dict[str, Any]:
+        """Get summary of all user profiles for Multi-User system integration"""
+        try:
+            # Get all users from Multi-User system
+            all_users = self.user_manager.users
+
+            profiles_summary = {}
+
+            for user_id, user_data in all_users.items():
+                profile = self.user_profiles.get(user_id)
+
+                if profile:
+                    profiles_summary[user_id] = {
+                        "username": user_data.username,
+                        "role": user_data.role.value,
+                        "ml_profile": {
+                            "total_interactions": profile.total_interactions,
+                            "confidence_level": profile.confidence_level,
+                            "detected_patterns": [
+                                p.pattern.value for p in profile.detected_preferences
+                            ],
+                            "favorite_genres": profile.favorite_genres[:3],
+                            "last_updated": profile.last_updated.isoformat(),
+                        },
+                    }
+                else:
+                    profiles_summary[user_id] = {
+                        "username": user_data.username,
+                        "role": user_data.role.value,
+                        "ml_profile": {
+                            "total_interactions": 0,
+                            "confidence_level": "none",
+                            "detected_patterns": [],
+                            "favorite_genres": [],
+                            "last_updated": None,
+                        },
+                    }
+
+            return {
+                "total_ml_profiles": len(self.user_profiles),
+                "total_registered_users": len(all_users),
+                "profiles": profiles_summary,
+                "integration_status": "active",
+            }
+
+        except Exception as e:
+            logger.error(f"Error getting user profiles summary: {e}")
+            return {
+                "total_ml_profiles": len(self.user_profiles),
+                "total_registered_users": 0,
+                "profiles": {},
+                "integration_status": "error",
+                "error": str(e),
+            }
 
     def _save_data(self):
         """Save user profiles and interactions to disk"""
