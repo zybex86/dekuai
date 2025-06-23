@@ -303,7 +303,153 @@ def scrape_game_details(game_url: str) -> Optional[Dict]:
             print("Nie znaleziono sekcji 'Price history'.")
             game_details["lowest_historical_price"] = "Brak danych o historii cen"
 
+        # NEW: --- Game Description Extraction ---
+        print("Szukam opisu gry...")
+        description_text = ""
+        awards_list = []
+
+        # Try multiple selectors for description content
+        description_selectors = [
+            # Common selectors for description sections
+            "section[data-section='description']",  # Specific description section
+            "div.description",  # Description div
+            "div#description",  # Description with ID
+            ".game-description",  # Game description class
+            "p.description",  # Description paragraph
+            "div.item-description",  # Item description
+        ]
+
+        description_found = False
+        for selector in description_selectors:
+            description_section = soup.select_one(selector)
+            if description_section:
+                description_text = description_section.get_text(strip=True)
+                if description_text and len(description_text) > 20:  # Valid description
+                    description_found = True
+                    print(f"✅ Znaleziono opis używając selektora: {selector}")
+                    break
+
+        # If no specific description section found, try alternative approaches
+        if not description_found:
+            print("Nie znaleziono dedykowanej sekcji opisu, szukam alternatywnie...")
+
+            # Look for text patterns that indicate description
+            # Find all paragraphs and look for game description patterns
+            all_paragraphs = soup.find_all("p")
+            for p in all_paragraphs:
+                p_text = p.get_text(strip=True)
+                # Check if paragraph looks like a game description
+                if (
+                    p_text
+                    and len(p_text) > 50  # Reasonable length
+                    and len(p_text) < 2000  # Not too long
+                    and not p_text.startswith("$")  # Not price info
+                    and not p_text.lower().startswith("rating")  # Not rating
+                    and not p_text.lower().startswith("format")  # Not format
+                    and (
+                        "game" in p_text.lower()
+                        or "player" in p_text.lower()
+                        or "adventure" in p_text.lower()
+                        or "action" in p_text.lower()
+                        or "story" in p_text.lower()
+                    )
+                ):
+                    description_text = p_text
+                    description_found = True
+                    print("✅ Znaleziono opis w paragrafie")
+                    break
+
+            # If still no description, try looking in the main content area
+            if not description_found:
+                # Look for content after the details section
+                main_content = soup.find("div", class_="container") or soup.find("main")
+                if main_content:
+                    # Find text blocks that might contain description
+                    text_blocks = main_content.find_all(["p", "div"], recursive=True)
+                    for block in text_blocks:
+                        block_text = block.get_text(strip=True)
+                        # Look for descriptive text patterns
+                        if (
+                            block_text
+                            and len(block_text) > 100
+                            and len(block_text) < 1500
+                            and block_text.count(".") >= 2  # Multiple sentences
+                            and not block_text.startswith("Price")
+                            and not block_text.startswith("$")
+                        ):
+                            # Check if it contains game-related keywords
+                            game_keywords = [
+                                "gameplay",
+                                "story",
+                                "adventure",
+                                "action",
+                                "platformer",
+                                "puzzle",
+                                "character",
+                                "world",
+                                "experience",
+                                "journey",
+                                "quest",
+                                "battle",
+                            ]
+                            if any(
+                                keyword in block_text.lower()
+                                for keyword in game_keywords
+                            ):
+                                description_text = block_text
+                                description_found = True
+                                print("✅ Znaleziono opis w bloku treści")
+                                break
+
+        # Clean and format description
+        if description_text:
+            # Clean up the description text
+            description_text = clean_description_text(description_text)
+            game_details["description"] = description_text
+            game_details["description_length"] = len(description_text)
+
+            # Extract awards/achievements from description if present
+            awards_list = extract_awards_from_description(description_text)
+            if awards_list:
+                game_details["awards"] = awards_list
+                game_details["awards_count"] = len(awards_list)
+                print(f"✅ Znaleziono {len(awards_list)} nagród/osiągnięć")
+        else:
+            game_details["description"] = "No description available"
+            game_details["description_length"] = 0
+            print("⚠️ Nie znaleziono opisu gry")
+
+        # Enhanced genre processing with context
+        if game_details.get("genres"):
+            genres = game_details["genres"]
+            game_details["primary_genre"] = genres[0] if genres else "Unknown"
+            game_details["secondary_genres"] = genres[1:4] if len(genres) > 1 else []
+            game_details["genre_count"] = len(genres)
+            game_details["is_multi_genre"] = len(genres) > 1
+            print(f"✅ Przetworzono {len(genres)} gatunków: {', '.join(genres[:3])}")
+
+        # Add metadata about data completeness
+        game_details["data_extraction_metadata"] = {
+            "has_description": bool(description_text and len(description_text) > 20),
+            "has_awards": bool(awards_list),
+            "description_source": "found" if description_found else "not_found",
+            "extraction_timestamp": f"{datetime.now().isoformat()}",
+            "enhanced_scraping": True,
+        }
+
         print(f"Szczegóły zebrane dla {game_details.get('title', 'gry')}:")
+        if (
+            game_details.get("description")
+            and game_details["description"] != "No description available"
+        ):
+            desc_preview = (
+                game_details["description"][:100] + "..."
+                if len(game_details["description"]) > 100
+                else game_details["description"]
+            )
+            print(f"  📝 Opis: {desc_preview}")
+        if game_details.get("awards"):
+            print(f"  🏆 Nagrody: {len(game_details['awards'])} znalezionych")
 
         return game_details
 
@@ -495,6 +641,178 @@ def clean_game_title(title: str) -> str:
         return ""
 
     return cleaned
+
+
+def clean_description_text(description: str) -> str:
+    """
+    Czyści tekst opisu gry z niepotrzebnych elementów.
+
+    Args:
+        description (str): Surowy tekst opisu
+
+    Returns:
+        str: Oczyszczony opis
+    """
+    if not description:
+        return ""
+
+    # Usuń białe znaki z początku i końca
+    cleaned = description.strip()
+
+    # Usuń nadmiarowe białe znaki i znaki końca linii
+    cleaned = re.sub(r"\s+", " ", cleaned)
+
+    # Usuń typowe elementy które nie są częścią opisu
+    unwanted_patterns = [
+        r"^\s*Description\s*:?\s*",  # "Description:" na początku
+        r"^\s*Game\s*Description\s*:?\s*",  # "Game Description:"
+        r"\s*\[Read More\]\s*$",  # "[Read More]" na końcu
+        r"\s*\.\.\.\s*$",  # "..." na końcu
+        r"^\s*About\s*:?\s*",  # "About:" na początku
+    ]
+
+    for pattern in unwanted_patterns:
+        cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE)
+
+    # Usuń nadmiarowe białe znaki ponownie
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+
+    return cleaned
+
+
+def extract_awards_from_description(description: str) -> List[str]:
+    """
+    Wyciąga nagrody i osiągnięcia z tekstu opisu gry.
+
+    Args:
+        description (str): Tekst opisu gry
+
+    Returns:
+        List[str]: Lista znalezionych nagród
+    """
+    if not description:
+        return []
+
+    awards = []
+
+    # First, look for the main awards count
+    award_count_match = re.search(
+        r"Winner of (more than )?(\d+)\s*awards?", description, re.IGNORECASE
+    )
+    if award_count_match:
+        count = award_count_match.group(2)
+        prefix = "more than " if award_count_match.group(1) else ""
+        awards.append(f"Winner of {prefix}{count} awards")
+
+    # Look for structured award lists (after "including:" or similar)
+    # Split description into lines and look for award patterns
+    lines = description.replace("\\", "").split("\n")
+
+    # Find the awards section
+    in_awards_section = False
+    for line in lines:
+        line = line.strip()
+
+        # Start of awards section
+        if re.search(r"including\s*:", line, re.IGNORECASE):
+            in_awards_section = True
+            continue
+
+        if in_awards_section and line:
+            # Clean the line and extract award names
+            # Remove leading dashes, bullets, backslashes
+            clean_line = re.sub(r"^[-•\\]+\s*", "", line)
+
+            # Split by common separators for multiple awards in one line
+            potential_awards = re.split(r"\s*[-–]\s*", clean_line)
+
+            for potential_award in potential_awards:
+                potential_award = potential_award.strip()
+
+                # Skip empty or very short strings
+                if len(potential_award) < 5:
+                    continue
+
+                # Skip lines that don't look like awards
+                if (
+                    potential_award.startswith("(")
+                    or potential_award.isdigit()
+                    or potential_award.lower().startswith("awards")
+                ):
+                    continue
+
+                # Clean up the award text
+                # Remove parenthetical information at the end
+                award_clean = re.sub(r"\s*\([^)]*\)\s*$", "", potential_award)
+
+                # Ensure it looks like an award (has key words)
+                award_keywords = [
+                    "award",
+                    "achievement",
+                    "best",
+                    "outstanding",
+                    "artistic",
+                    "game",
+                    "design",
+                    "narrative",
+                    "art",
+                    "audio",
+                    "visual",
+                    "property",
+                    "independent",
+                    "direction",
+                    "choice",
+                    "critics",
+                    "bafta",
+                    "dice",
+                ]
+
+                if (
+                    len(award_clean) >= 10
+                    and any(
+                        keyword in award_clean.lower() for keyword in award_keywords
+                    )
+                    and award_clean not in awards
+                ):
+                    awards.append(award_clean)
+
+            # Stop if we hit an empty line or end of awards section
+            if not line or len(awards) >= 15:  # Reasonable limit
+                break
+
+    # If no structured awards found, try fallback patterns
+    if len(awards) <= 1:  # Only the count
+        # Look for common award patterns in the text
+        fallback_patterns = [
+            r"(BAFTA[^-•\n]{0,50})",
+            r"(Game Critics Awards[^-•\n]{0,50})",
+            r"(The Game Awards[^-•\n]{0,50})",
+            r"(D\.I\.C\.E\. Awards[^-•\n]{0,50})",
+            r"(Game Developers Choice Awards[^-•\n]{0,50})",
+            r"(Best [^-•\n]{5,40})",
+            r"(Outstanding [^-•\n]{5,40})",
+        ]
+
+        for pattern in fallback_patterns:
+            matches = re.findall(pattern, description, re.IGNORECASE)
+            for match in matches:
+                match_clean = match.strip()
+                if len(match_clean) > 10 and match_clean not in awards:
+                    awards.append(match_clean)
+
+    # Clean up and limit results
+    cleaned_awards = []
+    for award in awards[:12]:  # Limit to 12 awards
+        # Final cleanup
+        award = award.strip()
+        award = re.sub(r"\s+", " ", award)  # Remove extra whitespace
+        award = re.sub(r"^[-•\s]+", "", award)  # Remove leading bullets
+        award = re.sub(r"[-•\s]+$", "", award)  # Remove trailing bullets
+
+        if len(award) >= 5 and award not in cleaned_awards:
+            cleaned_awards.append(award)
+
+    return cleaned_awards
 
 
 # --- Zaktualizowany blok testowy w __main__ ---

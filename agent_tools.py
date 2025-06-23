@@ -212,13 +212,13 @@ def validate_game_data(game_data: Dict[str, Any]) -> Dict[str, Any]:
 
 def format_game_summary(game_data: Dict[str, Any]) -> str:
     """
-    Formatuje podsumowanie danych o grze dla agentów.
+    Formatuje podsumowanie danych o grze dla agentów z ulepszonymi informacjami.
 
     Args:
-        game_data (Dict): Dane gry
+        game_data (Dict): Dane gry z enhanced scraping
 
     Returns:
-        str: Sformatowane podsumowanie
+        str: Sformatowane podsumowanie z opisem i nagrodami
     """
     if not game_data.get("success", False):
         return f"❌ Error: {game_data.get('message', 'Unknown error')}"
@@ -231,16 +231,50 @@ def format_game_summary(game_data: Dict[str, Any]) -> str:
     metacritic = game_data.get("metacritic_score", "No score")
     platforms = game_data.get("platform", "Unknown")
 
+    # Enhanced data from Phase 7.3.1
+    description = game_data.get("description", "")
+    awards = game_data.get("awards", [])
+    primary_genre = game_data.get("primary_genre", genres[0] if genres else "Unknown")
+    secondary_genres = game_data.get("secondary_genres", [])
+
+    # Build enhanced summary
     summary = f"""
 🎮 **{title}**
 👨‍💻 Developer: {developer}
-🏷️ Genres: {', '.join(genres) if isinstance(genres, list) else genres}
+🎭 Primary Genre: {primary_genre}"""
+
+    # Add secondary genres if present
+    if secondary_genres:
+        summary += f"\n🏷️ Also: {', '.join(secondary_genres[:3])}"
+    elif len(genres) > 1:
+        summary += f"\n🏷️ Genres: {', '.join(genres)}"
+
+    summary += f"""
 💰 Current Price: {current_price}
 💵 MSRP: {msrp}
 ⭐ Metacritic: {metacritic}
-🎯 Platforms: {platforms}
-🔗 Source: {game_data.get('source_url', 'N/A')}
-"""
+🎯 Platforms: {platforms}"""
+
+    # NEW: Add description if available
+    if description and description != "No description available":
+        # Truncate description for summary
+        desc_preview = (
+            description[:150] + "..." if len(description) > 150 else description
+        )
+        summary += f"\n📝 Description: {desc_preview}"
+
+    # NEW: Add awards if present
+    if awards:
+        summary += f"\n🏆 Awards: {len(awards)} including {awards[0]}"
+        if len(awards) > 1:
+            summary += f" and {len(awards)-1} more"
+
+    # Add enhanced metadata indicator
+    metadata = game_data.get("data_extraction_metadata", {})
+    if metadata.get("enhanced_scraping", False):
+        summary += f"\n✨ Enhanced Data Available"
+
+    summary += f"\n🔗 Source: {game_data.get('source_url', 'N/A')}"
 
     return summary.strip()
 

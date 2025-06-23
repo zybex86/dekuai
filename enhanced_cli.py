@@ -669,7 +669,7 @@ class EnhancedCLI:
         return {"success": True, "data": "Results finalized"}
 
     def display_game_analysis_results(self, results: Dict, game_name: str):
-        """Display formatted analysis results."""
+        """Display formatted analysis results with enhanced content from Phase 7.3.1."""
         self.print_header(f"📊 Analysis Results: {game_name}", "success")
 
         # Check if this is an "already owned" result from collection-aware analysis
@@ -680,6 +680,9 @@ class EnhancedCLI:
             # Special handling for already owned games
             self._display_owned_game_results(step_1_data, game_name)
             return
+
+        # NEW: Display enhanced game information first
+        self._display_enhanced_game_info(step_1_data, game_name)
 
         # Check for ownership context in standard analysis
         ownership_context = step_1_data.get("ownership_context")
@@ -752,6 +755,100 @@ class EnhancedCLI:
                 print(f"   {verdict}")
         else:
             self.print_status("No detailed review data available", "warning")
+
+    def _display_enhanced_game_info(self, game_data: Dict, game_name: str):
+        """Display enhanced game information from Phase 7.3.1 enhanced scraping."""
+        if not game_data:
+            return
+
+        # Basic game information
+        title = game_data.get("title", game_name)
+        developer = game_data.get("developer", "Unknown")
+        current_price = game_data.get("current_eshop_price", "N/A")
+        metacritic = game_data.get("metacritic_score", "No score")
+
+        print()
+        self.print_section("🎮 Game Information", style="info")
+        print(f"   📝 Title: {title}")
+        print(f"   👨‍💻 Developer: {developer}")
+        print(f"   💰 Current Price: {current_price}")
+        print(f"   ⭐ Metacritic: {metacritic}")
+
+        # NEW: Enhanced genre display
+        genres = game_data.get("genres", [])
+        primary_genre = game_data.get("primary_genre", "")
+        secondary_genres = game_data.get("secondary_genres", [])
+
+        if genres:
+            print()
+            self.print_section("🎭 Genre Information", style="secondary")
+
+            if primary_genre:
+                print(f"   🎯 Primary: {primary_genre}")
+
+            if secondary_genres:
+                print(f"   🏷️ Also: {', '.join(secondary_genres[:3])}")
+            elif len(genres) > 1:
+                print(f"   🏷️ All: {', '.join(genres)}")
+
+        # NEW: Game description display
+        description = game_data.get("description", "")
+        if description and description != "No description available":
+            print()
+            self.print_section("📝 Game Description", style="info")
+
+            # Show description with option to expand
+            if len(description) > 300:
+                preview = description[:300] + "..."
+                print(f"   {preview}")
+                print()
+                expand = input(colored("   📖 Show full description? (y/n): ", "cyan"))
+                if expand.lower() in ["y", "yes"]:
+                    print()
+                    print(f"   {description}")
+            else:
+                print(f"   {description}")
+
+        # NEW: Awards and achievements display
+        awards = game_data.get("awards", [])
+        if awards:
+            print()
+            self.print_section("🏆 Awards & Recognition", style="highlight")
+
+            # Show main award count first
+            main_award = awards[0] if awards else ""
+            if "Winner of" in main_award:
+                print(f"   🎉 {main_award}")
+                remaining_awards = awards[1:]
+            else:
+                remaining_awards = awards
+
+            # Show individual awards
+            if remaining_awards:
+                print(f"   🏅 Notable Awards:")
+                for i, award in enumerate(remaining_awards[:5], 1):
+                    print(f"      {i}. {award}")
+
+                if len(remaining_awards) > 5:
+                    print(f"      ... and {len(remaining_awards) - 5} more awards")
+
+        # NEW: Enhanced metadata indicator
+        metadata = game_data.get("data_extraction_metadata", {})
+        if metadata.get("enhanced_scraping", False):
+            print()
+            enhanced_features = []
+            if metadata.get("has_description", False):
+                enhanced_features.append("Rich Description")
+            if metadata.get("has_awards", False):
+                enhanced_features.append("Awards Data")
+            if game_data.get("primary_genre"):
+                enhanced_features.append("Enhanced Genres")
+
+            if enhanced_features:
+                self.print_status(
+                    f"✨ Enhanced Data: {', '.join(enhanced_features)} available",
+                    "success",
+                )
 
     def _display_owned_game_results(self, owned_data: Dict, game_name: str):
         """Display special results for already owned games."""
