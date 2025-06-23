@@ -1173,3 +1173,414 @@ result = conversation_manager.analyze_game(user_query)
 - **User-friendly experience**: Clear ownership indicators + alternative suggestions
 
 **Next Milestone: Collaborative Filtering & Advanced Analytics (Faza 7.2)** 🤝📊🚀
+
+---
+
+## 🎯 **FAZA 7.3 - ENHANCED ANALYSIS & COLLECTION-BASED RECOMMENDATIONS** 🚀
+
+### FAZA 7.3.1 - Enhanced Game Analysis with Rich Content (NOWE)
+
+**Cel:** Wzbogacenie wyników analizy gier o pełne opisy i szczegółowe informacje o gatunkach z DekuDeals
+
+#### Komponenty do implementacji:
+
+**A. DekuDeals Scraping Enhancement** (`deku_tools.py`)
+```python
+def scrape_game_details(game_url: str) -> Optional[Dict]:
+    # Existing scraping code...
+    
+    # NEW: --- Game Description Extraction ---
+    description_section = soup.find("div", class_="description") or soup.find("section", id="description")
+    if description_section:
+        # Extract main description text
+        description_text = description_section.get_text(strip=True)
+        game_details["description"] = description_text
+        
+        # Extract awards/achievements if present
+        awards_section = description_section.find_all("div", class_="award") 
+        if awards_section:
+            awards = [award.get_text(strip=True) for award in awards_section]
+            game_details["awards"] = awards
+    else:
+        game_details["description"] = "No description available"
+        
+    # Enhanced genre processing with context
+    if "genres" in game_details:
+        game_details["primary_genre"] = game_details["genres"][0] if game_details["genres"] else "Unknown"
+        game_details["genre_count"] = len(game_details["genres"])
+        
+    return game_details
+```
+
+**B. Analysis Results Enhancement** (`agent_tools.py`)
+```python
+def format_game_summary(game_data: Dict[str, Any]) -> str:
+    # Existing formatting...
+    
+    # NEW: Add description and enhanced genre info
+    description = game_data.get("description", "N/A")
+    primary_genre = game_data.get("primary_genre", "Unknown")
+    awards = game_data.get("awards", [])
+    
+    summary += f"""
+📝 Description: {description[:200]}{'...' if len(description) > 200 else ''}
+🎭 Primary Genre: {primary_genre}
+🏆 Awards: {', '.join(awards[:3]) if awards else 'None listed'}
+"""
+    return summary.strip()
+
+@register_for_llm(description="Generate enhanced game review with description context")
+@register_for_execution()
+def generate_enhanced_game_review(game_name: str) -> Dict[str, Any]:
+    """Generate review incorporating game description for better context"""
+    game_data = search_and_scrape_game(game_name)
+    
+    if not game_data.get("success"):
+        return {"success": False, "error": "Failed to get game data"}
+    
+    # Use description in review generation
+    description = game_data.get("description", "")
+    genres = game_data.get("genres", [])
+    
+    # Enhanced review with context
+    review_prompt = f"""
+    Analyze {game_name} with the following context:
+    Description: {description}
+    Genres: {', '.join(genres)}
+    
+    Generate a comprehensive review considering the game's stated premise and genre positioning.
+    """
+    
+    # Process with existing review generation...
+```
+
+**C. Display Enhancement** (`enhanced_cli.py`)
+```python
+def display_game_analysis_results(self, results: Dict, game_name: str):
+    # Existing display code...
+    
+    # NEW: Rich content display
+    game_data = results.get("step_1", {}).get("data", {})
+    description = game_data.get("description", "")
+    genres = game_data.get("genres", [])
+    awards = game_data.get("awards", [])
+    
+    if description and description != "No description available":
+        print()
+        self.print_section("📝 Game Description", style="info")
+        # Truncate long descriptions with expansion option
+        if len(description) > 300:
+            print(f"   {description[:300]}...")
+            expand = input(colored("   Show full description? (y/n): ", "cyan"))
+            if expand.lower() == 'y':
+                print(f"   {description}")
+        else:
+            print(f"   {description}")
+    
+    if genres:
+        print()
+        self.print_section("🎭 Genre Information", style="secondary")
+        primary = genres[0] if genres else "Unknown"
+        secondary = genres[1:4] if len(genres) > 1 else []
+        print(f"   Primary: {primary}")
+        if secondary:
+            print(f"   Also: {', '.join(secondary)}")
+    
+    if awards:
+        print()
+        self.print_section("🏆 Awards & Recognition", style="highlight")
+        for award in awards[:5]:  # Show top 5 awards
+            print(f"   • {award}")
+```
+
+**Oczekiwane korzyści:**
+- Bardziej informacyjne wyniki analizy
+- Lepszy kontekst dla generowania recenzji  
+- Ulepszone podejmowanie decyzji przez użytkowników
+- Zwiększone zrozumienie treści gry przez agentów
+
+### FAZA 7.3.2 - Collection-Based Game Recommendations (NOWE)
+
+**Cel:** Generowanie spersonalizowanych rekomendacji gier na podstawie kolekcji użytkownika
+
+#### Komponenty do implementacji:
+
+**A. Collection Recommendation Engine** (`utils/collection_recommendation_engine.py`)
+```python
+from typing import Dict, List, Any, Tuple
+import json
+from collections import Counter, defaultdict
+from datetime import datetime
+
+class CollectionRecommendationEngine:
+    def __init__(self):
+        self.similarity_weights = {
+            'genre_match': 0.4,
+            'developer_match': 0.2, 
+            'rating_correlation': 0.2,
+            'theme_similarity': 0.1,
+            'price_range_match': 0.1
+        }
+    
+    def analyze_collection_preferences(self, user_collection: List[Dict]) -> Dict[str, Any]:
+        """Analyze user's collection to extract preferences"""
+        preferences = {
+            'favorite_genres': self._extract_genre_preferences(user_collection),
+            'favorite_developers': self._extract_developer_preferences(user_collection),
+            'preferred_price_range': self._calculate_price_preferences(user_collection),
+            'rating_patterns': self._analyze_rating_patterns(user_collection),
+            'collection_gaps': self._identify_collection_gaps(user_collection)
+        }
+        return preferences
+    
+    def generate_recommendations(self, user_collection: List[Dict], candidate_games: List[Dict], 
+                               recommendation_type: str = "similar") -> List[Dict]:
+        """Generate recommendations based on collection analysis"""
+        
+        preferences = self.analyze_collection_preferences(user_collection)
+        recommendations = []
+        
+        for game in candidate_games:
+            similarity_score = self._calculate_similarity_score(game, preferences)
+            
+            if similarity_score > 0.6:  # Threshold for recommendations
+                rec = {
+                    'game_title': game.get('title', 'Unknown'),
+                    'similarity_score': similarity_score,
+                    'recommendation_reasons': self._generate_recommendation_reasons(game, preferences),
+                    'confidence_level': self._calculate_confidence(similarity_score, game),
+                    'match_details': self._get_match_details(game, preferences)
+                }
+                recommendations.append(rec)
+        
+        # Sort by similarity score
+        recommendations.sort(key=lambda x: x['similarity_score'], reverse=True)
+        return recommendations[:10]  # Top 10 recommendations
+    
+    def _extract_genre_preferences(self, collection: List[Dict]) -> Dict[str, float]:
+        """Extract genre preferences with ratings weighting"""
+        genre_scores = defaultdict(list)
+        
+        for game in collection:
+            genres = game.get('genres', [])
+            rating = game.get('user_rating', 5)  # Default to neutral
+            
+            for genre in genres:
+                genre_scores[genre].append(rating)
+        
+        # Calculate weighted averages
+        genre_preferences = {}
+        for genre, ratings in genre_scores.items():
+            avg_rating = sum(ratings) / len(ratings)
+            frequency_weight = len(ratings) / len(collection)
+            genre_preferences[genre] = avg_rating * frequency_weight
+        
+        return genre_preferences
+    
+    def _generate_recommendation_reasons(self, game: Dict, preferences: Dict) -> List[str]:
+        """Generate human-readable reasons for recommendation"""
+        reasons = []
+        
+        game_genres = game.get('genres', [])
+        favorite_genres = preferences.get('favorite_genres', {})
+        
+        # Genre matches
+        genre_matches = [g for g in game_genres if g in favorite_genres and favorite_genres[g] > 6]
+        if genre_matches:
+            reasons.append(f"Matches your favorite genres: {', '.join(genre_matches)}")
+        
+        # Developer matches
+        developer = game.get('developer', '')
+        fav_developers = preferences.get('favorite_developers', {})
+        if developer in fav_developers:
+            reasons.append(f"From {developer}, who made games you rated highly")
+        
+        # Collection gaps
+        gaps = preferences.get('collection_gaps', [])
+        if any(genre in game_genres for genre in gaps):
+            matching_gaps = [g for g in gaps if g in game_genres]
+            reasons.append(f"Fills gaps in your collection: {', '.join(matching_gaps)}")
+        
+        return reasons
+```
+
+**B. AutoGen Tool Integration** (`agent_tools.py`)
+```python
+@register_for_llm(
+    description="Generate game recommendations based on user's collection - Input: recommendation_type (str, optional), max_recommendations (int, optional) - Output: Dict with personalized recommendations"
+)
+@register_for_execution()  
+def generate_collection_based_recommendations(
+    recommendation_type: str = "similar", max_recommendations: int = 10
+) -> Dict[str, Any]:
+    """Generate personalized game recommendations based on user's collection"""
+    
+    try:
+        # Get current user's collection
+        collection_result = get_user_game_collection(limit=100)
+        if not collection_result.get("success"):
+            return {"success": False, "error": "Unable to access user collection"}
+        
+        user_collection = collection_result.get("games", [])
+        if len(user_collection) < 3:
+            return {
+                "success": False, 
+                "error": "Need at least 3 games in collection for meaningful recommendations"
+            }
+        
+        # Get candidate games (popular games, recent releases, etc.)
+        candidate_games = _get_candidate_games_for_recommendations()
+        
+        # Generate recommendations
+        engine = CollectionRecommendationEngine()
+        recommendations = engine.generate_recommendations(
+            user_collection, candidate_games, recommendation_type
+        )
+        
+        return {
+            "success": True,
+            "recommendations": recommendations[:max_recommendations],
+            "recommendation_type": recommendation_type,
+            "based_on_games": len(user_collection),
+            "collection_analysis": engine.analyze_collection_preferences(user_collection),
+            "generated_at": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        return {"success": False, "error": f"Recommendation generation failed: {str(e)}"}
+
+def _get_candidate_games_for_recommendations() -> List[Dict]:
+    """Get pool of candidate games for recommendations"""
+    # Get popular games from different categories
+    candidates = []
+    
+    categories = ["hottest", "recent-releases", "highly-rated", "indie"]
+    for category in categories:
+        category_result = scrape_dekudeals_category(category, max_games=20)
+        if category_result.get("success"):
+            candidates.extend(category_result.get("games", []))
+    
+    # Remove duplicates and return
+    seen_titles = set()
+    unique_candidates = []
+    for game in candidates:
+        title = game.get("title", "")
+        if title not in seen_titles:
+            unique_candidates.append(game)
+            seen_titles.add(title)
+    
+    return unique_candidates
+```
+
+**C. Enhanced Analysis Integration**
+```python
+def display_game_analysis_results(self, results: Dict, game_name: str):
+    # Existing display code...
+    
+    # NEW: Show collection-based recommendations after analysis
+    if results.get("step_1", {}).get("success"):
+        try:
+            rec_result = generate_collection_based_recommendations("similar", 5)
+            if rec_result.get("success") and rec_result.get("recommendations"):
+                print()
+                self.print_section("🎯 Recommended For You", style="highlight")
+                print("   Based on your game collection:")
+                
+                for i, rec in enumerate(rec_result["recommendations"][:3], 1):
+                    title = rec.get("game_title", "Unknown")
+                    score = rec.get("similarity_score", 0)
+                    reasons = rec.get("recommendation_reasons", [])
+                    
+                    print(f"   {i}. {title} ({score:.1%} match)")
+                    if reasons:
+                        print(f"      • {reasons[0]}")
+                
+                print()
+                view_more = input(colored("   View all recommendations? (y/n): ", "cyan"))
+                if view_more.lower() == 'y':
+                    self._display_full_recommendations(rec_result)
+        except Exception as e:
+            logger.debug(f"Collection recommendations failed (non-critical): {e}")
+```
+
+**D. CLI Menu Enhancement** (`enhanced_cli.py`)
+```python
+def game_collection_management_menu(self):
+    # Existing menu options...
+    
+    collection_options = [
+        # ... existing options
+        "Get Collection-Based Recommendations",
+        "Analyze Collection Preferences", 
+        "Find Similar Games to Favorites",
+        "Discover New Genres"
+    ]
+    
+    # Handle new options
+    if "Get Collection-Based Recommendations" in choice:
+        self._show_collection_recommendations_menu()
+
+def _show_collection_recommendations_menu(self):
+    """Interactive collection-based recommendations"""
+    self.print_section("🎯 Collection-Based Recommendations", style="highlight")
+    
+    rec_types = [
+        ("similar", "Games similar to your favorites"),
+        ("discovery", "New genres to explore"), 
+        ("developer", "More from your favorite developers"),
+        ("complementary", "Games that complement your collection")
+    ]
+    
+    print("Recommendation types:")
+    for i, (rec_type, description) in enumerate(rec_types, 1):
+        print(f"  {i}. {description}")
+    
+    choice = input(colored("Select recommendation type (1-4): ", "cyan"))
+    
+    try:
+        rec_type = rec_types[int(choice) - 1][0]
+        result = generate_collection_based_recommendations(rec_type, 15)
+        
+        if result.get("success"):
+            self._display_detailed_recommendations(result)
+        else:
+            self.print_status(f"Failed to generate recommendations: {result.get('error')}", "error")
+    except (ValueError, IndexError):
+        self.print_status("Invalid choice", "error")
+```
+
+**Typy rekomendacji:**
+- **"Similar"**: Gry podobne do najwyżej ocenionych przez użytkownika
+- **"Discovery"**: Gry w słabo reprezentowanych gatunkach w kolekcji  
+- **"Developer"**: Więcej gier od ulubionych deweloperów
+- **"Complementary"**: Gry wypełniające luki w kolekcji
+
+**Oczekiwane korzyści:**
+- Spersonalizowane odkrywanie nowych gier
+- Lepsze wykorzystanie danych kolekcji użytkownika
+- Inteligentne sugestie oparte na preferencjach
+- Zwiększone zaangażowanie użytkowników
+
+---
+
+## 🎯 **ROADMAP IMPLEMENTATION PLAN**
+
+### **Phase 7.3.1 Implementation Steps:**
+1. **Week 1**: Enhance DekuDeals scraping with description extraction
+2. **Week 2**: Update analysis results formatting and display
+3. **Week 3**: Integrate description context into review generation
+4. **Week 4**: Testing and CLI enhancement
+
+### **Phase 7.3.2 Implementation Steps:**  
+1. **Week 1**: Build CollectionRecommendationEngine core functionality
+2. **Week 2**: Implement AutoGen tool integration
+3. **Week 3**: Add CLI menu options and interactive features
+4. **Week 4**: Testing and recommendation algorithm tuning
+
+### **Success Metrics:**
+- **Description Coverage**: 90%+ games have extracted descriptions
+- **Recommendation Accuracy**: User satisfaction > 75% for recommendations
+- **Performance**: Recommendation generation < 3 seconds
+- **User Engagement**: 30%+ increase in collection interactions
+
+---

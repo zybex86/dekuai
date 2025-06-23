@@ -96,7 +96,7 @@ build-prod: ## Build optimized production image
 # ===================================================================
 dev: setup check-env build ## Start development environment
 	@echo "$(BLUE)🚀 Starting development environment...$(RESET)"
-	docker-compose up -d
+	docker compose up -d
 	@echo "$(GREEN)✅ Development environment started$(RESET)"
 	@echo "$(YELLOW)📝 Run 'make logs' to see container logs$(RESET)"
 	@echo "$(YELLOW)🐚 Run 'make shell' to access container shell$(RESET)"
@@ -127,18 +127,18 @@ prod-deploy: setup check-env build-prod ## Deploy to production
 	export VERSION=$(VERSION) && \
 	export BUILD_DATE=$(BUILD_DATE) && \
 	export VCS_REF=$(VCS_REF) && \
-	docker-compose -f docker-compose.prod.yml up -d
+	docker compose -f docker compose.prod.yml up -d
 	@echo "$(GREEN)✅ Production deployment completed$(RESET)"
 
 prod-update: build-prod ## Update production deployment
 	@echo "$(BLUE)🔄 Updating production deployment...$(RESET)"
 	export VERSION=$(VERSION) && \
-	docker-compose -f docker-compose.prod.yml up -d --force-recreate
+	docker compose -f docker compose.prod.yml up -d --force-recreate
 	@echo "$(GREEN)✅ Production update completed$(RESET)"
 
 prod-stop: ## Stop production environment
 	@echo "$(BLUE)🛑 Stopping production environment...$(RESET)"
-	docker-compose -f docker-compose.prod.yml down
+	docker compose -f docker compose.prod.yml down
 	@echo "$(GREEN)✅ Production environment stopped$(RESET)"
 
 # ===================================================================
@@ -166,27 +166,27 @@ test-comprehensive: build ## Run comprehensive tests
 # ===================================================================
 logs: ## Show container logs
 	@echo "$(BLUE)📜 Showing container logs...$(RESET)"
-	docker-compose logs -f autogen-dekudeals
+	docker compose logs -f autogen-dekudeals
 
 logs-prod: ## Show production logs
 	@echo "$(BLUE)📜 Showing production logs...$(RESET)"
-	docker-compose -f docker-compose.prod.yml logs -f autogen-dekudeals
+	docker compose -f docker compose.prod.yml logs -f autogen-dekudeals
 
 status: ## Show container status
 	@echo "$(BLUE)📊 Container Status:$(RESET)"
-	docker-compose ps
+	docker compose ps
 
 status-prod: ## Show production status
 	@echo "$(BLUE)📊 Production Status:$(RESET)"
-	docker-compose -f docker-compose.prod.yml ps
+	docker compose -f docker compose.prod.yml ps
 
 shell: ## Access container shell
 	@echo "$(BLUE)🐚 Accessing container shell...$(RESET)"
-	docker-compose exec autogen-dekudeals /bin/bash
+	docker compose exec autogen-dekudeals /bin/bash
 
 shell-prod: ## Access production container shell
 	@echo "$(BLUE)🐚 Accessing production container shell...$(RESET)"
-	docker-compose -f docker-compose.prod.yml exec autogen-dekudeals /bin/bash
+	docker compose -f docker compose.prod.yml exec autogen-dekudeals /bin/bash
 
 health: ## Check container health
 	@echo "$(BLUE)❤️  Checking container health...$(RESET)"
@@ -199,12 +199,12 @@ health: ## Check container health
 # ===================================================================
 stop: ## Stop development environment
 	@echo "$(BLUE)🛑 Stopping development environment...$(RESET)"
-	docker-compose down
+	docker compose down
 	@echo "$(GREEN)✅ Development environment stopped$(RESET)"
 
 clean: stop ## Clean up containers and images
 	@echo "$(BLUE)🧹 Cleaning up...$(RESET)"
-	docker-compose down -v --remove-orphans
+	docker compose down -v --remove-orphans
 	docker image prune -f
 	@echo "$(GREEN)✅ Cleanup completed$(RESET)"
 
@@ -213,8 +213,8 @@ clean-all: ## Clean everything (containers, images, volumes)
 	@read -p "Are you sure? (y/N): " confirm; \
 	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
 		echo "$(BLUE)🧹 Cleaning everything...$(RESET)"; \
-		docker-compose down -v --remove-orphans; \
-		docker-compose -f docker-compose.prod.yml down -v --remove-orphans; \
+		docker compose down -v --remove-orphans; \
+		docker compose -f docker compose.prod.yml down -v --remove-orphans; \
 		docker system prune -af --volumes; \
 		echo "$(GREEN)✅ Complete cleanup finished$(RESET)"; \
 	else \
@@ -454,7 +454,7 @@ docker-run:
 
 docker-dev:
 	@echo "🔧 Running development Docker..."
-	docker-compose up --build
+	docker compose up --build
 
 # ===============================
 # Development Commands

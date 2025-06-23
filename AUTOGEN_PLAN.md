@@ -198,7 +198,79 @@ else:
 
 ## 🎯 Next Development Priorities
 
-### 🔄 PLANNED (Phase 7.2+):
+### 🔄 PLANNED (Phase 7.3 - Enhanced Analysis & Recommendations):
+
+#### 7.3.1 Enhanced Game Analysis with Rich Content
+**Goal:** Include comprehensive game descriptions and genre information in analysis results
+- **Description Integration**: Extract full game descriptions from DekuDeals pages
+- **Genre Enhancement**: Show detailed genre information with context
+- **Rich Analysis Display**: Enhanced CLI and results presentation
+- **Context-Aware Reviews**: Incorporate game description into review generation
+
+**Implementation Approach:**
+1. **DekuDeals Scraping Enhancement** (`deku_tools.py`)
+   - Add description extraction from game pages
+   - Parse description section: "Hunted and alone, a boy finds himself drawn..." 
+   - Clean and format descriptions for analysis
+   - Extract additional metadata (awards, achievements, etc.)
+
+2. **Analysis Results Enhancement** (`agent_tools.py`)
+   - Update `search_and_scrape_game()` to include description
+   - Enhance `format_game_summary()` with description display
+   - Modify `generate_comprehensive_game_review()` to use description context
+   - Update analysis confidence scoring based on available description data
+
+3. **Display Enhancement** (`enhanced_cli.py`)
+   - Update `display_game_analysis_results()` to show description
+   - Add genre highlighting and categorization
+   - Enhanced formatting for rich content presentation
+   - Description truncation with expansion options
+
+**Expected Benefits:**
+- More informative analysis results
+- Better context for review generation
+- Enhanced user decision-making with full game details
+- Improved agent understanding of game content
+
+#### 7.3.2 Collection-Based Game Recommendations
+**Goal:** Generate personalized game recommendations based on user's owned games collection
+- **Similarity Analysis**: Match games based on genres, developers, themes
+- **Preference Learning**: Extract patterns from user's collection ratings
+- **Smart Suggestions**: Recommend games similar to highly-rated owned games
+- **Discovery Features**: Suggest games that complement collection gaps
+
+**Implementation Approach:**
+1. **Recommendation Engine** (`utils/collection_recommendation_engine.py`)
+   - Analyze user's collection for genre preferences
+   - Calculate similarity scores between games
+   - Weight recommendations by user ratings and play patterns
+   - Generate explanations for why games are recommended
+
+2. **AutoGen Tool Integration** (`agent_tools.py`)
+   - New tool: `generate_collection_based_recommendations()` 
+   - Integration with existing ML recommendation system
+   - Collection-aware filtering and personalization
+   - Support for different recommendation types (similar, complementary, discovery)
+
+3. **Analysis Integration**
+   - Update `display_game_analysis_results()` to show recommendations
+   - Add "Similar to your collection" sections
+   - Display recommendation explanations and confidence scores
+   - Integration with collection-aware analysis flow
+
+4. **CLI Enhancement** (`enhanced_cli.py`)
+   - New menu option: "Get Collection-Based Recommendations"
+   - Interactive recommendation browsing
+   - Filter recommendations by genre, price range, rating
+   - Quick-add recommended games to wishlist
+
+**Recommendation Types:**
+- **"More Like This"**: Games similar to user's top-rated titles
+- **"Fill the Gaps"**: Games in under-represented genres in collection
+- **"Developer Favorites"**: More games from favorite developers
+- **"Hidden Gems"**: High-quality games in user's preferred genres
+
+### 🔄 PLANNED (Phase 7.4+):
 1. **Collaborative Filtering & Advanced Analytics**
    - User similarity matching for community recommendations
    - Advanced behavior analytics with pattern clustering
