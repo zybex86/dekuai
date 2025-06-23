@@ -1,144 +1,8 @@
 {
   "games": {
-    "hollow_knight": {
-      "title": "Hollow Knight",
-      "status": "owned",
-      "platform": "Nintendo Switch",
-      "date_added": "2025-06-20T11:19:55.544337",
-      "user_rating": 9.5,
-      "hours_played": null,
-      "purchase_price": null,
-      "current_price": null,
-      "notes": "Amazing metroidvania!",
-      "tags": [],
-      "import_source": "manual",
-      "steam_id": null,
-      "dekudeals_url": null,
-      "last_updated": "2025-06-20T11:19:55.544340"
-    },
-    "hades": {
-      "title": "Hades",
-      "status": "owned",
-      "platform": "Nintendo Switch",
-      "date_added": "2025-06-20T11:19:55.544655",
-      "user_rating": 9.0,
-      "hours_played": null,
-      "purchase_price": null,
-      "current_price": null,
-      "notes": "Bought it! Absolutely fantastic game!",
-      "tags": [],
-      "import_source": "manual",
-      "steam_id": null,
-      "dekudeals_url": null,
-      "last_updated": "2025-06-20T11:21:31.264901"
-    },
-    "the_legend_of_zelda_breath_of_the_wild": {
-      "title": "The Legend of Zelda: Breath of the Wild",
-      "status": "owned",
-      "platform": "Nintendo Switch",
-      "date_added": "2025-06-20T11:19:55.547566",
-      "user_rating": null,
-      "hours_played": 120,
-      "purchase_price": null,
-      "current_price": null,
-      "notes": "Open world masterpiece",
-      "tags": [
-        "adventure;open-world"
-      ],
-      "import_source": "csv",
-      "steam_id": null,
-      "dekudeals_url": null,
-      "last_updated": "2025-06-20T11:19:55.547567"
-    },
-    "super_mario_odyssey": {
-      "title": "Super Mario Odyssey",
-      "status": "completed",
-      "platform": "Nintendo Switch",
-      "date_added": "2025-06-20T11:19:55.547574",
-      "user_rating": null,
-      "hours_played": 65,
-      "purchase_price": null,
-      "current_price": null,
-      "notes": "Great 3D platformer",
-      "tags": [
-        "platformer;mario"
-      ],
-      "import_source": "csv",
-      "steam_id": null,
-      "dekudeals_url": null,
-      "last_updated": "2025-06-20T11:19:55.547575"
-    },
-    "animal_crossing_new_horizons": {
-      "title": "Animal Crossing: New Horizons",
-      "status": "playing",
-      "platform": "Nintendo Switch",
-      "date_added": "2025-06-20T11:19:55.547581",
-      "user_rating": null,
-      "hours_played": 200,
-      "purchase_price": null,
-      "current_price": null,
-      "notes": "Relaxing life sim",
-      "tags": [
-        "simulation;relaxing"
-      ],
-      "import_source": "csv",
-      "steam_id": null,
-      "dekudeals_url": null,
-      "last_updated": "2025-06-20T11:19:55.547582"
-    },
-    "fire_emblem_three_houses": {
-      "title": "Fire Emblem: Three Houses",
-      "status": "wishlist",
-      "platform": "Nintendo Switch",
-      "date_added": "2025-06-20T11:19:55.547590",
-      "user_rating": null,
-      "hours_played": null,
-      "purchase_price": null,
-      "current_price": null,
-      "notes": "Strategic RPG, want to try",
-      "tags": [
-        "strategy;rpg"
-      ],
-      "import_source": "csv",
-      "steam_id": null,
-      "dekudeals_url": null,
-      "last_updated": "2025-06-20T11:19:55.547591"
-    },
-    "user1_exclusive_game": {
-      "title": "User1 Exclusive Game",
-      "status": "owned",
-      "platform": "Nintendo Switch",
-      "date_added": "2025-06-20T11:21:31.272572",
-      "user_rating": 8.0,
-      "hours_played": null,
-      "purchase_price": null,
-      "current_price": null,
-      "notes": "",
-      "tags": [],
-      "import_source": "manual",
-      "steam_id": null,
-      "dekudeals_url": null,
-      "last_updated": "2025-06-20T11:21:31.272573"
-    },
-    "user2_exclusive_game": {
-      "title": "User2 Exclusive Game",
-      "status": "owned",
-      "platform": "Nintendo Switch",
-      "date_added": "2025-06-20T11:21:31.274253",
-      "user_rating": 7.5,
-      "hours_played": null,
-      "purchase_price": null,
-      "current_price": null,
-      "notes": "",
-      "tags": [],
-      "import_source": "manual",
-      "steam_id": null,
-      "dekudeals_url": null,
-      "last_updated": "2025-06-20T11:21:31.274255"
-    },
     "actraiser_renaissance": {
       "title": "Actraiser Renaissance",
-      "status": "wishlist",
+      "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.867469",
       "user_rating": null,
@@ -154,7 +18,7 @@
     },
     "bastion": {
       "title": "Bastion",
-      "status": "wishlist",
+      "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.868375",
       "user_rating": null,
@@ -170,7 +34,7 @@
     },
     "child_of_light_ultimate_edition": {
       "title": "Child of Light Ultimate Edition",
-      "status": "wishlist",
+      "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.869199",
       "user_rating": null,
@@ -186,7 +50,7 @@
     },
     "deltarune": {
       "title": "DELTARUNE",
-      "status": "wishlist",
+      "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.870053",
       "user_rating": null,
@@ -202,7 +66,7 @@
     },
     "dragon_quest_builders": {
       "title": "Dragon Quest Builders",
-      "status": "wishlist",
+      "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.870960",
       "user_rating": null,
@@ -218,7 +82,7 @@
     },
     "final_fantasy_xv_pocket_edition_hd": {
       "title": "FINAL FANTASY XV POCKET EDITION HD",
-      "status": "wishlist",
+      "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.872509",
       "user_rating": null,
@@ -234,7 +98,7 @@
     },
     "the_great_ace_attorney_chronicles": {
       "title": "The Great Ace Attorney Chronicles",
-      "status": "wishlist",
+      "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.873443",
       "user_rating": null,
@@ -250,7 +114,7 @@
     },
     "hero's_hour": {
       "title": "Hero's Hour",
-      "status": "wishlist",
+      "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.874417",
       "user_rating": null,
@@ -266,7 +130,7 @@
     },
     "iconoclasts": {
       "title": "Iconoclasts",
-      "status": "wishlist",
+      "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.875491",
       "user_rating": null,
@@ -282,7 +146,7 @@
     },
     "mario_+_rabbids_kingdom_battle": {
       "title": "Mario + Rabbids Kingdom Battle",
-      "status": "wishlist",
+      "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.876580",
       "user_rating": null,
@@ -298,7 +162,7 @@
     },
     "marooners": {
       "title": "Marooners",
-      "status": "wishlist",
+      "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.877758",
       "user_rating": null,
@@ -314,7 +178,7 @@
     },
     "minecraft": {
       "title": "Minecraft",
-      "status": "wishlist",
+      "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.879050",
       "user_rating": null,
@@ -330,7 +194,7 @@
     },
     "minigolf_adventure": {
       "title": "Minigolf Adventure",
-      "status": "wishlist",
+      "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.880330",
       "user_rating": null,
@@ -346,7 +210,7 @@
     },
     "moonlighter": {
       "title": "Moonlighter",
-      "status": "wishlist",
+      "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.881662",
       "user_rating": null,
@@ -362,7 +226,7 @@
     },
     "overcooked!_all_you_can_eat": {
       "title": "Overcooked! All You Can Eat",
-      "status": "wishlist",
+      "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.883061",
       "user_rating": null,
@@ -378,7 +242,7 @@
     },
     "overcooked_special_edition": {
       "title": "Overcooked Special Edition",
-      "status": "wishlist",
+      "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.884637",
       "user_rating": null,
@@ -394,7 +258,7 @@
     },
     "party_treats": {
       "title": "Party Treats",
-      "status": "wishlist",
+      "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.886414",
       "user_rating": null,
@@ -410,7 +274,7 @@
     },
     "pixeljunk_monsters_2": {
       "title": "PixelJunk Monsters 2",
-      "status": "wishlist",
+      "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.888217",
       "user_rating": null,
@@ -426,7 +290,7 @@
     },
     "rayman_legends_definitive_edition": {
       "title": "Rayman Legends Definitive Edition",
-      "status": "wishlist",
+      "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.890114",
       "user_rating": null,
@@ -442,7 +306,7 @@
     },
     "star_ocean_first_departure_r": {
       "title": "STAR OCEAN First Departure R",
-      "status": "wishlist",
+      "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.892102",
       "user_rating": null,
@@ -458,7 +322,7 @@
     },
     "steamworld_dig": {
       "title": "SteamWorld Dig",
-      "status": "wishlist",
+      "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.894034",
       "user_rating": null,
@@ -474,7 +338,7 @@
     },
     "steamworld_dig_2": {
       "title": "SteamWorld Dig 2",
-      "status": "wishlist",
+      "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.895941",
       "user_rating": null,
@@ -490,7 +354,7 @@
     },
     "steamworld_heist_ii": {
       "title": "SteamWorld Heist II",
-      "status": "wishlist",
+      "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.897837",
       "user_rating": null,
@@ -506,7 +370,7 @@
     },
     "steamworld_heist_ultimate_edition": {
       "title": "SteamWorld Heist: Ultimate Edition",
-      "status": "wishlist",
+      "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.899871",
       "user_rating": null,
@@ -522,7 +386,7 @@
     },
     "steamworld_quest_hand_of_gilgamech": {
       "title": "SteamWorld Quest: Hand of Gilgamech",
-      "status": "wishlist",
+      "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.901908",
       "user_rating": null,
@@ -538,7 +402,7 @@
     },
     "trine_2_complete_story": {
       "title": "Trine 2: Complete Story",
-      "status": "wishlist",
+      "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.903963",
       "user_rating": null,
@@ -554,7 +418,7 @@
     },
     "trine_enchanted_edition": {
       "title": "Trine Enchanted Edition",
-      "status": "wishlist",
+      "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.905987",
       "user_rating": null,
@@ -570,7 +434,7 @@
     },
     "trine_ultimate_collection": {
       "title": "Trine: Ultimate Collection",
-      "status": "wishlist",
+      "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.908012",
       "user_rating": null,
@@ -586,7 +450,7 @@
     },
     "wargroove": {
       "title": "Wargroove",
-      "status": "wishlist",
+      "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.910160",
       "user_rating": null,
@@ -602,7 +466,7 @@
     },
     "woodle_tree_2_deluxe": {
       "title": "Woodle Tree 2: Deluxe",
-      "status": "wishlist",
+      "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.912323",
       "user_rating": null,
@@ -618,7 +482,7 @@
     },
     "woodle_tree_adventures_deluxe": {
       "title": "Woodle Tree Adventures Deluxe",
-      "status": "wishlist",
+      "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.914562",
       "user_rating": null,
@@ -634,26 +498,26 @@
     }
   },
   "stats": {
-    "total_games": 39,
-    "owned_games": 5,
-    "wishlist_games": 32,
-    "completed_games": 1,
+    "total_games": 33,
+    "wishlist_games": 0,
+    "owned_games": 33,
+    "completed_games": 3,
     "total_value": 0.0,
-    "average_rating": 8.5,
+    "average_rating": 8.48,
     "total_hours": 385,
     "favorite_genres": [],
     "platforms": {
-      "Nintendo Switch": 39
+      "Nintendo Switch": 46
     },
     "import_sources": {
-      "manual": 35,
+      "manual": 42,
       "csv": 4
     },
-    "last_updated": "2025-06-20T12:57:38.914619"
+    "last_updated": "2025-06-23T13:33:26.758218"
   },
   "metadata": {
     "user_id": "user_7_20250620_093336",
-    "last_saved": "2025-06-20T12:57:38.916080",
+    "last_saved": "2025-06-23T13:33:26.759437",
     "version": "1.0.0"
   }
 }

@@ -6,7 +6,7 @@
 # ===================================================================
 # STAGE 1: Builder - Install dependencies and prepare application
 # ===================================================================
-FROM python:3.12.8-slim as builder
+FROM python:3.12.8-slim AS builder
 
 LABEL maintainer="AutoGen DekuDeals Team"
 LABEL description="AutoGen DekuDeals Game Analysis System - Builder Stage"
@@ -58,7 +58,7 @@ RUN mkdir -p /app/logs /app/cache && \
 # ===================================================================
 # STAGE 2: Production - Final optimized image
 # ===================================================================
-FROM python:3.12.8-slim as production
+FROM python:3.12.8-slim AS production
 
 LABEL maintainer="AutoGen DekuDeals Team"
 LABEL description="AutoGen DekuDeals Game Analysis System - Production"

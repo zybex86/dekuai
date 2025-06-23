@@ -1096,10 +1096,11 @@ class EnhancedCLI:
                 "❌ Remove game from collection",
                 "📋 View my game collection",
                 "🔍 Check if game is owned",
+                "🎯 Get collection-based recommendations",
                 "🔗 Import Steam library",
                 "📁 Import from CSV file",
                 "💾 Export collection to CSV",
-                "🎯 Get recommendation filter",
+                "📊 Get recommendation filter",
                 "🌐 Import DekuDeals collection",
                 "🔙 Back to main menu",
             ],
@@ -1123,6 +1124,10 @@ class EnhancedCLI:
 
         elif "Check if game is owned" in action:
             self.check_game_ownership_interactive()
+            return True
+
+        elif "Get collection-based recommendations" in action:
+            self.get_collection_recommendations_interactive()
             return True
 
         elif "Import Steam library" in action:
@@ -1620,6 +1625,242 @@ class EnhancedCLI:
 
         except Exception as e:
             self.print_status(f"❌ Collection view error: {str(e)}", "error")
+
+    def get_collection_recommendations_interactive(self):
+        """Interactive collection-based recommendations."""
+        self.print_section("🎯 Collection-Based Recommendations", "highlight")
+
+        try:
+            # Import the function here to avoid issues
+            from agent_tools import generate_collection_based_recommendations
+
+            # Show collection status first
+            try:
+                collection_data = get_user_game_collection(limit=5)
+                if collection_data.get("success", False):
+                    stats = collection_data.get("statistics", {})
+                    total_games = stats.get("total_games", 0)
+                    owned_games = stats.get("owned_games", 0)
+                    average_rating = stats.get("average_rating", 0)
+
+                    self.print_status(
+                        f"📚 Your Collection: {total_games} games ({owned_games} owned)",
+                        "info",
+                    )
+                    if average_rating > 0:
+                        self.print_status(
+                            f"⭐ Average Rating: {average_rating:.1f}/10", "info"
+                        )
+            except:
+                pass
+
+            # Get recommendation type
+            rec_type = self.get_user_choice(
+                "Select recommendation type:",
+                [
+                    "🎲 Similar games (based on your favorites)",
+                    "🔍 Discovery (explore new genres)",
+                    "👨‍💻 Developer favorites (more from favorite developers)",
+                    "🧩 Complementary (fill collection gaps)",
+                    "🔙 Back to collection menu",
+                ],
+            )
+
+            if not rec_type or "Back to collection menu" in rec_type:
+                return
+
+            # Map choice to type
+            type_map = {
+                "Similar games": "similar",
+                "Discovery": "discovery",
+                "Developer favorites": "developer",
+                "Complementary": "complementary",
+            }
+
+            recommendation_type = next(
+                (v for k, v in type_map.items() if k in rec_type), "similar"
+            )
+
+            # Get number of recommendations
+            max_recs = self.get_user_choice(
+                "How many recommendations?",
+                [
+                    "5 recommendations",
+                    "10 recommendations",
+                    "15 recommendations",
+                    "20 recommendations",
+                ],
+            )
+
+            if not max_recs:
+                return
+
+            max_recommendations = int(max_recs.split()[0])
+
+            # Show progress
+            self.print_status(
+                f"🎯 Generating {recommendation_type} recommendations...", "loading"
+            )
+
+            # Generate recommendations
+            result = generate_collection_based_recommendations(
+                recommendation_type=recommendation_type,
+                max_recommendations=max_recommendations,
+            )
+
+            if result.get("success", False):
+                recommendations = result.get("recommendations", [])
+                summary = result.get("recommendation_summary", {})
+                insights = result.get("collection_insights", {})
+
+                # Show success message
+                message = result.get("message", "Generated recommendations")
+                self.print_status(f"✅ {message}", "success")
+
+                # Show collection summary
+                based_on = summary.get("based_on_collection", {})
+                total_games = based_on.get("total_games", 0)
+                confidence = based_on.get("confidence_level", "unknown")
+
+                print()
+                cprint("   📊 Recommendation Summary:", "cyan", attrs=["bold"])
+                cprint(
+                    f"      📚 Based on: {total_games} games in your collection",
+                    "white",
+                )
+                cprint(f"      🎯 Type: {recommendation_type.title()}", "white")
+                cprint(f"      📈 Confidence: {confidence}", "white")
+
+                # Show key preferences
+                key_prefs = summary.get("key_preferences", {})
+                fav_genres = key_prefs.get("favorite_genres", [])
+                if fav_genres:
+                    genre_list = [f"{genre}" for genre, _ in fav_genres]
+                    cprint(f"      🎭 Top Genres: {', '.join(genre_list[:3])}", "white")
+
+                # Display recommendations
+                if recommendations:
+                    print()
+                    cprint("   🎮 Recommended Games:", "cyan", attrs=["bold"])
+
+                    for i, rec in enumerate(recommendations, 1):
+                        title = rec.get("game_title", "Unknown")
+                        score = rec.get("recommendation_score", 0)
+                        confidence = rec.get("confidence", "unknown")
+                        reason = rec.get("primary_reason", "No reason provided")
+
+                        print()
+                        cprint(f"      {i}. {title}", "white", attrs=["bold"])
+                        cprint(f"         📊 Score: {score:.1f}/100", "white")
+                        cprint(f"         📈 Confidence: {confidence}", "white")
+                        cprint(f"         💡 Reason: {reason}", "white")
+
+                        # Show similar owned games
+                        similar_games = rec.get("similar_owned_games", [])
+                        if similar_games:
+                            similar_list = ", ".join(similar_games[:2])
+                            cprint(f"         🎯 Similar to: {similar_list}", "yellow")
+
+                        # Show genre matches
+                        genre_matches = rec.get("genre_matches", [])
+                        if genre_matches:
+                            genre_list = ", ".join(genre_matches[:3])
+                            cprint(f"         🎭 Genres: {genre_list}", "yellow")
+
+                    # Ask if user wants to analyze any recommendations
+                    print()
+                    analyze_choice = self.get_user_choice(
+                        "Would you like to analyze any recommended game?",
+                        [
+                            "🔍 Yes, analyze a recommendation",
+                            "❤️ Add recommendation to wishlist",
+                            "🔙 Back to collection menu",
+                        ],
+                    )
+
+                    if "analyze a recommendation" in analyze_choice:
+                        game_to_analyze = input(
+                            colored(
+                                "🎮 Enter game title to analyze: ",
+                                "cyan",
+                                attrs=["bold"],
+                            )
+                        ).strip()
+
+                        if game_to_analyze:
+                            print()
+                            self.print_status(
+                                f"🔍 Analyzing {game_to_analyze}...", "loading"
+                            )
+                            # Run game analysis
+                            analysis_results = self.analyze_game_with_progress(
+                                game_to_analyze
+                            )
+                            self.display_game_analysis_results(
+                                analysis_results, game_to_analyze
+                            )
+
+                    elif "Add recommendation to wishlist" in analyze_choice:
+                        game_to_add = input(
+                            colored(
+                                "❤️ Enter game title to add to wishlist: ",
+                                "cyan",
+                                attrs=["bold"],
+                            )
+                        ).strip()
+
+                        if game_to_add:
+                            try:
+                                add_result = add_game_to_collection(
+                                    title=game_to_add,
+                                    status="wishlist",
+                                    notes=f"Added from {recommendation_type} recommendations",
+                                )
+
+                                if add_result.get("success", False):
+                                    self.print_status(
+                                        f"✅ Added '{game_to_add}' to wishlist!",
+                                        "success",
+                                    )
+                                else:
+                                    error = add_result.get("error", "Unknown error")
+                                    self.print_status(
+                                        f"❌ Failed to add: {error}", "error"
+                                    )
+                            except Exception as e:
+                                self.print_status(f"❌ Error: {str(e)}", "error")
+
+                else:
+                    self.print_status("No recommendations found", "warning")
+
+            else:
+                error_msg = result.get("error", "Unknown error")
+                self.print_status(f"❌ Recommendations failed: {error_msg}", "error")
+
+                # Show helpful information
+                requirements = result.get("requirements", {})
+                if requirements:
+                    needed = requirements.get("needed", "Unknown")
+                    current_size = requirements.get("current_collection_size", 0)
+
+                    print()
+                    cprint("   💡 Requirements:", "yellow", attrs=["bold"])
+                    cprint(f"      📋 Needed: {needed}", "white")
+                    cprint(
+                        f"      📚 Current collection: {current_size} games", "white"
+                    )
+
+                suggestions = result.get("suggestions", [])
+                if suggestions:
+                    print()
+                    cprint("   🔧 Suggestions:", "cyan", attrs=["bold"])
+                    for suggestion in suggestions:
+                        cprint(f"      • {suggestion}", "white")
+
+        except ImportError:
+            self.print_status("❌ Collection recommendations not available", "error")
+        except Exception as e:
+            self.print_status(f"❌ Recommendations error: {str(e)}", "error")
 
     def check_game_ownership_interactive(self):
         """Interactive game ownership checking."""

@@ -7046,3 +7046,231 @@ def analyze_game_with_collection_awareness(
             "analysis_type": "error",
             "timestamp": datetime.now().isoformat(),
         }
+
+
+@register_for_llm(
+    description="Generate personalized game recommendations based on user's collection - Input: recommendation_type (str, optional), max_recommendations (int, optional), user_id (str, optional) - Output: Dict with collection-based recommendations"
+)
+@register_for_execution()
+def generate_collection_based_recommendations(
+    recommendation_type: str = "similar",
+    max_recommendations: int = 10,
+    user_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Generate personalized game recommendations based on user's collection.
+
+    Analyzes user's owned games to provide intelligent recommendations using
+    collection preferences, genre patterns, developer preferences, and ML insights.
+
+    Args:
+        recommendation_type (str): Type of recommendations - "similar", "discovery", "developer", or "complementary"
+        max_recommendations (int): Maximum number of recommendations to return (default: 10)
+        user_id (str, optional): User ID, defaults to current user
+
+    Returns:
+        Dict: Collection-based recommendations with analysis and insights
+    """
+    try:
+        logger.info(
+            f"🎯 Generating {recommendation_type} recommendations (max: {max_recommendations})"
+        )
+
+        # Import collection recommendation engine
+        try:
+            from utils.collection_recommendation_engine import (
+                get_collection_recommendation_engine,
+                RecommendationType,
+            )
+        except ImportError as e:
+            logger.error(f"Collection recommendation engine not available: {e}")
+            return {
+                "success": False,
+                "error": "Collection recommendation engine not available",
+                "recommendation_type": recommendation_type,
+                "timestamp": datetime.now().isoformat(),
+            }
+
+        # Get current user info
+        from utils.user_management import get_current_user_info
+
+        user_info = get_current_user_info()
+        current_user = user_info.get("current_user", {})
+        username = current_user.get("username", "Unknown User")
+
+        if not user_id:
+            user_id = current_user.get("user_id", "default_user")
+
+        # Validate recommendation type
+        valid_types = ["similar", "discovery", "developer", "complementary"]
+        if recommendation_type not in valid_types:
+            return {
+                "success": False,
+                "error": f"Invalid recommendation type '{recommendation_type}'. Valid types: {valid_types}",
+                "valid_types": valid_types,
+                "timestamp": datetime.now().isoformat(),
+            }
+
+        # Convert to enum
+        rec_type = RecommendationType(recommendation_type.lower())
+
+        # Get recommendation engine
+        engine = get_collection_recommendation_engine()
+
+        # Check if user has sufficient collection for recommendations
+        collection_insights = engine.get_collection_insights(user_id)
+        readiness = collection_insights.get("recommendations_readiness", {})
+
+        if not readiness.get(recommendation_type, False):
+            collection_size = collection_insights.get("collection_summary", {}).get(
+                "total_games", 0
+            )
+            min_requirements = {
+                "similar": "at least 3 games with genres and ratings",
+                "discovery": "at least 5 games",
+                "developer": "games from at least 1 developer with good ratings",
+                "complementary": "at least 6 games with diverse genres",
+            }
+
+            return {
+                "success": False,
+                "error": f"Insufficient collection for {recommendation_type} recommendations",
+                "requirements": {
+                    "needed": min_requirements.get(recommendation_type, "more games"),
+                    "current_collection_size": collection_size,
+                    "recommendation_type": recommendation_type,
+                },
+                "suggestions": [
+                    "Add more games to your collection first",
+                    "Import your Steam library or DekuDeals collection",
+                    "Try a different recommendation type",
+                    "Rate the games in your current collection",
+                ],
+                "collection_insights": collection_insights,
+                "timestamp": datetime.now().isoformat(),
+            }
+
+        # Generate recommendations
+        recommendations = engine.generate_recommendations(
+            recommendation_type=rec_type,
+            max_recommendations=max_recommendations,
+            user_id=user_id,
+        )
+
+        if not recommendations:
+            return {
+                "success": False,
+                "error": f"No {recommendation_type} recommendations could be generated",
+                "possible_reasons": [
+                    "Limited candidate games available",
+                    "Collection preferences too specific",
+                    "No suitable matches found in current game database",
+                ],
+                "suggestions": [
+                    "Try a different recommendation type",
+                    "Increase max_recommendations parameter",
+                    "Add more variety to your game collection",
+                ],
+                "collection_insights": collection_insights,
+                "timestamp": datetime.now().isoformat(),
+            }
+
+        # Format recommendations for output
+        formatted_recommendations = []
+        for rec in recommendations:
+            formatted_rec = {
+                "game_title": rec.game_title,
+                "recommendation_score": round(rec.final_score, 2),
+                "confidence": rec.confidence.value,
+                "primary_reason": rec.primary_reason,
+                "detailed_reasons": rec.detailed_reasons,
+                "similar_owned_games": rec.similar_owned_games,
+                "genre_matches": rec.genre_matches,
+                "developer_matches": rec.developer_matches,
+                "scoring_breakdown": {
+                    "base_score": round(rec.base_score, 2),
+                    "preference_bonus": round(rec.preference_bonus, 2),
+                    "diversity_bonus": round(rec.diversity_bonus, 2),
+                    "ml_adjustment": round(rec.ml_adjustment, 2),
+                    "final_score": round(rec.final_score, 2),
+                },
+                "warnings": rec.warnings,
+                "notes": rec.notes,
+            }
+            formatted_recommendations.append(formatted_rec)
+
+        # Generate recommendation summary
+        collection_summary = collection_insights.get("collection_summary", {})
+        genre_prefs = collection_insights.get("genre_preferences", {})
+
+        recommendation_summary = {
+            "total_recommendations": len(formatted_recommendations),
+            "recommendation_type": recommendation_type,
+            "based_on_collection": {
+                "total_games": collection_summary.get("total_games", 0),
+                "average_rating": collection_summary.get("average_rating", 0),
+                "confidence_level": collection_summary.get(
+                    "confidence_level", "unknown"
+                ),
+            },
+            "key_preferences": {
+                "favorite_genres": genre_prefs.get("favorites", [])[:3],
+                "recent_trends": collection_insights.get("recent_trends", {}).get(
+                    "recent_preferences", []
+                )[:3],
+            },
+        }
+
+        # Generate personalized message
+        if recommendation_type == "similar":
+            message = f"Found {len(formatted_recommendations)} games similar to your favorites"
+        elif recommendation_type == "discovery":
+            message = f"Discovered {len(formatted_recommendations)} games in new genres for you to explore"
+        elif recommendation_type == "developer":
+            message = f"Found {len(formatted_recommendations)} games from your favorite developers"
+        elif recommendation_type == "complementary":
+            message = f"Found {len(formatted_recommendations)} games to complement your collection"
+        else:
+            message = f"Generated {len(formatted_recommendations)} personalized recommendations"
+
+        result = {
+            "success": True,
+            "message": message,
+            "recommendations": formatted_recommendations,
+            "recommendation_summary": recommendation_summary,
+            "collection_insights": collection_insights,
+            "user_context": {
+                "username": username,
+                "user_id": user_id,
+                "recommendation_type": recommendation_type,
+                "max_requested": max_recommendations,
+            },
+            "next_steps": [
+                "Analyze any interesting games with search_and_scrape_game()",
+                "Add promising games to your wishlist",
+                "Get detailed reviews for top recommendations",
+                "Try different recommendation types for variety",
+            ],
+            "metadata": {
+                "algorithm_version": "1.0.0",
+                "generation_time": datetime.now().isoformat(),
+                "ml_enhanced": True,
+            },
+        }
+
+        logger.info(
+            f"✅ Generated {len(formatted_recommendations)} {recommendation_type} recommendations for {username}"
+        )
+        return result
+
+    except Exception as e:
+        error_msg = f"Error generating collection-based recommendations: {str(e)}"
+        logger.error(f"❌ {error_msg}")
+        return {
+            "success": False,
+            "error": error_msg,
+            "recommendation_type": recommendation_type,
+            "max_recommendations": max_recommendations,
+            "user_id": user_id,
+            "timestamp": datetime.now().isoformat(),
+        }

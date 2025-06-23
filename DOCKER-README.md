@@ -48,11 +48,11 @@ make prod-stop    # Stop production environment
 ### **Multi-Stage Dockerfile**
 ```dockerfile
 # Stage 1: Builder (dependencies + build artifacts)
-FROM python:3.13.3-slim as builder
+FROM python:3.13.3-slim AS builder
 # Install dependencies, copy code, prepare app
 
 # Stage 2: Production (optimized runtime)  
-FROM python:3.13.3-slim as production
+FROM python:3.13.3-slim AS production
 # Copy from builder, security hardening, minimal runtime
 ```
 
