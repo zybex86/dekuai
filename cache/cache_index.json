@@ -19,5 +19,6 @@
   "carswheels": "cache_carswheels.pkl",
   "match-3_adventure_bundle": "cache_match-3_adventure_bundle.pkl",
   "cozy_cove": "cache_cozy_cove.pkl",
-  "carwheels": "cache_carwheels.pkl"
+  "carwheels": "cache_carwheels.pkl",
+  "octopath_traveler": "cache_octopath_traveler.pkl"
 }

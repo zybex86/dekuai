@@ -1579,7 +1579,7 @@ class EnhancedCLI:
                     print()
                     cprint("   🎮 Games:", "cyan", attrs=["bold"])
 
-                    for i, game in enumerate(games[:20], 1):  # Show max 20 games
+                    for i, game in enumerate(games, 1):  # Show all games
                         title = game.get("title", "Unknown")
                         status = game.get("status", "unknown")
                         platform = game.get("platform", "Unknown")
@@ -1613,9 +1613,6 @@ class EnhancedCLI:
                         if details:
                             cprint(f"          {' | '.join(details)}", "yellow")
 
-                    if len(games) > 20:
-                        remaining = len(games) - 20
-                        cprint(f"      ... and {remaining} more games", "yellow")
                 else:
                     cprint("      No games found in this collection", "yellow")
 
@@ -3761,12 +3758,8 @@ class EnhancedCLI:
         if "Show games first" in confirm:
             print()
             cprint("   📋 Games to import:", "cyan", attrs=["bold"])
-            for i, title in enumerate(games_list[:20], 1):
+            for i, title in enumerate(games_list, 1):
                 cprint(f"      {i:2d}. {title}", "white")
-
-            if len(games_list) > 20:
-                remaining = len(games_list) - 20
-                cprint(f"      ... and {remaining} more games", "yellow")
 
             confirm = self.get_user_choice(
                 "Proceed with import?",
@@ -3918,12 +3911,8 @@ class EnhancedCLI:
             # Show preview and confirm
             print()
             cprint("   📋 Games to import:", "cyan", attrs=["bold"])
-            for i, title in enumerate(games_list[:15], 1):
+            for i, title in enumerate(games_list, 1):
                 cprint(f"      {i:2d}. {title}", "white")
-
-            if game_count > 15:
-                remaining = game_count - 15
-                cprint(f"      ... and {remaining} more games", "yellow")
 
             confirm = self.get_user_choice(
                 f"Import {game_count} games as '{selected_status}'?",

@@ -21,16 +21,20 @@
       "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.868375",
-      "user_rating": null,
+      "user_rating": 8.5,
       "hours_played": null,
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
-      "tags": [],
+      "tags": [
+        "Action",
+        "RPG",
+        "Indie"
+      ],
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-20T12:57:38.868376"
+      "last_updated": "2025-06-23T15:15:10.933883"
     },
     "child_of_light_ultimate_edition": {
       "title": "Child of Light Ultimate Edition",
@@ -85,16 +89,21 @@
       "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.872509",
-      "user_rating": null,
+      "user_rating": 7.0,
       "hours_played": null,
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
-      "tags": [],
+      "tags": [
+        "RPG",
+        "Adventure",
+        "JRPG",
+        "Fantasy"
+      ],
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-20T12:57:38.872510"
+      "last_updated": "2025-06-23T15:06:24.066007"
     },
     "the_great_ace_attorney_chronicles": {
       "title": "The Great Ace Attorney Chronicles",
@@ -149,16 +158,21 @@
       "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.876580",
-      "user_rating": null,
+      "user_rating": 7.5,
       "hours_played": null,
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
-      "tags": [],
+      "tags": [
+        "Strategy",
+        "Adventure",
+        "Nintendo",
+        "Turn-Based"
+      ],
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-20T12:57:38.876581"
+      "last_updated": "2025-06-23T15:06:24.056297"
     },
     "marooners": {
       "title": "Marooners",
@@ -181,16 +195,21 @@
       "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.879050",
-      "user_rating": null,
+      "user_rating": 9.0,
       "hours_played": null,
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
-      "tags": [],
+      "tags": [
+        "Simulation",
+        "Survival",
+        "Indie",
+        "Creative"
+      ],
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-20T12:57:38.879050"
+      "last_updated": "2025-06-23T15:06:24.054522"
     },
     "minigolf_adventure": {
       "title": "Minigolf Adventure",
@@ -213,32 +232,42 @@
       "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.881662",
-      "user_rating": null,
+      "user_rating": 7.5,
       "hours_played": null,
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
-      "tags": [],
+      "tags": [
+        "RPG",
+        "Simulation",
+        "Indie",
+        "Action"
+      ],
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-20T12:57:38.881663"
+      "last_updated": "2025-06-23T15:06:24.068834"
     },
     "overcooked!_all_you_can_eat": {
       "title": "Overcooked! All You Can Eat",
       "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.883061",
-      "user_rating": null,
+      "user_rating": 8.0,
       "hours_played": null,
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
-      "tags": [],
+      "tags": [
+        "Party",
+        "Simulation",
+        "Co-op",
+        "Arcade"
+      ],
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-20T12:57:38.883062"
+      "last_updated": "2025-06-23T15:06:24.058150"
     },
     "overcooked_special_edition": {
       "title": "Overcooked Special Edition",
@@ -293,16 +322,21 @@
       "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.890114",
-      "user_rating": null,
+      "user_rating": 8.5,
       "hours_played": null,
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
-      "tags": [],
+      "tags": [
+        "Platformer",
+        "Adventure",
+        "Family",
+        "Arcade"
+      ],
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-20T12:57:38.890115"
+      "last_updated": "2025-06-23T15:06:24.063114"
     },
     "star_ocean_first_departure_r": {
       "title": "STAR OCEAN First Departure R",
@@ -325,32 +359,42 @@
       "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.894034",
-      "user_rating": null,
+      "user_rating": 8.0,
       "hours_played": null,
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
-      "tags": [],
+      "tags": [
+        "Platformer",
+        "Adventure",
+        "Indie",
+        "Metroidvania"
+      ],
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-20T12:57:38.894035"
+      "last_updated": "2025-06-23T15:06:24.059550"
     },
     "steamworld_dig_2": {
       "title": "SteamWorld Dig 2",
       "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.895941",
-      "user_rating": null,
+      "user_rating": 8.5,
       "hours_played": null,
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
-      "tags": [],
+      "tags": [
+        "Platformer",
+        "Adventure",
+        "Indie",
+        "Metroidvania"
+      ],
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-20T12:57:38.895942"
+      "last_updated": "2025-06-23T15:06:24.060976"
     },
     "steamworld_heist_ii": {
       "title": "SteamWorld Heist II",
@@ -421,16 +465,21 @@
       "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.905987",
-      "user_rating": null,
+      "user_rating": 7.5,
       "hours_played": null,
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
-      "tags": [],
+      "tags": [
+        "Platformer",
+        "Adventure",
+        "Co-op",
+        "Fantasy"
+      ],
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-20T12:57:38.905988"
+      "last_updated": "2025-06-23T15:06:24.064587"
     },
     "trine_ultimate_collection": {
       "title": "Trine: Ultimate Collection",
@@ -453,16 +502,21 @@
       "status": "owned",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.910160",
-      "user_rating": null,
+      "user_rating": 8.0,
       "hours_played": null,
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
-      "tags": [],
+      "tags": [
+        "Strategy",
+        "Fantasy",
+        "Indie",
+        "Turn-Based"
+      ],
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-20T12:57:38.910161"
+      "last_updated": "2025-06-23T15:06:24.067412"
     },
     "woodle_tree_2_deluxe": {
       "title": "Woodle Tree 2: Deluxe",
@@ -498,26 +552,25 @@
     }
   },
   "stats": {
-    "total_games": 33,
+    "total_games": 31,
+    "owned_games": 31,
     "wishlist_games": 0,
-    "owned_games": 33,
-    "completed_games": 3,
+    "completed_games": 0,
     "total_value": 0.0,
-    "average_rating": 8.48,
-    "total_hours": 385,
+    "average_rating": 8.0,
+    "total_hours": 0,
     "favorite_genres": [],
     "platforms": {
-      "Nintendo Switch": 46
+      "Nintendo Switch": 31
     },
     "import_sources": {
-      "manual": 42,
-      "csv": 4
+      "manual": 31
     },
-    "last_updated": "2025-06-23T13:33:26.758218"
+    "last_updated": "2025-06-23T15:15:10.933916"
   },
   "metadata": {
     "user_id": "user_7_20250620_093336",
-    "last_saved": "2025-06-23T13:33:26.759437",
+    "last_saved": "2025-06-23T15:15:10.934963",
     "version": "1.0.0"
   }
 }

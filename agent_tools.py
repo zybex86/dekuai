@@ -6479,7 +6479,7 @@ def remove_game_from_collection(title: str) -> Dict:
     description="Get current user's game collection with optional filtering - Input: status_filter (str, optional), limit (int, optional) - Output: Dict with collection and statistics"
 )
 @register_for_execution()
-def get_user_game_collection(status_filter: str = None, limit: int = 50) -> Dict:
+def get_user_game_collection(status_filter: str = None, limit: int = 1000) -> Dict:
     """
     Get current user's game collection with optional filtering.
 
@@ -7272,5 +7272,426 @@ def generate_collection_based_recommendations(
             "recommendation_type": recommendation_type,
             "max_recommendations": max_recommendations,
             "user_id": user_id,
+            "timestamp": datetime.now().isoformat(),
+        }
+
+
+@register_for_llm(
+    description="View your game collection summary with completion status and recommendation readiness"
+)
+@register_for_execution()
+def view_collection_summary() -> Dict[str, Any]:
+    """
+    View comprehensive summary of your game collection.
+
+    Returns:
+        Dict containing collection statistics, completion status, and recommendation readiness
+    """
+    try:
+        from utils.collection_updater import get_collection_updater
+
+        updater = get_collection_updater()
+        summary = updater.view_collection_summary()
+
+        logger.info(
+            f"📊 Collection Summary: {summary['total_games']} games, {summary['completion_percentage']}% complete"
+        )
+
+        return {
+            "success": True,
+            "collection_summary": summary,
+            "message": f"Collection has {summary['total_games']} games with {summary['rated_games']} ratings and {summary['tagged_games']} genre tags",
+            "recommendation_ready": summary["recommendation_ready"],
+            "completion_percentage": summary["completion_percentage"],
+            "timestamp": datetime.now().isoformat(),
+        }
+
+    except Exception as e:
+        logger.error(f"Error viewing collection summary: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat(),
+        }
+
+
+@register_for_llm(
+    description="List games in your collection with their current ratings and tags"
+)
+@register_for_execution()
+def list_collection_games(
+    status_filter: Optional[str] = None, limit: int = 1000
+) -> Dict[str, Any]:
+    """
+    List games in your collection with their metadata.
+
+    Args:
+        status_filter: Filter by status ('owned', 'wishlist', 'completed', etc.)
+        limit: Maximum number of games to return (default: 20)
+
+    Returns:
+        Dict containing list of games with their current metadata
+    """
+    try:
+        from utils.collection_updater import get_collection_updater
+
+        updater = get_collection_updater()
+        games = updater.list_games(status_filter=status_filter, limit=limit)
+
+        logger.info(f"📋 Listed {len(games)} games from collection")
+
+        return {
+            "success": True,
+            "games": games,
+            "total_shown": len(games),
+            "status_filter": status_filter,
+            "message": f"Found {len(games)} games"
+            + (f" with status '{status_filter}'" if status_filter else ""),
+            "timestamp": datetime.now().isoformat(),
+        }
+
+    except Exception as e:
+        logger.error(f"Error listing games: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat(),
+        }
+
+
+@register_for_llm(
+    description="Get detailed information about a specific game in your collection"
+)
+@register_for_execution()
+def get_game_details(title: str) -> Dict[str, Any]:
+    """
+    Get detailed information about a specific game in your collection.
+
+    Args:
+        title: Title of the game to get details for
+
+    Returns:
+        Dict containing detailed game information and suggested improvements
+    """
+    try:
+        from utils.collection_updater import get_collection_updater
+
+        updater = get_collection_updater()
+        details = updater.get_game_details(title)
+
+        if not details:
+            return {
+                "success": False,
+                "error": f"Game '{title}' not found in collection",
+                "timestamp": datetime.now().isoformat(),
+            }
+
+        logger.info(
+            f"🎮 Retrieved details for '{title}' (Status: {details['completion_status']})"
+        )
+
+        return {
+            "success": True,
+            "game_details": details,
+            "message": f"Retrieved details for '{title}'",
+            "completion_status": details["completion_status"],
+            "suggested_genres": details["suggested_genres"],
+            "timestamp": datetime.now().isoformat(),
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting game details: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat(),
+        }
+
+
+@register_for_llm(
+    description="Update a game in your collection with rating, tags, or other metadata"
+)
+@register_for_execution()
+def update_collection_game(
+    title: str,
+    user_rating: Optional[float] = None,
+    tags: Optional[str] = None,
+    status: Optional[str] = None,
+    hours_played: Optional[int] = None,
+    notes: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Update a game in your collection with new metadata.
+
+    Args:
+        title: Title of the game to update
+        user_rating: Your rating for the game (1.0-10.0)
+        tags: Comma-separated genre tags (e.g., "Action,RPG,Indie")
+        status: Game status ('owned', 'wishlist', 'completed', etc.)
+        hours_played: Number of hours played
+        notes: Additional notes about the game
+
+    Returns:
+        Dict indicating success/failure and details
+    """
+    try:
+        from utils.collection_updater import get_collection_updater
+
+        updater = get_collection_updater()
+
+        # Build updates dictionary
+        updates = {}
+        if user_rating is not None:
+            updates["user_rating"] = user_rating
+        if tags is not None:
+            updates["tags"] = tags
+        if status is not None:
+            updates["status"] = status
+        if hours_played is not None:
+            updates["hours_played"] = hours_played
+        if notes is not None:
+            updates["notes"] = notes
+
+        if not updates:
+            return {
+                "success": False,
+                "error": "No updates provided",
+                "timestamp": datetime.now().isoformat(),
+            }
+
+        success, message = updater.update_game(title, updates)
+
+        if success:
+            logger.info(f"✅ Updated '{title}' with {len(updates)} fields")
+
+            # Get updated details
+            updated_details = updater.get_game_details(title)
+
+            return {
+                "success": True,
+                "message": message,
+                "updates_applied": updates,
+                "updated_game": updated_details,
+                "completion_status": (
+                    updated_details["completion_status"]
+                    if updated_details
+                    else "unknown"
+                ),
+                "timestamp": datetime.now().isoformat(),
+            }
+        else:
+            return {
+                "success": False,
+                "error": message,
+                "timestamp": datetime.now().isoformat(),
+            }
+
+    except Exception as e:
+        logger.error(f"Error updating game: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat(),
+        }
+
+
+@register_for_llm(description="Get automatic suggestions for improving your collection")
+@register_for_execution()
+def get_collection_improvement_suggestions() -> Dict[str, Any]:
+    """
+    Get automatic suggestions for improving your collection to enable recommendations.
+
+    Returns:
+        Dict containing suggestions for missing ratings, tags, and priority games
+    """
+    try:
+        from utils.collection_updater import get_collection_updater
+
+        updater = get_collection_updater()
+        suggestions = updater.auto_suggest_improvements()
+
+        logger.info(
+            f"💡 Generated improvement suggestions: {len(suggestions['missing_ratings'])} need ratings, "
+            f"{len(suggestions['missing_tags'])} need tags"
+        )
+
+        return {
+            "success": True,
+            "suggestions": suggestions,
+            "summary": {
+                "games_needing_ratings": len(suggestions["missing_ratings"]),
+                "games_needing_tags": len(suggestions["missing_tags"]),
+                "priority_games": len(suggestions["priority_games"]),
+                "completion_tips": len(suggestions["completion_tips"]),
+            },
+            "message": f"Found {len(suggestions['missing_ratings'])} games needing ratings and {len(suggestions['missing_tags'])} needing tags",
+            "timestamp": datetime.now().isoformat(),
+        }
+
+    except Exception as e:
+        logger.error(f"Error getting suggestions: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat(),
+        }
+
+
+@register_for_llm(description="Batch update ratings for multiple games at once")
+@register_for_execution()
+def batch_update_game_ratings(ratings_data: str) -> Dict[str, Any]:
+    """
+    Batch update ratings for multiple games.
+
+    Args:
+        ratings_data: JSON string of game titles and ratings, e.g., '{"Bastion": 8.5, "Minecraft": 9.0}'
+
+    Returns:
+        Dict containing batch update results
+    """
+    try:
+        from utils.collection_updater import get_collection_updater
+        import json
+
+        # Parse ratings data
+        try:
+            ratings_dict = json.loads(ratings_data)
+        except json.JSONDecodeError:
+            return {
+                "success": False,
+                "error": "Invalid JSON format for ratings_data",
+                "example": '{"Bastion": 8.5, "Minecraft": 9.0}',
+                "timestamp": datetime.now().isoformat(),
+            }
+
+        updater = get_collection_updater()
+        success_count, error_count, errors = updater.batch_update_ratings(ratings_dict)
+
+        logger.info(
+            f"🔄 Batch rating update: {success_count} success, {error_count} errors"
+        )
+
+        return {
+            "success": success_count > 0,
+            "results": {
+                "successful_updates": success_count,
+                "failed_updates": error_count,
+                "total_attempted": len(ratings_dict),
+                "errors": errors,
+            },
+            "message": f"Updated ratings for {success_count} games"
+            + (f", {error_count} errors" if error_count > 0 else ""),
+            "timestamp": datetime.now().isoformat(),
+        }
+
+    except Exception as e:
+        logger.error(f"Error in batch rating update: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat(),
+        }
+
+
+@register_for_llm(
+    description="Validate if your collection is ready for recommendations"
+)
+@register_for_execution()
+def validate_collection_readiness() -> Dict[str, Any]:
+    """
+    Validate if your collection has enough data for recommendations.
+
+    Returns:
+        Dict containing validation results and readiness status for each recommendation type
+    """
+    try:
+        from utils.collection_updater import get_collection_updater
+
+        updater = get_collection_updater()
+        validation = updater.validate_collection_for_recommendations()
+
+        logger.info(
+            f"🔍 Collection validation: {'Ready' if validation.get('ready') else 'Not Ready'} for recommendations"
+        )
+
+        return {
+            "success": True,
+            "validation_results": validation,
+            "overall_ready": validation.get("ready", False),
+            "collection_size": validation.get("collection_size", 0),
+            "confidence_level": validation.get("confidence_level", "unknown"),
+            "message": (
+                "Collection is ready for recommendations!"
+                if validation.get("ready")
+                else "Collection needs more ratings and tags for recommendations"
+            ),
+            "timestamp": datetime.now().isoformat(),
+        }
+
+    except Exception as e:
+        logger.error(f"Error validating collection: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat(),
+        }
+
+
+@register_for_llm(description="Quick update a game with both rating and tags")
+@register_for_execution()
+def quick_game_update(title: str, rating: float, tags: str) -> Dict[str, Any]:
+    """
+    Quick way to update a game with both rating and genre tags.
+
+    Args:
+        title: Game title to update
+        rating: Your rating (1.0-10.0)
+        tags: Comma-separated genre tags (e.g., "Action,RPG,Indie")
+
+    Returns:
+        Dict indicating success and updated game details
+    """
+    try:
+        from utils.collection_updater import quick_update_game
+
+        # Convert tags string to list
+        tag_list = [tag.strip() for tag in tags.split(",") if tag.strip()]
+
+        success, message = quick_update_game(title, rating=rating, tags=tag_list)
+
+        if success:
+            logger.info(f"⚡ Quick updated '{title}': {rating}/10, tags: {tag_list}")
+
+            # Get updated details
+            from utils.collection_updater import get_collection_updater
+
+            updater = get_collection_updater()
+            updated_details = updater.get_game_details(title)
+
+            return {
+                "success": True,
+                "message": message,
+                "rating_added": rating,
+                "tags_added": tag_list,
+                "updated_game": updated_details,
+                "completion_status": (
+                    updated_details["completion_status"]
+                    if updated_details
+                    else "unknown"
+                ),
+                "timestamp": datetime.now().isoformat(),
+            }
+        else:
+            return {
+                "success": False,
+                "error": message,
+                "timestamp": datetime.now().isoformat(),
+            }
+
+    except Exception as e:
+        logger.error(f"Error in quick game update: {e}")
+        return {
+            "success": False,
+            "error": str(e),
             "timestamp": datetime.now().isoformat(),
         }
