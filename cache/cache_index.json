@@ -1,16 +1,8 @@
 {
-  "inside": "cache_inside.pkl",
   "celeste": "cache_celeste.pkl",
-  "donkey_kong_bananza": "cache_donkey_kong_bananza.pkl",
-  "slime-san:_superslime_edition": "cache_slime-san:_superslime_edition.pkl",
-  "the_solitaire_conspiracy": "cache_the_solitaire_conspiracy.pkl",
-  "fantasy_life_i:_the_girl_who_steals_time": "cache_fantasy_life_i:_the_girl_who_steals_time.pkl",
-  "final_fantasy_tactics_-_the_ivalice_chronicles": "cache_final_fantasy_tactics_-_the_ivalice_chronicles.pkl",
-  "hentai_uni_3": "cache_hentai_uni_3.pkl",
   "super_mario_odyssey": "cache_super_mario_odyssey.pkl",
-  "carswheels": "cache_carswheels.pkl",
-  "match-3_adventure_bundle": "cache_match-3_adventure_bundle.pkl",
-  "cozy_cove": "cache_cozy_cove.pkl",
-  "carwheels": "cache_carwheels.pkl",
-  "octopath_traveler": "cache_octopath_traveler.pkl"
+  "final_fantasy_tactics_-_the_ivalice_chronicles": "cache_final_fantasy_tactics_-_the_ivalice_chronicles.pkl",
+  "kao_the_kangaroo:_anniversary_edition": "cache_kao_the_kangaroo:_anniversary_edition.pkl",
+  "tales_of_vesperia:_definitive_edition": "cache_tales_of_vesperia:_definitive_edition.pkl",
+  "inside": "cache_inside.pkl"
 }

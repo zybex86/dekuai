@@ -809,28 +809,7 @@ class EnhancedCLI:
             else:
                 print(f"   {description}")
 
-        # NEW: Awards and achievements display
-        awards = game_data.get("awards", [])
-        if awards:
-            print()
-            self.print_section("🏆 Awards & Recognition", style="highlight")
-
-            # Show main award count first
-            main_award = awards[0] if awards else ""
-            if "Winner of" in main_award:
-                print(f"   🎉 {main_award}")
-                remaining_awards = awards[1:]
-            else:
-                remaining_awards = awards
-
-            # Show individual awards
-            if remaining_awards:
-                print(f"   🏅 Notable Awards:")
-                for i, award in enumerate(remaining_awards[:5], 1):
-                    print(f"      {i}. {award}")
-
-                if len(remaining_awards) > 5:
-                    print(f"      ... and {len(remaining_awards) - 5} more awards")
+        # Awards section removed due to unreliable extraction
 
         # NEW: Enhanced metadata indicator
         metadata = game_data.get("data_extraction_metadata", {})
@@ -839,8 +818,6 @@ class EnhancedCLI:
             enhanced_features = []
             if metadata.get("has_description", False):
                 enhanced_features.append("Rich Description")
-            if metadata.get("has_awards", False):
-                enhanced_features.append("Awards Data")
             if game_data.get("primary_genre"):
                 enhanced_features.append("Enhanced Genres")
 

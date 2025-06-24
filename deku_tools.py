@@ -408,12 +408,7 @@ def scrape_game_details(game_url: str) -> Optional[Dict]:
             game_details["description"] = description_text
             game_details["description_length"] = len(description_text)
 
-            # Extract awards/achievements from description if present
-            awards_list = extract_awards_from_description(description_text)
-            if awards_list:
-                game_details["awards"] = awards_list
-                game_details["awards_count"] = len(awards_list)
-                print(f"✅ Znaleziono {len(awards_list)} nagród/osiągnięć")
+            # Awards extraction removed due to unreliable results
         else:
             game_details["description"] = "No description available"
             game_details["description_length"] = 0
@@ -431,7 +426,6 @@ def scrape_game_details(game_url: str) -> Optional[Dict]:
         # Add metadata about data completeness
         game_details["data_extraction_metadata"] = {
             "has_description": bool(description_text and len(description_text) > 20),
-            "has_awards": bool(awards_list),
             "description_source": "found" if description_found else "not_found",
             "extraction_timestamp": f"{datetime.now().isoformat()}",
             "enhanced_scraping": True,
@@ -448,8 +442,6 @@ def scrape_game_details(game_url: str) -> Optional[Dict]:
                 else game_details["description"]
             )
             print(f"  📝 Opis: {desc_preview}")
-        if game_details.get("awards"):
-            print(f"  🏆 Nagrody: {len(game_details['awards'])} znalezionych")
 
         return game_details
 
@@ -678,141 +670,6 @@ def clean_description_text(description: str) -> str:
     cleaned = re.sub(r"\s+", " ", cleaned).strip()
 
     return cleaned
-
-
-def extract_awards_from_description(description: str) -> List[str]:
-    """
-    Wyciąga nagrody i osiągnięcia z tekstu opisu gry.
-
-    Args:
-        description (str): Tekst opisu gry
-
-    Returns:
-        List[str]: Lista znalezionych nagród
-    """
-    if not description:
-        return []
-
-    awards = []
-
-    # First, look for the main awards count
-    award_count_match = re.search(
-        r"Winner of (more than )?(\d+)\s*awards?", description, re.IGNORECASE
-    )
-    if award_count_match:
-        count = award_count_match.group(2)
-        prefix = "more than " if award_count_match.group(1) else ""
-        awards.append(f"Winner of {prefix}{count} awards")
-
-    # Look for structured award lists (after "including:" or similar)
-    # Split description into lines and look for award patterns
-    lines = description.replace("\\", "").split("\n")
-
-    # Find the awards section
-    in_awards_section = False
-    for line in lines:
-        line = line.strip()
-
-        # Start of awards section
-        if re.search(r"including\s*:", line, re.IGNORECASE):
-            in_awards_section = True
-            continue
-
-        if in_awards_section and line:
-            # Clean the line and extract award names
-            # Remove leading dashes, bullets, backslashes
-            clean_line = re.sub(r"^[-•\\]+\s*", "", line)
-
-            # Split by common separators for multiple awards in one line
-            potential_awards = re.split(r"\s*[-–]\s*", clean_line)
-
-            for potential_award in potential_awards:
-                potential_award = potential_award.strip()
-
-                # Skip empty or very short strings
-                if len(potential_award) < 5:
-                    continue
-
-                # Skip lines that don't look like awards
-                if (
-                    potential_award.startswith("(")
-                    or potential_award.isdigit()
-                    or potential_award.lower().startswith("awards")
-                ):
-                    continue
-
-                # Clean up the award text
-                # Remove parenthetical information at the end
-                award_clean = re.sub(r"\s*\([^)]*\)\s*$", "", potential_award)
-
-                # Ensure it looks like an award (has key words)
-                award_keywords = [
-                    "award",
-                    "achievement",
-                    "best",
-                    "outstanding",
-                    "artistic",
-                    "game",
-                    "design",
-                    "narrative",
-                    "art",
-                    "audio",
-                    "visual",
-                    "property",
-                    "independent",
-                    "direction",
-                    "choice",
-                    "critics",
-                    "bafta",
-                    "dice",
-                ]
-
-                if (
-                    len(award_clean) >= 10
-                    and any(
-                        keyword in award_clean.lower() for keyword in award_keywords
-                    )
-                    and award_clean not in awards
-                ):
-                    awards.append(award_clean)
-
-            # Stop if we hit an empty line or end of awards section
-            if not line or len(awards) >= 15:  # Reasonable limit
-                break
-
-    # If no structured awards found, try fallback patterns
-    if len(awards) <= 1:  # Only the count
-        # Look for common award patterns in the text
-        fallback_patterns = [
-            r"(BAFTA[^-•\n]{0,50})",
-            r"(Game Critics Awards[^-•\n]{0,50})",
-            r"(The Game Awards[^-•\n]{0,50})",
-            r"(D\.I\.C\.E\. Awards[^-•\n]{0,50})",
-            r"(Game Developers Choice Awards[^-•\n]{0,50})",
-            r"(Best [^-•\n]{5,40})",
-            r"(Outstanding [^-•\n]{5,40})",
-        ]
-
-        for pattern in fallback_patterns:
-            matches = re.findall(pattern, description, re.IGNORECASE)
-            for match in matches:
-                match_clean = match.strip()
-                if len(match_clean) > 10 and match_clean not in awards:
-                    awards.append(match_clean)
-
-    # Clean up and limit results
-    cleaned_awards = []
-    for award in awards[:12]:  # Limit to 12 awards
-        # Final cleanup
-        award = award.strip()
-        award = re.sub(r"\s+", " ", award)  # Remove extra whitespace
-        award = re.sub(r"^[-•\s]+", "", award)  # Remove leading bullets
-        award = re.sub(r"[-•\s]+$", "", award)  # Remove trailing bullets
-
-        if len(award) >= 5 and award not in cleaned_awards:
-            cleaned_awards.append(award)
-
-    return cleaned_awards
 
 
 # --- Zaktualizowany blok testowy w __main__ ---

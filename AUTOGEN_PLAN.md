@@ -345,23 +345,23 @@ autogen-tut/
 ### ✅ Enhanced Game Analysis with Rich Content (Phase 7.3.1)
 **Implementation Date:** January 2025
 - **Rich Description Extraction**: Complete game descriptions from DekuDeals with 100% success rate
-- **Awards Recognition**: Automatic parsing of achievements and awards from game descriptions
+
 - **Enhanced Genre Processing**: Primary/secondary genre categorization system
 - **Interactive CLI Integration**: Rich content display with expand/collapse functionality
 - **Enhanced Data Validation**: Complete metadata tracking and validation system
 
 **Key Technical Achievements:**
 - Multiple CSS selector strategies for robust description extraction
-- Smart awards parsing with text pattern recognition and cleaning
+
 - Enhanced `format_game_summary()` with rich content display
 - Interactive CLI enhancement with `_display_enhanced_game_info()` method
 - Enhanced metadata indicators showing available rich content
 
 **Real-World Performance:**
 - Successfully extracted descriptions from 100% of tested games (INSIDE: 815 chars, Celeste: 947 chars, Hades: 1,616 chars)
-- Awards extraction working with games like INSIDE (12 awards including "Winner of more than 100 awards")
+
 - Enhanced genre categorization providing better context (e.g., "Primary: Adventure, Also: Puzzle, Action, Platformer")
-- Interactive CLI now shows rich sections: Game Information, Genre Information, Description, Awards & Recognition
+- Interactive CLI now shows rich sections: Game Information, Genre Information, Description
 
 ### ✅ DekuDeals Collection Import & Collection-Aware Analysis
 **Implementation Date:** December 2024
