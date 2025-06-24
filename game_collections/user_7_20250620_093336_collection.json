@@ -10,11 +10,16 @@
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
-      "tags": [],
+      "tags": [
+        "Adventure",
+        "Indie",
+        "Action",
+        "Strategy"
+      ],
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-20T12:57:38.867471"
+      "last_updated": "2025-06-24T08:46:33.212197"
     },
     "bastion": {
       "title": "Bastion",
@@ -46,43 +51,57 @@
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
-      "tags": [],
+      "tags": [
+        "Adventure",
+        "Indie",
+        "Action",
+        "Strategy"
+      ],
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-20T12:57:38.869200"
+      "last_updated": "2025-06-24T08:46:33.213848"
     },
     "deltarune": {
       "title": "DELTARUNE",
-      "status": "owned",
+      "status": "playing",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.870053",
-      "user_rating": null,
-      "hours_played": null,
+      "user_rating": 10.0,
+      "hours_played": 17.0,
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
-      "tags": [],
+      "tags": [
+        "Adventure",
+        "Indie",
+        "Action",
+        "Strategy"
+      ],
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-20T12:57:38.870054"
+      "last_updated": "2025-06-24T08:46:33.215370"
     },
     "dragon_quest_builders": {
       "title": "Dragon Quest Builders",
-      "status": "owned",
+      "status": "completed",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.870960",
-      "user_rating": null,
-      "hours_played": null,
+      "user_rating": 8.0,
+      "hours_played": 22.0,
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
-      "tags": [],
+      "tags": [
+        "Action",
+        "RPG",
+        "Sandbox"
+      ],
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-20T12:57:38.870961"
+      "last_updated": "2025-06-24T09:13:12.872386"
     },
     "final_fantasy_xv_pocket_edition_hd": {
       "title": "FINAL FANTASY XV POCKET EDITION HD",
@@ -115,11 +134,15 @@
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
-      "tags": [],
+      "tags": [
+        "Visual Novel",
+        "Adventure",
+        "Mystery"
+      ],
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-20T12:57:38.873444"
+      "last_updated": "2025-06-24T08:46:33.218371"
     },
     "hero's_hour": {
       "title": "Hero's Hour",
@@ -131,27 +154,36 @@
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
-      "tags": [],
+      "tags": [
+        "Adventure",
+        "Indie",
+        "Action",
+        "Strategy"
+      ],
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-20T12:57:38.874418"
+      "last_updated": "2025-06-24T08:46:33.219898"
     },
     "iconoclasts": {
       "title": "Iconoclasts",
-      "status": "owned",
+      "status": "completed",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.875491",
-      "user_rating": null,
-      "hours_played": null,
+      "user_rating": 8.0,
+      "hours_played": 12.0,
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
-      "tags": [],
+      "tags": [
+        "Adventure",
+        "Indie",
+        "Platformer"
+      ],
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-20T12:57:38.875492"
+      "last_updated": "2025-06-24T08:46:33.221547"
     },
     "mario_+_rabbids_kingdom_battle": {
       "title": "Mario + Rabbids Kingdom Battle",
@@ -184,11 +216,16 @@
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
-      "tags": [],
+      "tags": [
+        "Adventure",
+        "Indie",
+        "Action",
+        "Strategy"
+      ],
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-20T12:57:38.877759"
+      "last_updated": "2025-06-24T08:46:33.223125"
     },
     "minecraft": {
       "title": "Minecraft",
@@ -221,11 +258,16 @@
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
-      "tags": [],
+      "tags": [
+        "Adventure",
+        "Indie",
+        "Action",
+        "Strategy"
+      ],
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-20T12:57:38.880331"
+      "last_updated": "2025-06-24T08:46:33.224722"
     },
     "moonlighter": {
       "title": "Moonlighter",
@@ -279,11 +321,15 @@
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
-      "tags": [],
+      "tags": [
+        "Party",
+        "Co-op",
+        "Simulation"
+      ],
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-20T12:57:38.884638"
+      "last_updated": "2025-06-24T08:46:33.226608"
     },
     "party_treats": {
       "title": "Party Treats",
@@ -295,11 +341,16 @@
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
-      "tags": [],
+      "tags": [
+        "Adventure",
+        "Indie",
+        "Action",
+        "Strategy"
+      ],
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-20T12:57:38.886415"
+      "last_updated": "2025-06-24T08:46:33.228278"
     },
     "pixeljunk_monsters_2": {
       "title": "PixelJunk Monsters 2",
@@ -311,11 +362,16 @@
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
-      "tags": [],
+      "tags": [
+        "Adventure",
+        "Indie",
+        "Action",
+        "Strategy"
+      ],
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-20T12:57:38.888219"
+      "last_updated": "2025-06-24T08:46:33.229703"
     },
     "rayman_legends_definitive_edition": {
       "title": "Rayman Legends Definitive Edition",
@@ -348,19 +404,23 @@
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
-      "tags": [],
+      "tags": [
+        "Sci-Fi",
+        "RPG",
+        "Adventure"
+      ],
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-20T12:57:38.892103"
+      "last_updated": "2025-06-24T08:46:33.231171"
     },
     "steamworld_dig": {
       "title": "SteamWorld Dig",
-      "status": "owned",
+      "status": "completed",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.894034",
       "user_rating": 8.0,
-      "hours_played": null,
+      "hours_played": 8.0,
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
@@ -373,7 +433,7 @@
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-23T15:06:24.059550"
+      "last_updated": "2025-06-24T08:35:56.689658"
     },
     "steamworld_dig_2": {
       "title": "SteamWorld Dig 2",
@@ -398,51 +458,63 @@
     },
     "steamworld_heist_ii": {
       "title": "SteamWorld Heist II",
-      "status": "owned",
+      "status": "completed",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.897837",
-      "user_rating": null,
-      "hours_played": null,
+      "user_rating": 9.0,
+      "hours_played": 14.0,
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
-      "tags": [],
+      "tags": [
+        "Adventure",
+        "Indie",
+        "Strategy"
+      ],
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-20T12:57:38.897838"
+      "last_updated": "2025-06-24T08:46:33.232845"
     },
     "steamworld_heist_ultimate_edition": {
       "title": "SteamWorld Heist: Ultimate Edition",
-      "status": "owned",
+      "status": "completed",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.899871",
-      "user_rating": null,
-      "hours_played": null,
+      "user_rating": 9.0,
+      "hours_played": 13.0,
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
-      "tags": [],
+      "tags": [
+        "Adventure",
+        "Indie",
+        "Strategy"
+      ],
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-20T12:57:38.899872"
+      "last_updated": "2025-06-24T08:46:33.234298"
     },
     "steamworld_quest_hand_of_gilgamech": {
       "title": "SteamWorld Quest: Hand of Gilgamech",
-      "status": "owned",
+      "status": "completed",
       "platform": "Nintendo Switch",
       "date_added": "2025-06-20T12:57:38.901908",
-      "user_rating": null,
-      "hours_played": null,
+      "user_rating": 9.0,
+      "hours_played": 12.0,
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
-      "tags": [],
+      "tags": [
+        "Adventure",
+        "Indie",
+        "Strategy"
+      ],
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-20T12:57:38.901909"
+      "last_updated": "2025-06-24T08:46:33.235789"
     },
     "trine_2_complete_story": {
       "title": "Trine 2: Complete Story",
@@ -454,11 +526,15 @@
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
-      "tags": [],
+      "tags": [
+        "Adventure",
+        "Co-op",
+        "Platformer"
+      ],
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-20T12:57:38.903964"
+      "last_updated": "2025-06-24T08:46:33.237271"
     },
     "trine_enchanted_edition": {
       "title": "Trine Enchanted Edition",
@@ -491,11 +567,15 @@
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
-      "tags": [],
+      "tags": [
+        "Adventure",
+        "Co-op",
+        "Platformer"
+      ],
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-20T12:57:38.908013"
+      "last_updated": "2025-06-24T08:46:33.238724"
     },
     "wargroove": {
       "title": "Wargroove",
@@ -528,11 +608,16 @@
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
-      "tags": [],
+      "tags": [
+        "Adventure",
+        "Indie",
+        "Action",
+        "Strategy"
+      ],
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-20T12:57:38.912324"
+      "last_updated": "2025-06-24T08:46:33.240174"
     },
     "woodle_tree_adventures_deluxe": {
       "title": "Woodle Tree Adventures Deluxe",
@@ -544,21 +629,26 @@
       "purchase_price": null,
       "current_price": null,
       "notes": "Imported from DekuDeals collection: https://www.dekudeals.com/collection/nbb76ddx3t",
-      "tags": [],
+      "tags": [
+        "Adventure",
+        "Indie",
+        "Action",
+        "Strategy"
+      ],
       "import_source": "manual",
       "steam_id": null,
       "dekudeals_url": null,
-      "last_updated": "2025-06-20T12:57:38.914563"
+      "last_updated": "2025-06-24T08:46:33.241650"
     }
   },
   "stats": {
     "total_games": 31,
-    "owned_games": 31,
+    "owned_games": 24,
     "wishlist_games": 0,
-    "completed_games": 0,
+    "completed_games": 6,
     "total_value": 0.0,
-    "average_rating": 8.0,
-    "total_hours": 0,
+    "average_rating": 8.29,
+    "total_hours": 98.0,
     "favorite_genres": [],
     "platforms": {
       "Nintendo Switch": 31
@@ -566,11 +656,11 @@
     "import_sources": {
       "manual": 31
     },
-    "last_updated": "2025-06-23T15:15:10.933916"
+    "last_updated": "2025-06-24T09:13:12.872469"
   },
   "metadata": {
     "user_id": "user_7_20250620_093336",
-    "last_saved": "2025-06-23T15:15:10.934963",
+    "last_saved": "2025-06-24T09:13:12.874615",
     "version": "1.0.0"
   }
 }

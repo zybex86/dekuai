@@ -7695,3 +7695,288 @@ def quick_game_update(title: str, rating: float, tags: str) -> Dict[str, Any]:
             "error": str(e),
             "timestamp": datetime.now().isoformat(),
         }
+
+
+@register_for_llm(
+    description="Bulk update all owned games with metadata (genres, ratings, etc.) to enable recommendations"
+)
+@register_for_execution()
+def bulk_update_owned_games_metadata(
+    auto_suggest_genres: bool = True,
+    update_missing_only: bool = True,
+    include_hours_estimates: bool = False,
+) -> Dict[str, Any]:
+    """
+    Bulk update all owned games with metadata to enable better recommendations.
+
+    Args:
+        auto_suggest_genres: Automatically suggest genres based on game titles
+        update_missing_only: Only update games that are missing metadata (safer)
+        include_hours_estimates: Add estimated hours played based on genres
+
+    Returns:
+        Dict with bulk update results and statistics
+    """
+    try:
+        from utils.collection_updater import get_collection_updater
+
+        updater = get_collection_updater()
+
+        # Get current collection
+        user_id, collection = updater.get_current_user_collection()
+
+        if not collection:
+            return {
+                "success": False,
+                "error": "No games found in collection",
+                "timestamp": datetime.now().isoformat(),
+            }
+
+        # Filter to owned games only
+        owned_games = [
+            game
+            for game in collection
+            if game.status.value in ["owned", "completed", "playing"]
+        ]
+
+        if not owned_games:
+            return {
+                "success": False,
+                "error": "No owned games found in collection",
+                "timestamp": datetime.now().isoformat(),
+            }
+
+        results = {
+            "success": True,
+            "total_games_processed": len(owned_games),
+            "games_updated": 0,
+            "games_skipped": 0,
+            "update_details": [],
+            "errors": [],
+            "metadata_improvements": {
+                "genres_added": 0,
+                "ratings_suggested": 0,
+                "hours_estimated": 0,
+            },
+            "recommendation_readiness": {
+                "before": {"rated": 0, "tagged": 0, "complete": 0},
+                "after": {"rated": 0, "tagged": 0, "complete": 0},
+            },
+            "timestamp": datetime.now().isoformat(),
+        }
+
+        # Calculate before stats
+        for game in owned_games:
+            if game.user_rating:
+                results["recommendation_readiness"]["before"]["rated"] += 1
+            if game.tags:
+                results["recommendation_readiness"]["before"]["tagged"] += 1
+            if game.user_rating and game.tags:
+                results["recommendation_readiness"]["before"]["complete"] += 1
+
+        logger.info(
+            f"🎮 Starting bulk metadata update for {len(owned_games)} owned games"
+        )
+
+        # Process each owned game
+        for game in owned_games:
+            try:
+                game_title = game.title
+                needs_update = False
+                updates = {}
+                update_reasons = []
+
+                # Check if we should update this game
+                if update_missing_only:
+                    if not game.user_rating:
+                        needs_update = True
+                    if not game.tags:
+                        needs_update = True
+                else:
+                    needs_update = True
+
+                if not needs_update:
+                    results["games_skipped"] += 1
+                    continue
+
+                # 1. Auto-suggest genres if enabled and missing
+                if auto_suggest_genres and not game.tags:
+                    suggested_genres = updater._suggest_genres_for_game(game_title)
+                    if suggested_genres:
+                        updates["tags"] = suggested_genres
+                        update_reasons.append(
+                            f"Added genres: {', '.join(suggested_genres[:3])}"
+                        )
+                        results["metadata_improvements"]["genres_added"] += 1
+
+                # 2. Suggest rating ranges if missing (don't auto-assign, just suggest)
+                if not game.user_rating:
+                    # Suggest rating ranges based on game patterns
+                    rating_suggestion = _suggest_rating_for_game(game_title)
+                    if rating_suggestion:
+                        update_reasons.append(f"Rating suggestion: {rating_suggestion}")
+                        results["metadata_improvements"]["ratings_suggested"] += 1
+
+                # 3. Estimate hours if enabled and missing
+                if include_hours_estimates and not game.hours_played and game.tags:
+                    estimated_hours = _estimate_hours_for_genres(game.tags)
+                    if estimated_hours:
+                        updates["hours_played"] = estimated_hours
+                        update_reasons.append(f"Estimated hours: {estimated_hours}")
+                        results["metadata_improvements"]["hours_estimated"] += 1
+
+                # Apply updates if any
+                if updates:
+                    success, message = updater.update_game(game_title, updates)
+
+                    if success:
+                        results["games_updated"] += 1
+                        results["update_details"].append(
+                            {
+                                "game": game_title,
+                                "updates": updates,
+                                "reasons": update_reasons,
+                                "status": "success",
+                            }
+                        )
+                        logger.info(
+                            f"✅ Updated '{game_title}': {', '.join(update_reasons)}"
+                        )
+                    else:
+                        results["errors"].append(
+                            {
+                                "game": game_title,
+                                "error": message,
+                                "attempted_updates": updates,
+                            }
+                        )
+                        logger.warning(f"❌ Failed to update '{game_title}': {message}")
+                else:
+                    results["games_skipped"] += 1
+                    results["update_details"].append(
+                        {
+                            "game": game_title,
+                            "reasons": ["No updates needed"],
+                            "status": "skipped",
+                        }
+                    )
+
+            except Exception as e:
+                results["errors"].append(
+                    {
+                        "game": game.title,
+                        "error": str(e),
+                        "attempted_updates": "unknown",
+                    }
+                )
+                logger.error(f"❌ Error updating '{game.title}': {e}")
+
+        # Calculate after stats
+        _, updated_collection = updater.get_current_user_collection()
+        updated_owned_games = [
+            game
+            for game in updated_collection
+            if game.status.value in ["owned", "completed", "playing"]
+        ]
+
+        for game in updated_owned_games:
+            if game.user_rating:
+                results["recommendation_readiness"]["after"]["rated"] += 1
+            if game.tags:
+                results["recommendation_readiness"]["after"]["tagged"] += 1
+            if game.user_rating and game.tags:
+                results["recommendation_readiness"]["after"]["complete"] += 1
+
+        # Calculate improvement
+        before_complete = results["recommendation_readiness"]["before"]["complete"]
+        after_complete = results["recommendation_readiness"]["after"]["complete"]
+        improvement = after_complete - before_complete
+
+        results["message"] = (
+            f"Bulk update completed: {results['games_updated']} games updated, {improvement} games now recommendation-ready"
+        )
+
+        logger.info(
+            f"🎉 Bulk metadata update completed: {results['games_updated']} games updated"
+        )
+
+        return results
+
+    except Exception as e:
+        logger.error(f"Error in bulk metadata update: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat(),
+        }
+
+
+def _suggest_rating_for_game(game_title: str) -> str:
+    """Suggest rating ranges based on game patterns."""
+    title_lower = game_title.lower()
+
+    # High-rated indie darlings
+    if any(
+        game in title_lower
+        for game in ["hollow knight", "celeste", "hades", "dead cells", "ori and"]
+    ):
+        return "8.5-9.5/10 (Critically acclaimed indie)"
+
+    # Nintendo first-party
+    if any(game in title_lower for game in ["mario", "zelda", "metroid", "pokemon"]):
+        return "8.0-9.0/10 (Nintendo first-party quality)"
+
+    # Popular indies
+    if any(
+        game in title_lower
+        for game in ["steamworld", "shovel knight", "cuphead", "binding of isaac"]
+    ):
+        return "7.5-8.5/10 (Well-reviewed indie)"
+
+    # Final Fantasy series
+    if "final fantasy" in title_lower:
+        return "7.0-8.0/10 (JRPG series)"
+
+    # Overcooked party games
+    if any(
+        game in title_lower for game in ["overcooked", "moving out", "human fall flat"]
+    ):
+        return "7.5-8.5/10 (Great party game)"
+
+    return "7.0-8.0/10 (General suggestion - please adjust based on your experience)"
+
+
+def _estimate_hours_for_genres(tags: List[str]) -> Optional[int]:
+    """Estimate hours played based on game genres."""
+    if not tags:
+        return None
+
+    # Genre hour estimates (conservative)
+    genre_hours = {
+        "RPG": 40,
+        "Strategy": 25,
+        "Simulation": 30,
+        "Metroidvania": 20,
+        "Platformer": 12,
+        "Puzzle": 8,
+        "Action": 15,
+        "Adventure": 18,
+        "Indie": 10,
+        "Party": 5,
+        "Racing": 8,
+        "Fighting": 10,
+    }
+
+    # Calculate average based on tags
+    total_hours = 0
+    valid_genres = 0
+
+    for tag in tags:
+        if tag in genre_hours:
+            total_hours += genre_hours[tag]
+            valid_genres += 1
+
+    if valid_genres > 0:
+        return int(total_hours / valid_genres)
+
+    return 15  # Default estimate

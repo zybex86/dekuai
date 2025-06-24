@@ -1093,6 +1093,7 @@ class EnhancedCLI:
             [
                 "➕ Add game to collection",
                 "📝 Update game in collection",
+                "🔄 Bulk update all owned games",
                 "❌ Remove game from collection",
                 "📋 View my game collection",
                 "🔍 Check if game is owned",
@@ -1114,6 +1115,9 @@ class EnhancedCLI:
 
         elif "Update game in collection" in action:
             return self.update_game_in_collection_interactive()
+
+        elif "Bulk update all owned games" in action:
+            return self.bulk_update_owned_games_interactive()
 
         elif "Remove game from collection" in action:
             return self.remove_game_from_collection_interactive()
@@ -1295,9 +1299,10 @@ class EnhancedCLI:
             [
                 "📊 Game status",
                 "⭐ Rating",
+                "🏷️ Tags/Genres",
                 "📝 Notes",
                 "🕒 Hours played",
-                "🏷️ All details",
+                "📋 All details",
                 "🔙 Cancel update",
             ],
         )
@@ -1353,6 +1358,36 @@ class EnhancedCLI:
                             )
                     except ValueError:
                         self.print_status("Invalid rating format", "warning")
+
+            if "Tags/Genres" in update_choice or "All details" in update_choice:
+                # Show suggested genres
+                from utils.collection_updater import get_collection_updater
+
+                updater = get_collection_updater()
+                suggested_genres = updater._suggest_genres_for_game(title)
+
+                if suggested_genres:
+                    self.print_status(
+                        f"💡 Suggested genres: {', '.join(suggested_genres)}", "info"
+                    )
+
+                tags_input = input(
+                    colored(
+                        "🏷️ Enter genre tags (comma-separated, e.g., 'Action,RPG,Indie'): ",
+                        "cyan",
+                        attrs=["bold"],
+                    )
+                ).strip()
+
+                if tags_input:
+                    # Convert comma-separated string to list
+                    tag_list = [
+                        tag.strip() for tag in tags_input.split(",") if tag.strip()
+                    ]
+                    if tag_list:
+                        updates["tags"] = tag_list
+                    else:
+                        self.print_status("No valid tags provided", "warning")
 
             if "Notes" in update_choice or "All details" in update_choice:
                 notes = input(
@@ -1410,6 +1445,214 @@ class EnhancedCLI:
 
         except Exception as e:
             self.print_status(f"❌ Update error: {str(e)}", "error")
+            return False
+
+    def bulk_update_owned_games_interactive(self) -> bool:
+        """Interactive bulk update for all owned games metadata."""
+        self.print_section("🔄 Bulk Update All Owned Games", "highlight")
+
+        # Show current collection status
+        try:
+            from agent_tools import view_collection_summary
+
+            summary_result = view_collection_summary()
+
+            if summary_result.get("success", False):
+                summary = summary_result.get("collection_summary", {})
+
+                self.print_status(f"📚 Your Collection Overview:", "info")
+                self.print_status(
+                    f"   Total Games: {summary.get('total_games', 0)}", "info"
+                )
+                self.print_status(
+                    f"   Rated Games: {summary.get('rated_games', 0)}", "info"
+                )
+                self.print_status(
+                    f"   Tagged Games: {summary.get('tagged_games', 0)}", "info"
+                )
+                self.print_status(
+                    f"   Completion: {summary.get('completion_percentage', 0)}%", "info"
+                )
+                self.print_status(
+                    f"   Recommendation Ready: {'✅ Yes' if summary.get('recommendation_ready') else '❌ No'}",
+                    "info",
+                )
+
+        except Exception as e:
+            self.print_status(
+                f"⚠️ Could not get collection summary: {str(e)}", "warning"
+            )
+
+        print()
+        self.print_status(
+            "This will automatically add missing genres/tags to your owned games to enable recommendations.",
+            "info",
+        )
+        self.print_status(
+            "⚠️ It only updates games that are missing metadata (safe mode).", "warning"
+        )
+
+        # Get user preferences
+        update_options = self.get_user_choice(
+            "Select bulk update options:",
+            [
+                "🎯 Auto-suggest genres only (safest)",
+                "🎯 Auto-suggest genres + estimate hours",
+                "📊 Full metadata enhancement",
+                "🔙 Cancel bulk update",
+            ],
+        )
+
+        if not update_options or "Cancel" in update_options:
+            self.print_status("Bulk update cancelled", "info")
+            return False
+
+        # Set parameters based on choice
+        auto_suggest_genres = True
+        include_hours_estimates = (
+            "estimate hours" in update_options or "Full metadata" in update_options
+        )
+        update_missing_only = True  # Always safe mode for interactive
+
+        # Confirm action
+        confirm = self.get_user_choice(
+            f"⚠️ Proceed with bulk update of owned games?",
+            [
+                "✅ Yes, update my games",
+                "🔙 No, go back",
+            ],
+        )
+
+        if not confirm or "No, go back" in confirm:
+            self.print_status("Bulk update cancelled", "info")
+            return False
+
+        # Perform bulk update with progress
+        self.print_status("🔄 Starting bulk metadata update...", "loading")
+
+        try:
+            from agent_tools import bulk_update_owned_games_metadata
+
+            # Create progress bar
+            progress = self.create_progress_bar("Bulk Update Progress", 100, "cyan")
+            progress.update(10)
+
+            # Run bulk update
+            result = bulk_update_owned_games_metadata(
+                auto_suggest_genres=auto_suggest_genres,
+                update_missing_only=update_missing_only,
+                include_hours_estimates=include_hours_estimates,
+            )
+
+            progress.update(90)
+            progress.close()
+
+            if result.get("success", False):
+                # Show success results
+                games_updated = result.get("games_updated", 0)
+                games_processed = result.get("total_games_processed", 0)
+                improvements = result.get("metadata_improvements", {})
+                readiness = result.get("recommendation_readiness", {})
+
+                self.print_status(f"✅ Bulk update completed successfully!", "success")
+
+                print()
+                cprint("   📊 Update Results:", "cyan", attrs=["bold"])
+                cprint(f"      🎮 Games Processed: {games_processed}", "white")
+                cprint(f"      ✅ Games Updated: {games_updated}", "white")
+                cprint(
+                    f"      🏷️ Genres Added: {improvements.get('genres_added', 0)}",
+                    "white",
+                )
+                cprint(
+                    f"      💡 Rating Suggestions: {improvements.get('ratings_suggested', 0)}",
+                    "white",
+                )
+                if include_hours_estimates:
+                    cprint(
+                        f"      🕒 Hours Estimated: {improvements.get('hours_estimated', 0)}",
+                        "white",
+                    )
+
+                # Show recommendation readiness improvement
+                before = readiness.get("before", {})
+                after = readiness.get("after", {})
+
+                before_complete = before.get("complete", 0)
+                after_complete = after.get("complete", 0)
+                improvement = after_complete - before_complete
+
+                if improvement > 0:
+                    print()
+                    cprint(
+                        "   🎯 Recommendation Readiness Improved:",
+                        "green",
+                        attrs=["bold"],
+                    )
+                    cprint(
+                        f"      Before: {before_complete} recommendation-ready games",
+                        "white",
+                    )
+                    cprint(
+                        f"      After: {after_complete} recommendation-ready games",
+                        "white",
+                    )
+                    cprint(
+                        f"      ➕ Improvement: +{improvement} games",
+                        "green",
+                        attrs=["bold"],
+                    )
+
+                # Show update details if available
+                update_details = result.get("update_details", [])
+                successful_updates = [
+                    d for d in update_details if d.get("status") == "success"
+                ]
+
+                if successful_updates:
+                    print()
+                    cprint(
+                        "   🎮 Updated Games (showing first 5):", "cyan", attrs=["bold"]
+                    )
+                    for detail in successful_updates[:5]:
+                        game_title = detail.get("game", "Unknown")
+                        reasons = detail.get("reasons", [])
+                        cprint(f"      • {game_title}", "white", attrs=["bold"])
+                        for reason in reasons:
+                            cprint(f"        └─ {reason}", "yellow")
+
+                # Show errors if any
+                errors = result.get("errors", [])
+                if errors:
+                    print()
+                    cprint("   ⚠️ Some Updates Failed:", "yellow", attrs=["bold"])
+                    for error in errors[:3]:  # Show only first 3 errors
+                        game_title = error.get("game", "Unknown")
+                        error_msg = error.get("error", "Unknown error")
+                        cprint(f"      • {game_title}: {error_msg}", "yellow")
+
+                # Next steps
+                print()
+                self.print_status("🎉 Next Steps:", "success")
+                self.print_status(
+                    "   1. Review the suggested rating ranges for your games", "info"
+                )
+                self.print_status(
+                    "   2. Update ratings based on your personal experience", "info"
+                )
+                self.print_status(
+                    "   3. Try getting collection-based recommendations!", "info"
+                )
+
+                return True
+
+            else:
+                error_msg = result.get("error", "Unknown error")
+                self.print_status(f"❌ Bulk update failed: {error_msg}", "error")
+                return False
+
+        except Exception as e:
+            self.print_status(f"❌ Bulk update error: {str(e)}", "error")
             return False
 
     def remove_game_from_collection_interactive(self) -> bool:
