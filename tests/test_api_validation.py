@@ -83,9 +83,9 @@ class TestAPIKeyValidation:
         if not api_key:
             print("❌ OPENAI_API_KEY not set")
             print("\n📝 To set your API key:")
-            print("   1. export OPENAI_API_KEY='sk-your-key'")
+            print("   1. export OPENAI_API_KEY='not-secure-key'")
             print("   2. Or create .env file with your key")
-            print("   3. Or run: OPENAI_API_KEY='sk-your-key' pytest")
+            print("   3. Or run: OPENAI_API_KEY='not-secure-key' pytest")
         else:
             print(f"✅ OPENAI_API_KEY found: {api_key[:10]}...{api_key[-4:]}")
             print(f"📏 Length: {len(api_key)} characters")
